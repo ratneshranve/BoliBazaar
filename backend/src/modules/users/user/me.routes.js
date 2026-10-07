@@ -9,6 +9,7 @@ import { Media } from '../../uploads/media.model.js';
 import { Session } from '../../auth/auth.models.js';
 import { revokeSession } from '../../auth/auth.service.js';
 import { meDto } from '../user.dto.js';
+import { getSettingValue } from '../../settings/settings.service.js';
 
 const router = Router();
 router.use(requireUser);
@@ -68,9 +69,16 @@ router.post(
     }),
   }),
   asyncHandler(async (req, res) => {
-    const types = req.body.consents.map((c) => c.docType);
-    if (!types.includes('terms') || !types.includes('privacy')) {
-      throw ApiError.badRequest('CONSENT_REQUIRED', 'Terms and Privacy Policy must be accepted');
+    const legal = await getSettingValue('legal');
+    if (!legal.terms.version || !legal.privacy.version) {
+      throw ApiError.unavailable('LEGAL_NOT_CONFIGURED', 'Terms/Privacy versions are not published in Admin › Settings › Legal');
+    }
+    const accepted = (type) => req.body.consents.find((c) => c.docType === type)?.version;
+    if (accepted('terms') !== legal.terms.version || accepted('privacy') !== legal.privacy.version) {
+      throw ApiError.badRequest('CONSENT_REQUIRED', 'Accept the current Terms and Privacy Policy', {
+        terms: legal.terms.version,
+        privacy: legal.privacy.version,
+      });
     }
     const user = await loadMe(req.user.id);
     const { consents, ageConfirmed, ...profile } = req.body;

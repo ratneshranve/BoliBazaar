@@ -42,6 +42,7 @@ router.get(
       serverTime: new Date().toISOString(),
       branding: s.branding.value,
       features: s.features.value,
+      legal: s.legal.value,
       maintenance,
       update,
       versions: {

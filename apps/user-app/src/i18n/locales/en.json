@@ -1,0 +1,126 @@
+{
+  "common": {
+    "continue": "Continue",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "save": "Save",
+    "done": "Done",
+    "loading": "Loading…",
+    "logout": "Log out",
+    "back": "Back",
+    "seeAll": "View all",
+    "offline": "You're offline",
+    "somethingWrong": "Something went wrong",
+    "comingSoon": "This section will be available soon."
+  },
+  "tabs": {
+    "home": "Home",
+    "explore": "Explore",
+    "sell": "Sell",
+    "auctions": "Auctions",
+    "profile": "Profile"
+  },
+  "config": {
+    "title": "App is not configured",
+    "body": "These values are missing in the app's .env file:"
+  },
+  "maintenance": {
+    "title": "We'll be back soon",
+    "until": "Expected back by {{time}}",
+    "check": "Check again"
+  },
+  "update": {
+    "requiredTitle": "Update required",
+    "requiredBody": "Please update to the latest version to continue.",
+    "availableTitle": "Update available",
+    "availableBody": "A new version is available.",
+    "update": "Update now",
+    "later": "Later"
+  },
+  "language": {
+    "title": "Choose your language",
+    "subtitle": "You can change this later in Settings"
+  },
+  "auth": {
+    "loginTitle": "Log in or sign up",
+    "loginSubtitle": "Enter your mobile number to continue",
+    "phonePlaceholder": "Mobile number",
+    "sendOtp": "Get OTP",
+    "otpTitle": "Enter verification code",
+    "otpSubtitle": "Sent to {{phone}}",
+    "changeNumber": "Change number",
+    "resendIn": "Resend OTP in {{sec}}s",
+    "resend": "Resend OTP",
+    "verify": "Verify",
+    "attemptsLeft": "{{count}} attempts left",
+    "browseGuest": "Browse as guest",
+    "loginRequired": "Please log in to continue"
+  },
+  "profileSetup": {
+    "title": "Complete your profile",
+    "name": "Your name",
+    "age": "I confirm I am 18 years or older",
+    "terms": "I accept the Terms & Conditions",
+    "privacy": "I accept the Privacy Policy",
+    "marketing": "Send me offers and updates (optional)",
+    "read": "Read",
+    "submit": "Get started",
+    "legalMissing": "Terms are not published yet. Please try again later."
+  },
+  "home": {
+    "searchPlaceholder": "Search for cars, phones, property, tractors…",
+    "empty": "Listings will appear here."
+  },
+  "profile": {
+    "editProfile": "Edit Profile",
+    "verifiedPhone": "Phone verified",
+    "myListings": "My Listings",
+    "myListingsSub": "Manage your items",
+    "myAuctions": "My Auctions",
+    "myAuctionsSub": "Active & past bids",
+    "myPurchases": "My Purchases",
+    "myPurchasesSub": "Items you won or bought",
+    "favourites": "Favourites",
+    "favouritesSub": "Saved items",
+    "messages": "Messages",
+    "messagesSub": "Chat with buyers and sellers",
+    "payments": "Payments",
+    "paymentsSub": "Payments, refunds and invoices",
+    "addresses": "Saved Locations",
+    "addressesSub": "Manage your locations",
+    "verification": "ID Verification",
+    "verificationSub": "Complete your KYC for better trust",
+    "security": "Account & Security",
+    "securitySub": "Sessions, privacy and security",
+    "help": "Help & Support",
+    "helpSub": "Get help, contact us",
+    "language": "Language",
+    "guestTitle": "You're browsing as a guest",
+    "guestBody": "Log in to post ads, bid, chat and save items.",
+    "login": "Log in"
+  },
+  "security": {
+    "title": "Account & Security",
+    "sessions": "Logged-in devices",
+    "thisDevice": "This device",
+    "logoutDevice": "Log out",
+    "logoutOthers": "Log out all other devices",
+    "lastActive": "Last active {{time}}"
+  },
+  "errors": {
+    "NETWORK_ERROR": "No internet connection",
+    "PHONE_INVALID": "Enter a valid mobile number",
+    "OTP_INVALID": "Incorrect OTP",
+    "OTP_EXPIRED": "OTP expired, request a new one",
+    "OTP_ATTEMPTS_EXCEEDED": "Too many wrong attempts, request a new OTP",
+    "OTP_RESEND_TOO_SOON": "Please wait before requesting another OTP",
+    "OTP_LIMIT_REACHED": "Too many OTP requests. Try again later.",
+    "OTP_DELIVERY_FAILED": "Could not send OTP, please try again",
+    "ACCOUNT_BANNED": "This account is banned",
+    "RATE_LIMITED": "Too many requests, please wait",
+    "CONSENT_REQUIRED": "Please accept the Terms and Privacy Policy",
+    "LEGAL_NOT_CONFIGURED": "Terms are not published yet. Please try again later.",
+    "VALIDATION_FAILED": "Please check the details you entered",
+    "UNKNOWN_ERROR": "Something went wrong"
+  }
+}
