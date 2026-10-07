@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+
+# Environment files (credentials) — only .env.example is committed
+.env
+.env.*
+!.env.example
+
+# Build outputs
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Backend runtime data
+backend/uploads/
+logs/
+*.log
+
+# React Native / native builds
+apps/user-app/android/app/build/
+apps/user-app/android/build/
+apps/user-app/android/.gradle/
+apps/user-app/android/.kotlin/
+apps/user-app/android/local.properties
+apps/user-app/ios/Pods/
+apps/user-app/ios/build/
+apps/user-app/vendor/
+*.keystore
+!debug.keystore
+*.jks
+google-services.json
+GoogleService-Info.plist
+
+# Editors / OS / scratch
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+scratch/
+tmp/
