@@ -1,0 +1,35 @@
+{
+  "name": "bolibazaar-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "seed:admin": "node src/scripts/seed-admin.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.5.1",
+    "compression": "^1.7.5",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "firebase-admin": "^13.0.2",
+    "helmet": "^8.0.0",
+    "ioredis": "^5.4.2",
+    "jsonwebtoken": "^9.0.2",
+    "libphonenumber-js": "^1.11.17",
+    "mongoose": "^8.9.3",
+    "morgan": "^1.10.0",
+    "multer": "^2.4.0",
+    "rate-limit-redis": "^4.2.0",
+    "sharp": "^0.33.5",
+    "zod": "^3.24.1"
+  }
+}

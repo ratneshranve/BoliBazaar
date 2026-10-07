@@ -1,0 +1,35 @@
+import { Router } from 'express';
+import { requirePermission } from '../../../core/middleware/auth.js';
+import { asyncHandler, ok } from '../../../core/utils/http.js';
+import { User } from '../../users/user.model.js';
+
+const router = Router();
+
+/** KPI summary. New KPIs are added here as later phases introduce listings, auctions, payments. */
+router.get(
+  '/summary',
+  requirePermission('dashboard.view'),
+  asyncHandler(async (req, res) => {
+    const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const since1 = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const [totalUsers, activeUsers30d, newUsers24h, suspended] = await Promise.all([
+      User.countDocuments({ status: { $ne: 'deleted' } }),
+      User.countDocuments({ lastActiveAt: { $gte: since30 } }),
+      User.countDocuments({ createdAt: { $gte: since1 } }),
+      User.countDocuments({ status: { $in: ['suspended', 'banned'] } }),
+    ]);
+
+    const signups = await User.aggregate([
+      { $match: { createdAt: { $gte: since30 } } },
+      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, count: { $sum: 1 } } },
+      { $sort: { _id: 1 } },
+    ]);
+
+    ok(res, {
+      kpis: { totalUsers, activeUsers30d, newUsers24h, suspended },
+      charts: { signups: signups.map((s) => ({ date: s._id, count: s.count })) },
+    });
+  })
+);
+
+export default router;
