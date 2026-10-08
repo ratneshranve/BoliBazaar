@@ -18,6 +18,7 @@ router.get('/integrations', requirePermission('settings.view'), (req, res) =>
     firebase: integrations.firebase,
     cloudinary: integrations.cloudinary,
     translate: integrations.translate,
+    maps: integrations.maps,
     razorpay: integrations.razorpay,
     storageProviders: [
       { id: 'cloudinary', available: integrations.cloudinary.configured },

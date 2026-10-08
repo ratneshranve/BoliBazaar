@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { ChevronDown, Globe, MapPin } from 'lucide-react-native';
 import { AppText } from './ui';
 import { useAppSelector } from '../store';
+import { scopeText } from '../utils/distance';
 import { colors, spacing } from '../theme/tokens';
 import type { RootStackParamList } from '../navigation/types';
 
@@ -16,11 +17,12 @@ export const LocationChip = () => {
   const { t } = useTranslation();
   const nav = useNavigation<Nav>();
   const current = useAppSelector(s => s.location.current);
+  const unit = useAppSelector(s => s.app.bootstrap?.location?.distanceUnit);
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={t('location.title')} onPress={() => nav.navigate('Location')} style={styles.chip}>
       <MapPin size={18} color={colors.primary} />
-      <AppText variant="bodyStrong" numberOfLines={1} style={{ maxWidth: 110 }}>
-        {current?.name ?? t('home.chooseLocation')}
+      <AppText variant="bodyStrong" numberOfLines={1} style={{ maxWidth: 150 }}>
+        {current ? `${current.name || current.label.split(',')[0]} · ${scopeText(current.scope, unit, t)}` : t('home.chooseLocation')}
       </AppText>
       <ChevronDown size={16} color={colors.textMuted} />
     </Pressable>

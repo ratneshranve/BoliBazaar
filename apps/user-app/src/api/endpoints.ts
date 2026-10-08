@@ -1,14 +1,15 @@
 import { api } from './client';
-import type { Bootstrap, CategoryNode, ContentPage, HomeFeed, LoginResult, Me, OtpSent, PlaceLite, PlaceNode, SessionInfo } from './types';
+import type { Bootstrap, CategoryNode, ContentPage, HomeFeed, LoginResult, Me, OtpSent, Place, PlaceSuggestion, SessionInfo } from './types';
 
 export const homeApi = { get: () => api<HomeFeed>('/home', { auth: false }) };
 
 export const categoriesApi = { tree: () => api<CategoryNode[]>('/categories/tree', { auth: false }) };
 
-export const locationsApi = {
-  search: (q: string) => api<PlaceLite[]>('/locations/search', { auth: false, query: { q } }),
-  children: (parentId?: string) => api<PlaceNode[]>('/locations/children', { auth: false, query: { parentId } }),
-  reverse: (lat: number, lng: number) => api<PlaceLite | null>('/locations/reverse', { auth: false, query: { lat, lng } }),
+/** Places come from Google via our server: search a name/PIN, or turn a GPS point / map pin into an address. */
+export const placesApi = {
+  autocomplete: (q: string, sessionToken: string) => api<PlaceSuggestion[]>('/places/autocomplete', { auth: false, query: { q, sessionToken } }),
+  details: (placeId: string, sessionToken: string) => api<Place>(`/places/details/${encodeURIComponent(placeId)}`, { auth: false, query: { sessionToken } }),
+  reverse: (lat: number, lng: number) => api<Place | null>('/places/reverse', { auth: false, query: { lat, lng } }),
 };
 
 /** Machine-translated UI strings for admin-enabled languages the app doesn't ship */
@@ -45,7 +46,7 @@ export const authApi = {
 
 export const meApi = {
   get: () => api<Me>('/me'),
-  update: (body: Partial<{ name: string; about: string | null; language: string; avatarMediaId: string | null; homeLocationId: string | null }>) =>
+  update: (body: Partial<{ name: string; about: string | null; language: string; avatarMediaId: string | null; homeLocation: Pick<Place, 'label' | 'name' | 'placeId' | 'lat' | 'lng' | 'address'> | null }>) =>
     api<Me>('/me', { method: 'PATCH', body }),
   completeProfile: (body: {
     name: string;

@@ -95,6 +95,8 @@ android {
         versionCode 1
         versionName "1.0.0"
         resValue "string", "build_config_package", "com.bolibazaar.app"
+        // Google Maps SDK key from apps/user-app/.env (GOOGLE_MAPS_API_KEY); the map shows blank tiles without it
+        manifestPlaceholders = [googleMapsApiKey: project.env.get("GOOGLE_MAPS_API_KEY") ?: ""]
     }
     signingConfigs {
         debug {

@@ -17,6 +17,7 @@ export type Bootstrap = {
   serverTime: string;
   branding: Branding;
   features: Record<string, boolean>;
+  location: LocationSettings;
   languages: { default: string; items: { code: string; name: string; nativeName: string; rtl: boolean }[] };
   legal: {
     terms: { version: number | null };
@@ -39,7 +40,7 @@ export type Me = {
   countryCode: string | null;
   timezone: string | null;
   sellerType: 'individual' | 'business';
-  homeLocation?: { leafId: string; leafType: string; displayName: string } | null;
+  homeLocation?: { label: string; name?: string; placeId?: string; address?: PlaceAddress; geo?: { coordinates: [number, number] } } | null;
   status: string;
   suspendedUntil: string | null;
   profileCompleted: boolean;
@@ -69,10 +70,26 @@ export type HomeFeed = {
   categories: (Omit<CategoryNode, 'children'> & { hasChildren: boolean })[];
 };
 
-export type PlaceLite = { id: string; type: string; name: string; path: string; countryCode?: string; parentId: string | null; geo: { lat: number; lng: number } | null };
-export type PlaceNode = PlaceLite & { aliases: string[]; pinCodes: string[]; status: string; childCount: number };
+/** Places come from Google via our server. A place is a map point + a readable label. */
+export type PlaceAddress = { area?: string | null; city?: string | null; district?: string | null; state?: string | null; country?: string | null; countryCode?: string | null; pin?: string | null };
+export type Place = { placeId?: string; name: string; label: string; lat: number; lng: number; address: PlaceAddress };
+export type PlaceSuggestion = { placeId: string; primary: string; secondary: string };
 
-export type CurrentPlace = { id: string; name: string; path: string; type: string };
+/** How far around the place to look: a radius in km, or a wider named area. */
+export type Scope = { type: 'radius'; km: number } | { type: 'district' | 'state' | 'country' | 'worldwide' };
+
+/** Where the user is browsing from. */
+export type CurrentPlace = Place & { scope: Scope };
+
+export type LocationSettings = {
+  radiusOptionsKm: number[];
+  defaultRadiusKm: number;
+  wideScopes: { district: boolean; state: boolean; country: boolean; worldwide: boolean };
+  allowedCountries: string[];
+  distanceUnit: 'km' | 'mi';
+  publicOffsetMeters: number;
+  popularPlaces: { placeId: string; name: string; label: string; lat: number; lng: number; countryCode?: string }[];
+};
 
 export type OtpSent = { phone: string; length: number; expiresInSec: number; resendInSec: number };
 
