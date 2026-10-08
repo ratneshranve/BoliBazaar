@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, BadgeCheck, CheckCircle2, CreditCard, FileText, Rocket, Star, Tag, Zap, ArrowUp } from 'lucide-react';
+import { ArrowLeft, BadgeCheck, CheckCircle2, CreditCard, FileText, Home, LayoutGrid, MapPin, Rocket, Star } from 'lucide-react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from '../components/primitives';
 import { AppText, Button, Card, EmptyState } from '../components/ui';
 import { colors, radius, spacing } from '@theme/tokens';
@@ -45,20 +45,16 @@ export const PayScreen = () => {
   const body = { purpose: params.get('purpose'), refId: params.get('refId') || undefined, productCode: params.get('productCode') || undefined };
   const [q, setQ] = useState(null);
   const [error, setError] = useState('');
-  const [coupon, setCoupon] = useState('');
-  const [couponError, setCouponError] = useState('');
   const [paying, setPaying] = useState(false);
   const [done, setDone] = useState(null);
 
   const load = useCallback(
-    async (code) => {
+    async () => {
       try {
-        const { data } = await paymentsApi.quote({ ...body, couponCode: code || undefined });
+        const { data } = await paymentsApi.quote(body);
         setQ(data);
-        setCouponError('');
       } catch (e) {
-        if (code) setCouponError(errorText(e));
-        else setError(errorText(e));
+        setError(errorText(e));
       }
     },
     [params.toString()] // eslint-disable-line react-hooks/exhaustive-deps
@@ -70,7 +66,7 @@ export const PayScreen = () => {
   const pay = async () => {
     setPaying(true);
     try {
-      const { data } = await paymentsApi.order({ ...body, couponCode: q.couponCode || undefined });
+      const { data } = await paymentsApi.order(body);
       const result = data.checkout ? await openCheckout(data.checkout, brand) : data.payment;
       setDone(result);
     } catch (e) {
@@ -108,7 +104,7 @@ export const PayScreen = () => {
             <Card style={{ gap: spacing.sm }}>
               <AppText variant="bodyStrong">{q.description}</AppText>
               <View style={styles.line}><AppText color={colors.textMuted}>{t('pay.price')}</AppText><AppText>{money(q.baseMinor)}</AppText></View>
-              {q.discountMinor > 0 && <View style={styles.line}><AppText color={colors.sell}>{t('pay.discount', { code: q.couponCode })}</AppText><AppText color={colors.sell}>−{money(q.discountMinor)}</AppText></View>}
+              {q.includedInPlan && <AppText variant="caption" color={colors.sell}>{t('pay.includedInPlan')}</AppText>}
               {q.taxPercent > 0 && <View style={styles.line}><AppText color={colors.textMuted}>{q.taxLabel} {q.taxPercent}%</AppText><AppText>{money(q.taxMinor)}</AppText></View>}
               <View style={[styles.line, { borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: spacing.sm }]}>
                 <AppText variant="h3">{t('pay.total')}</AppText>
@@ -116,19 +112,7 @@ export const PayScreen = () => {
               </View>
             </Card>
 
-            <Card style={{ gap: spacing.sm }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                <Tag size={18} color={colors.primary} />
-                <AppText variant="bodyStrong">{t('pay.coupon')}</AppText>
-              </View>
-              <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                <TextInput value={coupon} onChangeText={(v) => setCoupon(v.toUpperCase())} placeholder={t('pay.couponPlaceholder')} maxLength={30} style={styles.input} />
-                <Button size="md" variant="outline" title={q.couponCode ? t('pay.remove') : t('pay.apply')} disabled={!q.couponCode && !coupon.trim()} onPress={() => (q.couponCode ? (setCoupon(''), load()) : load(coupon.trim()))} />
-              </View>
-              {!!couponError && <AppText variant="caption" color={colors.danger}>{couponError}</AppText>}
-            </Card>
-
-            <Button title={t('pay.payNow', { amount: money(q.totalMinor) })} loading={paying} onPress={pay} />
+            <Button title={q.totalMinor ? t('pay.payNow', { amount: money(q.totalMinor) }) : t('pay.useIncluded')} loading={paying} onPress={pay} />
             <AppText variant="caption" color={colors.textMuted} style={{ textAlign: 'center' }}>{t('pay.secure')}</AppText>
           </>
         )}
@@ -139,7 +123,7 @@ export const PayScreen = () => {
 
 /* ───────── promote an ad ───────── */
 
-const PROMO_ICON = { featured: Star, top: Rocket, urgent: Zap, bump: ArrowUp };
+const PROMO_ICON = { featured: Star, top: Rocket, homepage: Home, category: LayoutGrid, location: MapPin };
 
 export const PromoteScreen = () => {
   const { t, i18n } = useTranslation();
@@ -169,7 +153,8 @@ export const PromoteScreen = () => {
               <View style={styles.optionIcon}><Icon size={22} color={colors.primary} /></View>
               <View style={{ flex: 1 }}>
                 <AppText variant="bodyStrong">{p.name}</AppText>
-                <AppText variant="caption" color={colors.textMuted}>{t(`promote.what_${p.type}`)}{p.days ? ` · ${t('promote.days', { count: p.days })}` : ''}</AppText>
+                <AppText variant="caption" color={colors.textMuted}>{t(`promote.what_${p.type}`)} · {t('promote.days', { count: p.days })}</AppText>
+                {catalog.myPlan?.credits?.[p.type] > 0 && <AppText variant="caption" color={colors.sell}>{t('promote.included', { count: catalog.myPlan.credits[p.type] })}</AppText>}
               </View>
               <AppText variant="h3" color={colors.primary}>{formatMinor(Math.round(p.price * catalog.factor), catalog.currency, catalog.factor, i18n.language)}</AppText>
             </Pressable>
@@ -203,6 +188,16 @@ export const PlansScreen = () => {
             <AppText style={{ flex: 1 }}>{t('plans.current', { name: catalog.myPlan.name, date: formatDate(catalog.myPlan.endAt, i18n.language) })}</AppText>
           </Card>
         )}
+        {catalog?.freePlan && (
+          <Card style={{ gap: spacing.xs }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <AppText variant="h3">{catalog.freePlan.name}</AppText>
+              <AppText variant="h3" color={colors.sell}>{t('plans.free')}</AppText>
+            </View>
+            <AppText variant="caption" color={colors.textMuted}>{catalog.freePlan.listingFeeOn ? t('plans.freeAds', { count: catalog.freePlan.freeAdsPer30Days }) : t('plans.freeUnlimited')}</AppText>
+            {!catalog.myPlan && <AppText variant="caption" color={colors.sell}>{t('plans.yourPlan')}</AppText>}
+          </Card>
+        )}
         {catalog?.plans.length === 0 && <EmptyState icon={<BadgeCheck size={44} color={colors.textMuted} />} title={t('plans.none')} />}
         {catalog?.plans.map((p) => (
           <Card key={p.code} style={{ gap: spacing.xs }}>
@@ -211,6 +206,7 @@ export const PlansScreen = () => {
               <AppText variant="h3" color={colors.primary}>{formatMinor(Math.round(p.price * catalog.factor), catalog.currency, catalog.factor, i18n.language)}</AppText>
             </View>
             <AppText variant="caption" color={colors.textMuted}>{t('plans.days', { count: p.days })} · {t('plans.extraAds', { count: p.extraFreeAds })}</AppText>
+            {p.includedPromotions?.map((x) => <AppText key={x.type} variant="caption" color={colors.sell}>✓ {t('plans.includes', { count: x.count, name: t(`promote.name_${x.type}`) })}</AppText>)}
             {!!p.description && <AppText>{p.description}</AppText>}
             <Button size="md" title={catalog.myPlan ? t('plans.extend') : t('plans.buy')} onPress={() => navigate(`/pay?purpose=plan&productCode=${p.code}`)} style={{ marginTop: spacing.sm }} />
           </Card>
@@ -277,6 +273,7 @@ export const PaymentsScreen = () => {
         {due.map((c) => (
           <Card key={c.id} style={{ gap: spacing.xs, backgroundColor: c.overdue ? colors.primarySoft : colors.warmSoft }}>
             <AppText variant="bodyStrong">{t('payments.commissionDue', { amount: formatMinor(c.amountMinor, c.currency, c.factor, i18n.language) })}</AppText>
+            <AppText variant="caption" color={colors.textMuted}>{t(`payments.as_${c.role}`)}</AppText>
             <AppText variant="caption" color={c.overdue ? colors.danger : colors.textMuted}>
               {c.title ? `${c.title} · ` : ''}{c.overdue ? t('payments.overdue') : t('payments.dueBy', { date: formatDate(c.dueAt, i18n.language) })}
             </AppText>

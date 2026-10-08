@@ -567,6 +567,7 @@ export const AuctionDetailScreen = () => {
             {a.rules.antiSniping?.enabled && <AppText variant="caption" color={colors.textMuted}>• {t('auction.ruleSnipe', { window: Math.round(a.rules.antiSniping.windowSec / 60), extend: Math.round(a.rules.antiSniping.extendSec / 60) })}</AppText>}
             {a.rules.proxyBidding && <AppText variant="caption" color={colors.textMuted}>• {t('auction.ruleProxy')}</AppText>}
             <AppText variant="caption" color={colors.textMuted}>• {t('auction.ruleConfirm', { hours: a.rules.paymentWindowHours })}</AppText>
+            {!!a.commission && <AppText variant="caption" color={colors.text}>• {a.commission}</AppText>}
             <AppText variant="caption" color={colors.textMuted}>• {t('auction.ruleHighest')}</AppText>
           </Card>
 

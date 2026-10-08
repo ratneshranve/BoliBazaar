@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Heart, ImageOff, MapPin } from 'lucide-react';
 import { Image, Pressable, StyleSheet, View } from './primitives';
 import { AppText } from './ui';
-import { listingsApi } from '../api/endpoints';
+import { adsApi, listingsApi } from '../api/endpoints';
 import { formatPrice } from '../utils/listing';
 import { formatMinor } from '../utils/auction';
 import { formatDistance } from '../utils/distance';
@@ -42,7 +42,10 @@ export const ListingCard = ({ listing, width, onFavouriteChange }) => {
   const typeTag = listing.listingType !== 'sell' ? t(`listing.type_${listing.listingType}`) : null;
 
   return (
-    <Pressable accessibilityLabel={listing.title} onPress={() => navigate(listing.auction ? `/auctions/${listing.auction.id}` : `/listing/${listing.id}`)} style={[styles.card, width ? { width } : { flex: 1 }]}>
+    <Pressable accessibilityLabel={listing.title} onPress={() => {
+      if (listing.adId) adsApi.click(listing.adId).catch(() => {});
+      navigate(listing.auction ? `/auctions/${listing.auction.id}` : `/listing/${listing.id}`);
+    }} style={[styles.card, width ? { width } : { flex: 1 }]}>
       <View style={styles.imgWrap}>
         {listing.cover ? (
           <Image source={{ uri: listing.cover }} style={styles.img} resizeMode="cover" />
@@ -51,10 +54,16 @@ export const ListingCard = ({ listing, width, onFavouriteChange }) => {
             <ImageOff size={28} color={colors.textSubtle} />
           </View>
         )}
-        {(typeTag || listing.badges?.length > 0) && (
+        {(typeTag || listing.badges?.length > 0 || listing.sponsored) && (
+
           <View style={styles.tags}>
+            {listing.sponsored && (
+              <View style={[styles.tagPill, { backgroundColor: colors.text }]}>
+                <AppText variant="small" color={colors.white}>{t('ads.sponsored')}</AppText>
+              </View>
+            )}
             {listing.badges?.map((b) => (
-              <View key={b} style={[styles.tagPill, { backgroundColor: b === 'urgent' ? colors.live : b === 'top' ? colors.primary : colors.warm }]}>
+              <View key={b} style={[styles.tagPill, { backgroundColor: b === 'top' ? colors.primary : b === 'promoted' ? colors.auctionBlue : colors.warm }]}>
                 <AppText variant="small" color={colors.white}>{t(`badge.${b}`)}</AppText>
               </View>
             ))}

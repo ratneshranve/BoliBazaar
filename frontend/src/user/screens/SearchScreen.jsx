@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { growthApi } from '../api/endpoints';
+import { adsApi, growthApi } from '../api/endpoints';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ArrowUpDown, Bookmark, SearchX, SlidersHorizontal, X } from 'lucide-react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
 import { AppText, Button, EmptyState, Field } from '../components/ui';
 import { ListingCard } from '../components/ListingCard';
 import { LocationChip } from '../components/LocationChip';
@@ -134,6 +134,7 @@ export const SearchScreen = () => {
   const [text, setText] = useState(params.q ?? '');
   const [category, setCategory] = useState(null);
   const [items, setItems] = useState(null);
+  const [ads, setAds] = useState({ sponsoredListings: [], sponsor: null });
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -178,6 +179,7 @@ export const SearchScreen = () => {
       try {
         const { data } = await listingsApi.search({ ...query, page: pageNo, limit: 20 });
         setItems((prev) => (pageNo === 1 ? data.items : [...(prev ?? []), ...data.items]));
+        if (pageNo === 1) setAds({ sponsoredListings: data.sponsoredListings || [], sponsor: data.sponsor || null });
         setHasMore(data.hasMore);
         setPage(pageNo);
         setError('');
@@ -262,9 +264,19 @@ export const SearchScreen = () => {
         {items && items.length === 0 && !error && (
           <EmptyState icon={<SearchX size={44} color={colors.textMuted} />} title={t('search.noResults')} body={t('search.noResultsHint')} />
         )}
+        {ads.sponsor && (
+          <Pressable onPress={() => { adsApi.click(ads.sponsor.id).catch(() => {}); if (ads.sponsor.route) navigate(ads.sponsor.route); }} style={styles.sponsor}>
+            {ads.sponsor.image && <Image source={{ uri: ads.sponsor.image }} style={{ width: '100%', height: 110 }} resizeMode="cover" />}
+            <View style={{ padding: spacing.sm }}>
+              <AppText variant="small" color={colors.textMuted}>{t('ads.sponsored')}</AppText>
+              {!!ads.sponsor.title && <AppText variant="bodyStrong">{ads.sponsor.title}</AppText>}
+              {!!ads.sponsor.subtitle && <AppText variant="caption" color={colors.textMuted}>{ads.sponsor.subtitle}</AppText>}
+            </View>
+          </Pressable>
+        )}
         {items && items.length > 0 && (
           <View style={styles.grid}>
-            {items.map((l) => (
+            {[...ads.sponsoredListings, ...items.filter((x) => !ads.sponsoredListings.some((s) => s.id === x.id))].map((l) => (
               <View key={l.id} style={{ width: 'calc(50% - 6px)' }}>
                 <ListingCard listing={l} />
               </View>
@@ -310,6 +322,7 @@ export const SearchScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  sponsor: { borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: colors.divider, marginBottom: spacing.md },
   fill: { flex: 1, backgroundColor: colors.white },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingTop: spacing.md },
   bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },

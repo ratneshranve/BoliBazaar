@@ -8,7 +8,7 @@ import { DynamicFields } from '../components/DynamicFields';
 import { PlacePicker } from '../components/PlacePicker';
 import { Sheet } from '../components/Sheet';
 import { colors, radius, spacing } from '@theme/tokens';
-import { auctionsApi, categoriesApi, listingsApi, uploadsApi } from '../api/endpoints';
+import { auctionsApi, categoriesApi, listingsApi, paymentsApi, uploadsApi } from '../api/endpoints';
 import { ApiError } from '../api/client';
 import { useAppSelector } from '../store';
 import { errorText } from '../i18n';
@@ -87,6 +87,10 @@ export const SellScreen = () => {
   const [form, setForm] = useState({ listingType: query.get('type') === 'auction' ? 'auction' : '', title: '', description: '', condition: '', priceType: 'fixed', amount: '', attributes: {} });
   const [auction, setAuction] = useState(EMPTY_AUCTION);
   const setA = (patch) => setAuction((a) => ({ ...a, ...patch }));
+  const [commission, setCommission] = useState(null);
+  useEffect(() => {
+    if (form.listingType === 'auction' && commission === null) paymentsApi.catalog().then(({ data }) => setCommission(data.auctionCommission || '')).catch(() => setCommission(''));
+  }, [form.listingType]); // eslint-disable-line react-hooks/exhaustive-deps
   const [place, setPlace] = useState(current ? { ...current, scope: undefined } : null);
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
@@ -312,6 +316,7 @@ export const SellScreen = () => {
                 <AppText variant="bodyStrong" style={{ marginTop: spacing.sm }}>{t('auction.startAt')}</AppText>
                 <input type="datetime-local" value={auction.startAt} onChange={(e) => setA({ startAt: e.target.value })} style={{ height: 48, border: `1px solid ${aErr('startAt') ? colors.danger : colors.border}`, borderRadius: 10, padding: '0 12px', fontSize: 16 }} />
                 <AppText variant="caption" color={aErr('startAt') ? colors.danger : colors.textMuted}>{aErr('startAt') || t('auction.startAtHint')}</AppText>
+                {!!commission && <AppText variant="caption" color={colors.text} style={{ marginTop: spacing.sm }}>{commission}</AppText>}
               </Section>
             )}
 

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Download, IndianRupee, Percent, TicketPercent } from 'lucide-react';
+import { Download, IndianRupee, Percent } from 'lucide-react';
 import { toast } from 'sonner';
 import { call, http, errorMessage } from '@core/api';
 import { useAuth } from '@core/AuthContext';
 import { Badge, Button, Card, DataTable, ErrorBox, Field, Input, Modal, PageHeader, Pagination, Select, Spinner, Switch, Textarea } from '@components/ui';
 
-const PURPOSE = { listing_fee: 'Ad posting fee', promotion: 'Promotion', plan: 'Seller plan', commission: 'Auction commission' };
+const PURPOSE = { listing_fee: 'Listing fees', promotion: 'Featured listings', plan: 'Seller subscriptions', commission: 'Auction commission', advertising: 'Advertising' };
 const TONE = { paid: 'green', failed: 'red', refunded: 'neutral', partially_refunded: 'amber', created: 'neutral' };
 const fmt = (minor, currency) => {
   if (minor == null || !currency) return '—';
@@ -53,6 +53,7 @@ function Summary() {
           <div className="text-xl font-bold">{fmt(s.commissionsDue.amountMinor, s.currency || 'INR')}</div>
           <div className="text-xs text-neutral-500">{s.commissionsDue.count} due · {s.commissionsDue.overdue} overdue</div>
         </Card>
+        <Card><div className="text-xs uppercase text-neutral-500">Running now</div><div className="text-xl font-bold">{s.activePromotions} promotions</div><div className="text-xs text-neutral-500">{s.activePlans} active subscriptions</div></Card>
         {s.unfulfilled > 0 && <Card className="border-red-200 bg-red-50"><div className="text-xs uppercase text-red-700">Paid but not delivered</div><div className="text-xl font-bold text-red-700">{s.unfulfilled}</div><div className="text-xs text-red-700">Check these payments and refund if needed</div></Card>}
       </div>
     </div>
@@ -153,7 +154,7 @@ function PaymentsPage() {
             columns={[
               { key: 'date', header: 'Date', render: (p) => when(p.paidAt || p.createdAt) },
               { key: 'user', header: 'User', render: (p) => <span>{p.user?.name || '—'} <span className="text-neutral-500">{p.user?.phone}</span></span> },
-              { key: 'description', header: 'For', render: (p) => <div><div className="font-medium">{p.description}</div><div className="text-xs text-neutral-500">{PURPOSE[p.purpose]}{p.couponCode ? ` · coupon ${p.couponCode}` : ''}</div></div> },
+              { key: 'description', header: 'For', render: (p) => <div><div className="font-medium">{p.description}</div><div className="text-xs text-neutral-500">{PURPOSE[p.purpose]}</div></div> },
               { key: 'total', header: 'Amount', render: (p) => <div>{fmt(p.totalMinor, p.currency)}{p.refundedMinor > 0 && <div className="text-xs text-red-600">−{fmt(p.refundedMinor, p.currency)}</div>}</div> },
               { key: 'invoice', header: 'Invoice', render: (p) => <span className="font-mono text-xs">{p.invoiceNo || '—'}</span> },
               { key: 'status', header: 'Status', render: (p) => <div className="space-y-1"><Badge tone={TONE[p.status]}>{p.status.replace('_', ' ')}</Badge>{p.status === 'paid' && !p.fulfilled && <Badge tone="red">not delivered</Badge>}</div> },
@@ -206,7 +207,7 @@ function CommissionsPage() {
 
   return (
     <>
-      <PageHeader title="Commissions" subtitle="What sellers owe on completed auction sales. Rates are set in Settings › Monetization." />
+      <PageHeader title="Commissions" subtitle="What buyers and sellers owe on completed auction sales. Rates and who pays are set in Settings › Monetization." />
       <div className="mb-4"><Tabs tabs={[{ key: 'overdue', label: 'Overdue' }, { key: 'due', label: 'Due' }, { key: 'paid', label: 'Paid' }, { key: 'waived', label: 'Waived' }, { key: '', label: 'All' }]} value={tab} onChange={(k) => { setTab(k); setPage(1); }} /></div>
       {error && <ErrorBox message={error} onRetry={load} />}
       {!rows && !error && <Spinner />}
@@ -216,10 +217,10 @@ function CommissionsPage() {
             rows={rows}
             empty="Nothing here"
             columns={[
-              { key: 'seller', header: 'Seller', render: (c) => <span>{c.seller?.name || '—'} <span className="text-neutral-500">{c.seller?.phone}</span></span> },
+              { key: 'user', header: 'Owed by', render: (c) => <span>{c.user?.name || '—'} <span className="text-neutral-500">{c.user?.phone}</span> <Badge tone="neutral">{c.role}</Badge></span> },
               { key: 'title', header: 'Item', render: (c) => c.title || '—' },
               { key: 'sale', header: 'Sale', render: (c) => fmt(c.saleMinor, c.currency) },
-              { key: 'amount', header: 'Commission', render: (c) => `${fmt(c.amountMinor, c.currency)} (${c.percent}%)` },
+              { key: 'amount', header: 'Commission', render: (c) => `${fmt(c.amountMinor, c.currency)}${c.rule ? ` (${c.rule.type === 'percent' ? `${c.rule.value}%` : 'fixed'})` : ''}` },
               { key: 'due', header: 'Due', render: (c) => <span className={c.overdue ? 'font-semibold text-red-600' : ''}>{when(c.dueAt)}</span> },
               { key: 'status', header: 'Status', render: (c) => <Badge tone={c.status === 'paid' ? 'green' : c.status === 'waived' ? 'neutral' : c.overdue ? 'red' : 'amber'}>{c.overdue ? 'overdue' : c.status}</Badge> },
               { key: 'act', header: '', render: (c) => (can('finance.waive') && c.status === 'due' ? <Button variant="outline" onClick={() => waive(c)}>Waive</Button> : null) },
@@ -232,115 +233,15 @@ function CommissionsPage() {
   );
 }
 
-/* ───── coupons ───── */
-
-const EMPTY = { code: '', description: '', type: 'percent', value: 10, maxDiscount: null, purposes: [], validFrom: '', validTo: '', totalLimit: null, perUserLimit: 1, firstPurchaseOnly: false, active: true };
-const toInput = (d) => (d ? new Date(d).toISOString().slice(0, 10) : '');
-
-function CouponForm({ coupon, onClose, onSaved }) {
-  const [f, setF] = useState(coupon ? { ...coupon, description: coupon.description || '', validFrom: toInput(coupon.validFrom), validTo: toInput(coupon.validTo) } : EMPTY);
-  const [busy, setBusy] = useState(false);
-  const set = (p) => setF((x) => ({ ...x, ...p }));
-  const save = async () => {
-    setBusy(true);
-    const body = { ...f, description: f.description || null, validFrom: f.validFrom || null, validTo: f.validTo || null, maxDiscount: f.maxDiscount || null, totalLimit: f.totalLimit || null };
-    delete body.id;
-    delete body.usedCount;
-    delete body.createdAt;
-    try {
-      await call(coupon ? http.put(`/payments/coupons/${coupon.id}`, body) : http.post('/payments/coupons', body));
-      toast.success('Saved');
-      onSaved();
-      onClose();
-    } catch (e) {
-      toast.error(errorMessage(e));
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <Modal open wide title={coupon ? `Edit ${coupon.code}` : 'New coupon'} onClose={onClose} footer={<Button variant="brand" loading={busy} disabled={!f.code || !(f.value > 0)} onClick={save}>Save</Button>}>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Code"><Input value={f.code} onChange={(e) => set({ code: e.target.value.toUpperCase() })} className="font-mono" /></Field>
-        <Field label="Description (internal)"><Input value={f.description} onChange={(e) => set({ description: e.target.value })} /></Field>
-        <Field label="Type">
-          <Select value={f.type} onChange={(e) => set({ type: e.target.value })}>
-            <option value="percent">Percent off</option>
-            <option value="fixed">Fixed amount off</option>
-          </Select>
-        </Field>
-        <Field label={f.type === 'percent' ? 'Percent' : 'Amount'}><Input type="number" value={f.value} onChange={(e) => set({ value: Number(e.target.value) })} /></Field>
-        {f.type === 'percent' && <Field label="Maximum discount (optional)"><Input type="number" value={f.maxDiscount ?? ''} onChange={(e) => set({ maxDiscount: e.target.value ? Number(e.target.value) : null })} /></Field>}
-        <Field label="Valid from"><Input type="date" value={f.validFrom} onChange={(e) => set({ validFrom: e.target.value })} /></Field>
-        <Field label="Valid until"><Input type="date" value={f.validTo} onChange={(e) => set({ validTo: e.target.value })} /></Field>
-        <Field label="Total uses (empty = unlimited)"><Input type="number" value={f.totalLimit ?? ''} onChange={(e) => set({ totalLimit: e.target.value ? Number(e.target.value) : null })} /></Field>
-        <Field label="Uses per person (0 = unlimited)"><Input type="number" value={f.perUserLimit} onChange={(e) => set({ perUserLimit: Number(e.target.value) })} /></Field>
-        <div className="sm:col-span-2">
-          <div className="mb-1 text-sm font-medium">Works for (none ticked = everything)</div>
-          <div className="flex flex-wrap gap-4 text-sm">
-            {Object.entries(PURPOSE).map(([k, l]) => (
-              <label key={k} className="flex items-center gap-2">
-                <input type="checkbox" checked={f.purposes.includes(k)} onChange={(e) => set({ purposes: e.target.checked ? [...f.purposes, k] : f.purposes.filter((x) => x !== k) })} /> {l}
-              </label>
-            ))}
-          </div>
-        </div>
-        <Switch checked={f.firstPurchaseOnly} onChange={(x) => set({ firstPurchaseOnly: x })} label="First purchase only" />
-        <Switch checked={f.active} onChange={(x) => set({ active: x })} label="Active" />
-      </div>
-    </Modal>
-  );
-}
-
-function CouponsPage() {
-  const { can } = useAuth();
-  const [rows, setRows] = useState(null);
-  const [error, setError] = useState('');
-  const [editing, setEditing] = useState(undefined);
-  const load = useCallback(() => {
-    setError('');
-    call(http.get('/payments/coupons')).then((r) => setRows(r.data)).catch((e) => setError(errorMessage(e)));
-  }, []);
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  return (
-    <>
-      <PageHeader title="Coupons" subtitle="Discount codes users can enter when paying." actions={can('monetization.edit') && <Button variant="brand" onClick={() => setEditing(null)}>New coupon</Button>} />
-      {error && <ErrorBox message={error} onRetry={load} />}
-      {!rows && !error && <Spinner />}
-      {rows && (
-        <DataTable
-          rows={rows}
-          empty="No coupons yet"
-          onRowClick={can('monetization.edit') ? (c) => setEditing(c) : undefined}
-          columns={[
-            { key: 'code', header: 'Code', render: (c) => <span className="font-mono font-semibold">{c.code}</span> },
-            { key: 'off', header: 'Discount', render: (c) => (c.type === 'percent' ? `${c.value}%${c.maxDiscount ? ` (max ${c.maxDiscount})` : ''}` : c.value) },
-            { key: 'for', header: 'For', render: (c) => (c.purposes.length ? c.purposes.map((p) => PURPOSE[p]).join(', ') : 'Everything') },
-            { key: 'valid', header: 'Valid', render: (c) => `${c.validFrom ? new Date(c.validFrom).toLocaleDateString() : '—'} → ${c.validTo ? new Date(c.validTo).toLocaleDateString() : '—'}` },
-            { key: 'used', header: 'Used', render: (c) => `${c.usedCount}${c.totalLimit ? ` / ${c.totalLimit}` : ''}` },
-            { key: 'active', header: 'Status', render: (c) => <Badge tone={c.active ? 'green' : 'neutral'}>{c.active ? 'Active' : 'Off'}</Badge> },
-          ]}
-        />
-      )}
-      {editing !== undefined && <CouponForm coupon={editing} onClose={() => setEditing(undefined)} onSaved={load} />}
-    </>
-  );
-}
-
 export default {
   key: 'finance',
   section: 'Management',
   nav: [
     { label: 'Payments', path: '/payments', icon: IndianRupee, permission: 'finance.view' },
     { label: 'Commissions', path: '/commissions', icon: Percent, permission: 'finance.view' },
-    { label: 'Coupons', path: '/coupons', icon: TicketPercent, permission: 'monetization.view' },
   ],
   routes: [
     { path: '/payments', element: <PaymentsPage />, permission: 'finance.view' },
     { path: '/commissions', element: <CommissionsPage />, permission: 'finance.view' },
-    { path: '/coupons', element: <CouponsPage />, permission: 'monetization.view' },
   ],
 };

@@ -559,12 +559,7 @@
   "pay": {
     "title": "Payment",
     "price": "Price",
-    "discount": "Coupon {{code}}",
     "total": "Total",
-    "coupon": "Have a coupon?",
-    "couponPlaceholder": "Enter coupon code",
-    "apply": "Apply",
-    "remove": "Remove",
     "payNow": "Pay {{amount}}",
     "secure": "Payments are processed securely by Razorpay.",
     "success": "Payment successful",
@@ -575,18 +570,28 @@
     "successHint_listing_fee": "Your ad is on its way.",
     "successHint_promotion": "Your ad is now promoted.",
     "successHint_plan": "Your plan is active.",
-    "successHint_commission": "Thank you — the commission is paid."
+    "successHint_commission": "Thank you — the commission is paid.",
+    "includedInPlan": "Included in your plan — nothing to pay.",
+    "useIncluded": "Use included promotion"
   },
   "promote": {
     "title": "Promote your ad",
     "for": "For \"{{title}}\"",
     "none": "No promotions are available right now",
-    "what_featured": "Shown in the Featured section",
-    "what_top": "Shown at the top of search results",
-    "what_urgent": "Gets an \"Urgent\" label",
-    "what_bump": "Moves your ad back to the top of the newest ads",
+    "what_featured": "Featured label and a place among the first results",
+    "what_top": "Shown at the very top of search results",
     "days_one": "{{count}} day",
-    "days_other": "{{count}} days"
+    "days_other": "{{count}} days",
+    "what_homepage": "Shown in the Featured section of the home page",
+    "what_category": "Shown first when buyers browse its category",
+    "what_location": "Reaches buyers anywhere in your state",
+    "name_featured": "Featured Listing",
+    "name_top": "Top Placement",
+    "name_homepage": "Homepage Promotion",
+    "name_category": "Category Promotion",
+    "name_location": "Location-Based Promotion",
+    "included_one": "{{count}} included in your plan",
+    "included_other": "{{count}} included in your plan"
   },
   "plans": {
     "title": "Seller plans",
@@ -597,7 +602,14 @@
     "extraAds_one": "{{count}} extra free ad",
     "extraAds_other": "{{count}} extra free ads",
     "buy": "Choose this plan",
-    "extend": "Extend with this plan"
+    "extend": "Extend with this plan",
+    "free": "Free",
+    "freeAds_one": "{{count}} free ad every 30 days",
+    "freeAds_other": "{{count}} free ads every 30 days",
+    "freeUnlimited": "Post ads for free",
+    "yourPlan": "Your current plan",
+    "includes_one": "{{count}} × {{name}}",
+    "includes_other": "{{count}} × {{name}}"
   },
   "payments": {
     "title": "Payments",
@@ -613,12 +625,14 @@
     "status_failed": "Failed",
     "status_refunded": "Refunded",
     "status_partially_refunded": "Partly refunded",
-    "status_created": "Waiting"
+    "status_created": "Waiting",
+    "as_seller": "Your share as the seller",
+    "as_buyer": "Your share as the buyer"
   },
   "badge": {
     "featured": "Featured",
     "top": "Top",
-    "urgent": "Urgent"
+    "promoted": "Promoted"
   },
   "report": {
     "title_listing": "Report this ad",
@@ -743,5 +757,10 @@
     "noAds": "No live ads right now",
     "stats": "{{active}} live ads · {{sold}} sold",
     "open": "Open seller profile"
+  },
+  "ads": {
+    "ad": "Ad",
+    "sponsored": "Sponsored",
+    "businesses": "Promoted businesses"
   }
 }

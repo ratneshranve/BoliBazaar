@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { LayoutDashboard, Users, UserPlus, Activity, ShieldAlert, ListChecks, Clock, Store, Gavel, Hourglass, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Users, UserPlus, Activity, ShieldAlert, ListChecks, Clock, Store, Gavel, Hourglass, AlertTriangle, IndianRupee, Sparkles, BadgeCheck } from 'lucide-react';
 import { call, http, errorMessage } from '@core/api';
 import { Card, ErrorBox, PageHeader, Spinner } from '@components/ui';
 
@@ -14,6 +14,9 @@ const KPIS = [
   { key: 'liveAuctions', label: 'Live auctions', icon: Gavel },
   { key: 'pendingAuctions', label: 'Auctions awaiting review', icon: Hourglass },
   { key: 'openDisputes', label: 'Open deal disputes', icon: AlertTriangle },
+  { key: 'revenue30dMinor', label: 'Revenue (30 days)', icon: IndianRupee, money: true },
+  { key: 'activePromotions', label: 'Paid promotions running', icon: Sparkles },
+  { key: 'activePlans', label: 'Active subscriptions', icon: BadgeCheck },
 ];
 
 function Dashboard() {
@@ -35,13 +38,13 @@ function Dashboard() {
     <>
       <PageHeader title="Dashboard" subtitle="Overview of your marketplace" />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {KPIS.map(({ key, label, icon: Icon }) => (
+        {KPIS.map(({ key, label, icon: Icon, money }) => (
           <Card key={key} className="flex items-center gap-4">
             <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-neutral-900 text-white">
               <Icon className="h-5 w-5" />
             </div>
             <div>
-              <div className="text-2xl font-bold">{data.kpis[key].toLocaleString()}</div>
+              <div className="text-2xl font-bold">{money ? (data.revenueCurrency ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: data.revenueCurrency, maximumFractionDigits: 0 }).format(data.kpis[key] / 10 ** new Intl.NumberFormat('en', { style: 'currency', currency: data.revenueCurrency }).resolvedOptions().maximumFractionDigits) : '—') : (data.kpis[key] ?? 0).toLocaleString()}</div>
               <div className="text-sm text-neutral-500">{label}</div>
             </div>
           </Card>

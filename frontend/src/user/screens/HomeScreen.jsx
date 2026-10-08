@@ -11,7 +11,7 @@ import { CategoryTile } from '../components/CategoryTile';
 import { ListingCard } from '../components/ListingCard';
 import { locationQuery } from '../utils/listing';
 import { colors, radius, spacing, shadow } from '@theme/tokens';
-import { homeApi } from '../api/endpoints';
+import { adsApi, homeApi } from '../api/endpoints';
 import { AuctionCard } from './AuctionScreens';
 import { useAppSelector } from '../store';
 
@@ -69,8 +69,20 @@ export const HomeScreen = () => {
         )}
         {failed && <EmptyState title={t('common.somethingWrong')} />}
 
-        {home?.banners.length > 0 && (
+        {(home?.banners.length > 0 || home?.adBanners?.length > 0) && (
           <ScrollView horizontal contentContainerStyle={{ gap: spacing.md, paddingHorizontal: spacing.lg, paddingBottom: spacing.sm }}>
+            {home.adBanners?.map((b) => (
+              <Pressable key={`ad-${b.id}`} onPress={() => { adsApi.click(b.id).catch(() => {}); if (b.route) navigate(b.route); }} style={styles.banner}>
+                <Image source={{ uri: b.image }} style={styles.bannerImg} resizeMode="cover" />
+                <View style={styles.adLabel}><AppText variant="small" color={colors.white}>{t('ads.ad')}</AppText></View>
+                {(b.title || b.subtitle) && (
+                  <View style={styles.bannerText}>
+                    {!!b.title && <AppText variant="h3" color={colors.white}>{b.title}</AppText>}
+                    {!!b.subtitle && <AppText variant="caption" color={colors.white}>{b.subtitle}</AppText>}
+                  </View>
+                )}
+              </Pressable>
+            ))}
             {home.banners.map((b) => (
               <Pressable key={b.id} onPress={() => openBanner(b)} style={styles.banner}>
                 <Image source={{ uri: b.image }} style={styles.bannerImg} resizeMode="cover" />
@@ -118,6 +130,24 @@ export const HomeScreen = () => {
             )
         )}
 
+        {home?.sponsoredBusinesses?.length > 0 && (
+          <View style={{ marginTop: spacing.lg }}>
+            <View style={styles.sectionHead}>
+              <AppText variant="h2">{t('ads.businesses')}</AppText>
+              <AppText variant="small" color={colors.textMuted}>{t('ads.sponsored')}</AppText>
+            </View>
+            <ScrollView horizontal contentContainerStyle={{ gap: spacing.md, paddingHorizontal: spacing.lg }}>
+              {home.sponsoredBusinesses.map((b) => (
+                <Pressable key={b.id} onPress={() => { adsApi.click(b.id).catch(() => {}); navigate(`/u/${b.publicId}`); }} style={styles.bizCard}>
+                  {b.image ? <Image source={{ uri: b.image }} style={styles.bizImg} resizeMode="cover" /> : <View style={[styles.bizImg, { backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' }]}><AppText variant="h2" color={colors.primary}>{b.title.charAt(0)}</AppText></View>}
+                  <AppText variant="bodyStrong" numberOfLines={1}>{b.title}</AppText>
+                  {!!b.subtitle && <AppText variant="small" color={colors.textMuted} numberOfLines={2}>{b.subtitle}</AppText>}
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
         {home?.categories.length > 0 && (
           <View style={{ marginTop: spacing.lg }}>
             <View style={styles.sectionHead}>
@@ -139,6 +169,9 @@ export const HomeScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  adLabel: { position: 'absolute', top: spacing.sm, right: spacing.sm, backgroundColor: 'rgba(17,24,39,0.7)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  bizCard: { width: 150, gap: 4 },
+  bizImg: { width: 150, height: 96, borderRadius: radius.lg },
   fill: { flex: 1, backgroundColor: colors.white },
   search: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginHorizontal: spacing.lg, marginVertical: spacing.md, paddingHorizontal: spacing.lg, minHeight: 52, borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, ...shadow.card },
   banner: { width: 320, height: 150, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.surface },

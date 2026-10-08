@@ -43,6 +43,9 @@ export const uploadsApi = {
   },
 };
 
+/** SOP 15.5 ads: count taps (views are counted when served). */
+export const adsApi = { click: (id) => api(`/ads/${id}/click`, { method: 'POST', auth: false, idempotencyKey: false }) };
+
 /** Saved searches and public seller pages. */
 export const growthApi = {
   searches: () => api('/saved-searches'),
