@@ -1,0 +1,34 @@
+/* Styles for the user app only (loaded only on non-/admin routes). */
+body.user-shell {
+  background: #e5e7eb;
+}
+body.user-shell #root,
+body.user-shell html {
+  height: 100%;
+}
+.user-shell input::placeholder,
+.user-shell textarea::placeholder {
+  color: var(--ph, #9ca3af);
+}
+.user-shell input:focus,
+.user-shell textarea:focus {
+  outline: none;
+}
+@keyframes rn-spin {
+  to { transform: rotate(360deg); }
+}
+/* phone-sized viewport, centred on desktop */
+#phone {
+  width: 100%;
+  max-width: 430px;
+  height: 100dvh;
+  margin: 0 auto;
+  background: #fff;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+@media (min-width: 480px) {
+  #phone { box-shadow: 0 0 0 1px #d1d5db, 0 20px 60px rgba(0, 0, 0, 0.18); }
+}

@@ -38,7 +38,7 @@ function ConfigError() {
 export default function App() {
   if (missingEnv.length) return <ConfigError />;
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/admin">
       <AuthProvider>
         <BrandProvider>
           <Routes>

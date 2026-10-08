@@ -72,11 +72,17 @@ BoliBazaar/
   docs/              This plan
 ```
 
-**frontend/ (admin, modular)**
+**frontend/ — one Vite app, one port (5173), two front-ends (decided 2026-10-08)**
+- `http://localhost:5173/` → the user app (web mirror used for browser testing; shown in a phone-sized column)
+- `http://localhost:5173/admin` → the admin panel
+- `src/main.jsx` picks which one to load from the URL; each is code-split so neither pulls in the other's code or styles.
+- `src/user/` mirrors the React Native screens using RN-style primitives (`components/primitives.jsx`); theme tokens and locale JSON are imported from `apps/user-app/src` (aliases `@theme`, `@locales`) so there is one copy.
+
+**frontend/src/admin/ (admin, modular)**
 ```
-frontend/src/
-  app/               router, providers, layout (sidebar/topbar), auth guard, permission guard
-  core/              api client (RTK Query base), auth, rbac helpers, i18n, theme, utils
+frontend/src/admin/
+  app/               router (basename /admin), providers, layout (sidebar/topbar), auth guard, permission guard
+  core/              api client, auth, rbac helpers, theme, utils
   components/        shared UI (DataTable, Filters, FormBuilder, MapPicker, DocViewer, AuditDrawer…)
   modules/
     dashboard/  users/  verification/  listings/  moderation/  auctions/  categories/
