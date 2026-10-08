@@ -5,12 +5,15 @@
  */
 import dashboard from './dashboard';
 import users from './users';
-import settings from './settings';
+import categories from './categories';
+import locations from './locations';
+import banners from './banners';
 import cms from './cms';
+import settings from './settings';
 import staff from './staff';
 import audit from './audit';
 
-export const modules = [dashboard, users, cms, settings, staff, audit];
+export const modules = [dashboard, users, categories, locations, banners, cms, settings, staff, audit];
 
 /** Sections shown in the sidebar, in order. */
 export const sections = ['Overview', 'Management', 'Configuration', 'System'];
