@@ -46,6 +46,12 @@ const validateBusinessRules = (key, value) => {
     if (sorted.length !== value.radiusOptionsKm.length) throw ApiError.badRequest('VALIDATION_FAILED', 'Radius options must be unique', { fields: { radiusOptionsKm: 'Remove duplicates' } });
     if (!sorted.includes(value.defaultRadiusKm)) throw ApiError.badRequest('VALIDATION_FAILED', 'The default radius must be one of the radius options', { fields: { defaultRadiusKm: 'Pick one of the options' } });
   }
+  if (key === 'auctions') {
+    const t = value.incrementTiers;
+    if (t[0].from !== 0) throw ApiError.badRequest('VALIDATION_FAILED', 'The first price band must start at 0', { fields: { incrementTiers: 'Start the first band at 0' } });
+    if (t.some((x, i) => i > 0 && x.from <= t[i - 1].from)) throw ApiError.badRequest('VALIDATION_FAILED', 'Price bands must go up', { fields: { incrementTiers: 'Each band must start above the previous one' } });
+    if (value.strikes.banAt <= value.strikes.blockAt) throw ApiError.badRequest('VALIDATION_FAILED', 'The ban must come after the temporary block', { fields: { 'strikes.banAt': 'Use a number above the block count' } });
+  }
   if (key === 'languages') {
     const bad = value.enabled.filter((c) => !catalogueCodes.includes(c));
     if (bad.length) throw ApiError.badRequest('LANGUAGE_UNKNOWN', `Unknown language: ${bad.join(', ')}`);

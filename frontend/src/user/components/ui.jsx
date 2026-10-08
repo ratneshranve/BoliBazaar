@@ -7,7 +7,7 @@ export const AppText = ({ variant = 'body', color, style, ...rest }) => (
 
 const buttonBg = { primary: colors.primary, auction: colors.primary, sell: colors.sell, outline: colors.white, ghost: 'transparent' };
 
-export const Button = ({ title, onPress, variant = 'primary', loading, disabled, icon, style, size = 'lg' }) => {
+export const Button = ({ title, onPress, variant = 'primary', loading, disabled, icon, iconRight, style, size = 'lg' }) => {
   const filled = variant === 'primary' || variant === 'auction' || variant === 'sell';
   const inactive = disabled || loading;
   return (
@@ -32,6 +32,7 @@ export const Button = ({ title, onPress, variant = 'primary', loading, disabled,
           <AppText variant="bodyStrong" color={filled ? colors.white : colors.primary}>
             {title}
           </AppText>
+          {iconRight}
         </View>
       )}
     </Pressable>

@@ -78,6 +78,7 @@ export const settingGroups = {
       logo: mediaRef,
       logoDark: mediaRef,
       icon: mediaRef,
+      loginImage: mediaRef.optional(), // picture on the login and OTP screens
       primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullable(),
       supportEmail: z.string().email().nullable(),
       supportPhone: nullableText(20),
@@ -90,6 +91,7 @@ export const settingGroups = {
       logo: null,
       logoDark: null,
       icon: null,
+      loginImage: null,
       primaryColor: null,
       supportEmail: null,
       supportPhone: null,
@@ -150,6 +152,62 @@ export const settingGroups = {
       otpMaxPerDay: 10,
       adminMaxFailedLogins: 5,
       adminLockMinutes: 15,
+    },
+  },
+
+  /**
+   * Auction rules. Amounts are in the marketplace currency's major units (e.g. rupees).
+   * A running auction keeps a copy of the rules it was approved with.
+   */
+  auctions: {
+    public: true,
+    schema: z.object({
+      enabled: z.boolean(),
+      proxyBidding: z.boolean(),
+      incrementTiers: z.array(z.object({ from: z.number().min(0), step: z.number().positive() })).min(1).max(20),
+      minDurationHours: z.number().min(1).max(720),
+      maxDurationDays: z.number().int().min(1).max(90),
+      startLeadMinutes: z.number().int().min(0).max(1440),
+      buyNowMinAbovePercent: z.number().min(0).max(500),
+      sanityCapMultiplier: z.number().min(2).max(1000),
+      bidIntervalSec: z.number().min(0).max(60),
+      antiSniping: z.object({
+        enabled: z.boolean(),
+        windowSec: z.number().int().min(10).max(3600),
+        extendSec: z.number().int().min(10).max(3600),
+        maxExtensions: z.number().int().min(1).max(100),
+      }),
+      paymentWindowHours: z.number().int().min(1).max(720),
+      offerWindowHours: z.number().int().min(1).max(720),
+      strikes: z.object({
+        blockAt: z.number().int().min(1).max(20),
+        blockDays: z.number().int().min(1).max(365),
+        banAt: z.number().int().min(2).max(50),
+        expireMonths: z.number().int().min(1).max(60),
+      }),
+    }),
+    initial: {
+      enabled: true,
+      proxyBidding: true,
+      incrementTiers: [
+        { from: 0, step: 50 },
+        { from: 1000, step: 100 },
+        { from: 10000, step: 500 },
+        { from: 50000, step: 1000 },
+        { from: 100000, step: 2500 },
+        { from: 500000, step: 10000 },
+        { from: 2500000, step: 25000 },
+      ],
+      minDurationHours: 1,
+      maxDurationDays: 30,
+      startLeadMinutes: 10,
+      buyNowMinAbovePercent: 10,
+      sanityCapMultiplier: 10,
+      bidIntervalSec: 2,
+      antiSniping: { enabled: true, windowSec: 120, extendSec: 120, maxExtensions: 10 },
+      paymentWindowHours: 48,
+      offerWindowHours: 24,
+      strikes: { blockAt: 2, blockDays: 30, banAt: 3, expireMonths: 12 },
     },
   },
 

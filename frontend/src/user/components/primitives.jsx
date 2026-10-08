@@ -109,10 +109,10 @@ export function Pressable({ style, children, onPress, disabled, accessibilityRol
   );
 }
 
-export function TextInput({
+export const TextInput = forwardRef(function TextInput({
   style, value, onChangeText, placeholder, placeholderTextColor, keyboardType, maxLength, autoFocus,
-  secureTextEntry, onSubmitEditing, multiline, autoComplete, textContentType, returnKeyType, editable = true, ...rest
-}) {
+  secureTextEntry, onSubmitEditing, multiline, autoComplete, textContentType, returnKeyType, editable = true, onFocus, onBlur, ...rest
+}, ref) {
   const inputMode = { 'phone-pad': 'tel', 'number-pad': 'numeric', 'numeric': 'numeric', 'email-address': 'email' }[keyboardType];
   const type = secureTextEntry ? 'password' : keyboardType === 'phone-pad' ? 'tel' : keyboardType === 'email-address' ? 'email' : 'text';
   const common = {
@@ -124,6 +124,9 @@ export function TextInput({
     inputMode,
     autoComplete: autoComplete === 'sms-otp' || textContentType === 'oneTimeCode' ? 'one-time-code' : autoComplete,
     onChange: (e) => onChangeText?.(e.target.value),
+    onFocus,
+    onBlur,
+    ref,
     style: { ...toCss(style), '--ph': placeholderTextColor, border: 'none', background: 'transparent', minWidth: 0, boxSizing: 'border-box' },
     ...pick(rest),
   };
@@ -132,7 +135,7 @@ export function TextInput({
   ) : (
     <input {...common} type={type} onKeyDown={(e) => e.key === 'Enter' && onSubmitEditing?.()} />
   );
-}
+});
 
 export const ScrollView = forwardRef(function ScrollView({ style, contentContainerStyle, children, horizontal }, ref) {
   return (

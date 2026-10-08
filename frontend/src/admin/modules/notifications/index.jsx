@@ -5,7 +5,7 @@ import { call, http, errorMessage } from '@core/api';
 import { useAuth } from '@core/AuthContext';
 import { Badge, Button, Card, ErrorBox, Field, Input, PageHeader, Spinner, Textarea } from '@components/ui';
 
-const GROUP_LABEL = { chat: 'Messages', listings: 'Ads', jobs: 'Applications & enquiries', system: 'System' };
+const GROUP_LABEL = { chat: 'Messages', listings: 'Ads', auctions: 'Auctions', jobs: 'Applications & enquiries', system: 'System' };
 
 function TemplateCard({ tpl, canEdit, onSaved }) {
   const [form, setForm] = useState({ title: tpl.title, body: tpl.body, enabled: tpl.enabled });

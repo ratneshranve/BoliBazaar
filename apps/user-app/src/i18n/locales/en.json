@@ -48,7 +48,7 @@
   "auth": {
     "loginTitle": "Log in or sign up",
     "loginSubtitle": "Enter your mobile number to continue",
-    "phonePlaceholder": "Mobile number",
+    "phonePlaceholder": "Enter mobile number",
     "sendOtp": "Get OTP",
     "otpTitle": "Enter verification code",
     "otpSubtitle": "Sent to {{phone}}",
@@ -58,7 +58,18 @@
     "verify": "Verify",
     "attemptsLeft": "{{count}} attempts left",
     "browseGuest": "Browse as guest",
-    "loginRequired": "Please log in to continue"
+    "loginRequired": "Please log in to continue",
+    "loginTo": "Login to",
+    "enterMobile": "Enter your mobile number to continue",
+    "next": "Next",
+    "verifyTitle": "Verify Your Number",
+    "sentTo": "We have sent a {{count}}-digit OTP to",
+    "didntReceive": "Didn't receive OTP?",
+    "resendOtp": "Resend OTP",
+    "needHelp": "Need Help?",
+    "privacy": "Privacy Policy",
+    "terms": "Terms & Conditions",
+    "support": "Support"
   },
   "profileSetup": {
     "title": "Complete your profile",
@@ -306,7 +317,8 @@
     "group_jobs": "Applications & enquiries",
     "group_system": "Updates from us",
     "markAll": "Mark all as read",
-    "empty": "No notifications yet"
+    "empty": "No notifications yet",
+    "group_auctions": "Auctions"
   },
   "chat": {
     "title": "Messages",

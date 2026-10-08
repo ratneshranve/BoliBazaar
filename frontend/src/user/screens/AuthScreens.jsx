@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
+import { ArrowLeft, ArrowRight, ChevronDown } from 'lucide-react';
+import { getCountryCallingCode } from 'libphonenumber-js';
+import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from '../components/primitives';
 import { PageSheet } from './PageScreen';
 import { AppText, Button, Checkbox, Field } from '../components/ui';
+import { AuthHero, HelpFooter, authStyles } from '../components/AuthChrome';
 import { colors, spacing } from '@theme/tokens';
 import { authApi, meApi } from '../api/endpoints';
 import { ApiError, saveTokens } from '../api/client';
@@ -11,18 +14,35 @@ import { errorText } from '../i18n';
 import { env } from '../config/env';
 import { useAppDispatch, useAppSelector, signedIn, meUpdated } from '../store';
 
+/** 🇮🇳 from "IN" */
+const flagOf = (cc) => String.fromCodePoint(...[...cc.toUpperCase()].map((c) => 0x1f1a5 + c.charCodeAt(0)));
+const dialOf = (cc) => {
+  try {
+    return `+${getCountryCallingCode(cc)}`;
+  } catch {
+    return '';
+  }
+};
+
+const CtaButton = ({ title, onPress, loading, disabled }) => (
+  <Button title={title} onPress={onPress} loading={loading} disabled={disabled} icon={null} style={authStyles.cta} iconRight={<ArrowRight size={22} color={colors.white} />} />
+);
+
 export const LoginScreen = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const appName = useAppSelector((s) => s.app.bootstrap?.branding?.appName);
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const cc = env.defaultCountryCode;
 
   const submit = async () => {
+    if (phone.trim().length < 6 || loading) return;
     setError('');
     setLoading(true);
     try {
-      const { data } = await authApi.sendOtp(phone.trim(), env.defaultCountryCode);
+      const { data } = await authApi.sendOtp(phone.trim(), cc);
       navigate('/otp', { state: { phone: phone.trim(), e164: data.phone, length: data.length, resendInSec: data.resendInSec } });
     } catch (e) {
       setError(errorText(e));
@@ -32,15 +52,40 @@ export const LoginScreen = () => {
   };
 
   return (
-    <View style={styles.fill}>
-      <ScrollView contentContainerStyle={styles.pad}>
-        <AppText variant="h1">{t('auth.loginTitle')}</AppText>
-        <AppText color={colors.textMuted} style={{ marginTop: spacing.xs, marginBottom: spacing.xl }}>
-          {t('auth.loginSubtitle')}
-        </AppText>
-        <Field value={phone} onChangeText={setPhone} placeholder={t('auth.phonePlaceholder')} keyboardType="phone-pad" maxLength={15} error={error} onSubmitEditing={submit} autoFocus />
-        <Button title={t('auth.sendOtp')} onPress={submit} loading={loading} disabled={phone.trim().length < 6} style={{ marginTop: spacing.lg }} />
-        <Button title={t('auth.browseGuest')} variant="ghost" onPress={() => navigate('/')} style={{ marginTop: spacing.sm }} />
+    <View style={authStyles.page}>
+      <ScrollView contentContainerStyle={{ paddingBottom: spacing.lg }}>
+        <AuthHero />
+        <View style={authStyles.card}>
+          <AppText style={styles.cardTitle}>
+            {t('auth.loginTo')} {!!appName && <AppText style={styles.cardTitle} color={colors.primary}>{appName}</AppText>}
+          </AppText>
+          <AppText color={colors.textMuted} style={{ fontSize: 17, marginTop: spacing.xs, marginBottom: spacing.xl }}>{t('auth.enterMobile')}</AppText>
+
+          <View style={[styles.phoneBox, !!error && { borderColor: colors.danger }]}>
+            <AppText style={{ fontSize: 24 }}>{flagOf(cc)}</AppText>
+            <ChevronDown size={16} color={colors.textMuted} />
+            <AppText variant="bodyStrong" style={{ fontSize: 18, marginLeft: spacing.sm }}>{dialOf(cc)}</AppText>
+            <View style={styles.sep} />
+            <TextInput
+              value={phone}
+              onChangeText={(v) => setPhone(v.replace(/[^\d\s]/g, ''))}
+              placeholder={t('auth.phonePlaceholder')}
+              placeholderTextColor={colors.textSubtle}
+              keyboardType="phone-pad"
+              maxLength={15}
+              autoFocus
+              onSubmitEditing={submit}
+              style={styles.phoneInput}
+            />
+          </View>
+          {!!error && <AppText variant="caption" color={colors.danger} style={{ marginTop: spacing.xs }}>{error}</AppText>}
+
+          <View style={{ marginTop: spacing.xl }}>
+            <CtaButton title={t('auth.next')} onPress={submit} loading={loading} disabled={phone.trim().length < 6} />
+          </View>
+          <Button title={t('auth.browseGuest')} variant="ghost" onPress={() => navigate('/')} style={{ marginTop: spacing.sm }} />
+        </View>
+        <HelpFooter />
       </ScrollView>
     </View>
   );
@@ -55,6 +100,8 @@ export const OtpScreen = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [wait, setWait] = useState(state?.resendInSec ?? 0);
+  const [focused, setFocused] = useState(true);
+  const input = useRef(null);
 
   useEffect(() => {
     if (wait <= 0) return undefined;
@@ -66,6 +113,7 @@ export const OtpScreen = () => {
   const { phone, e164, length } = state;
 
   const verify = async (value) => {
+    if (value.length !== length || loading) return;
     setError('');
     setLoading(true);
     try {
@@ -96,44 +144,68 @@ export const OtpScreen = () => {
     }
   };
 
+  const mmss = `${String(Math.floor(wait / 60)).padStart(2, '0')}:${String(wait % 60).padStart(2, '0')}`;
+  const pretty = (() => {
+    const dial = dialOf(env.defaultCountryCode);
+    const rest = e164.startsWith(dial) ? e164.slice(dial.length) : e164;
+    return rest.length === 10 ? `${dial} ${rest.slice(0, 5)} ${rest.slice(5)}` : e164;
+  })();
+
   return (
-    <View style={styles.fill}>
-      <ScrollView contentContainerStyle={styles.pad}>
-        <AppText variant="h1">{t('auth.otpTitle')}</AppText>
-        <AppText color={colors.textMuted} style={{ marginTop: spacing.xs, marginBottom: spacing.xl }}>
-          {t('auth.otpSubtitle', { phone: e164 })}
-        </AppText>
-        <Field
-          value={code}
-          onChangeText={(v) => {
-            const digits = v.replace(/\D/g, '').slice(0, length);
-            setCode(digits);
-            if (digits.length === length) verify(digits);
-          }}
-          keyboardType="number-pad"
-          autoComplete="sms-otp"
-          maxLength={length}
-          autoFocus
-          style={{ letterSpacing: 8, fontSize: 22, textAlign: 'center' }}
-          error={error}
-        />
-        <Button title={t('auth.verify')} onPress={() => verify(code)} loading={loading} disabled={code.length !== length} style={{ marginTop: spacing.lg }} />
-        <View style={styles.row}>
-          <Pressable onPress={() => navigate(-1)}>
-            <AppText color={colors.primary} variant="bodyStrong">
-              {t('auth.changeNumber')}
-            </AppText>
+    <View style={authStyles.page}>
+      <ScrollView contentContainerStyle={{ paddingBottom: spacing.lg }}>
+        <Pressable accessibilityLabel={t('common.back')} onPress={() => navigate(-1)} style={{ position: 'absolute', top: spacing.lg, left: spacing.lg, zIndex: 3, padding: spacing.xs }}>
+          <ArrowLeft size={26} color={colors.text} />
+        </Pressable>
+        <AuthHero compact />
+        <View style={[authStyles.card, { alignItems: 'center' }]}>
+          <AppText style={[styles.cardTitle, { textAlign: 'center' }]}>{t('auth.verifyTitle')}</AppText>
+          <AppText color={colors.textMuted} style={{ fontSize: 17, marginTop: spacing.sm, textAlign: 'center' }}>{t('auth.sentTo', { count: length })}</AppText>
+          <AppText variant="bodyStrong" style={{ fontSize: 18, marginTop: 2 }}>{pretty}</AppText>
+
+          <Pressable onPress={() => input.current?.focus()} style={styles.boxes} accessibilityRole="none">
+            {Array.from({ length }, (_, i) => {
+              const active = focused && i === Math.min(code.length, length - 1);
+              return (
+                <View key={i} style={[styles.box, active && styles.boxActive, !!error && { borderColor: colors.danger }]}>
+                  <AppText style={{ fontSize: 28, fontWeight: '600' }}>{code[i] ?? ''}</AppText>
+                </View>
+              );
+            })}
+            <TextInput
+              ref={input}
+              value={code}
+              onChangeText={(v) => {
+                const digits = v.replace(/\D/g, '').slice(0, length);
+                setCode(digits);
+                if (digits.length === length) verify(digits);
+              }}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              keyboardType="number-pad"
+              autoComplete="one-time-code"
+              textContentType="oneTimeCode"
+              maxLength={length}
+              autoFocus
+              style={styles.hiddenInput}
+            />
           </Pressable>
-          {wait > 0 ? (
-            <AppText color={colors.textMuted}>{t('auth.resendIn', { sec: wait })}</AppText>
-          ) : (
-            <Pressable onPress={resend}>
-              <AppText color={colors.primary} variant="bodyStrong">
-                {t('auth.resend')}
+          {!!error && <AppText variant="caption" color={colors.danger} style={{ marginTop: spacing.sm, textAlign: 'center' }}>{error}</AppText>}
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.lg, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <AppText color={colors.textMuted}>{t('auth.didntReceive')}</AppText>
+            <Pressable onPress={wait > 0 ? undefined : resend} disabled={wait > 0}>
+              <AppText variant="bodyStrong" color={colors.primary} style={{ textDecorationLine: 'underline', opacity: wait > 0 ? 0.85 : 1 }}>
+                {t('auth.resendOtp')}{wait > 0 ? ` (${mmss})` : ''}
               </AppText>
             </Pressable>
-          )}
+          </View>
+
+          <View style={{ marginTop: spacing.xl, alignSelf: 'stretch' }}>
+            <CtaButton title={t('auth.verify')} onPress={() => verify(code)} loading={loading} disabled={code.length !== length} />
+          </View>
         </View>
+        <HelpFooter />
       </ScrollView>
     </View>
   );
@@ -208,6 +280,14 @@ export const ProfileSetupScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  cardTitle: { fontSize: 30, lineHeight: 38, fontWeight: '800', color: colors.text },
+  phoneBox: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, height: 64, paddingHorizontal: spacing.lg, borderRadius: 20, borderWidth: 1, borderColor: colors.divider, backgroundColor: colors.white, boxShadow: '0 4px 16px rgba(20,24,60,0.05)' },
+  sep: { width: 1, height: 32, backgroundColor: colors.divider, marginHorizontal: spacing.md },
+  phoneInput: { flex: 1, fontSize: 18, height: '100%', outline: 'none' },
+  boxes: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.xl, position: 'relative', justifyContent: 'center' },
+  box: { width: 64, height: 72, borderRadius: 14, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white },
+  boxActive: { borderColor: colors.primary, borderWidth: 1.5 },
+  hiddenInput: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, fontSize: 16 },
   fill: { flex: 1, backgroundColor: colors.white },
   pad: { padding: spacing.xl, paddingTop: spacing.xxxl },
   row: { flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.xl },

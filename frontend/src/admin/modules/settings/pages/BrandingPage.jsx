@@ -32,6 +32,7 @@ export default function BrandingPage() {
             <ImageUpload label="Logo" purpose="branding" value={v.logo} onChange={(x) => update({ logo: x })} />
             <ImageUpload label="Logo (dark backgrounds)" purpose="branding" value={v.logoDark} onChange={(x) => update({ logoDark: x })} />
             <ImageUpload label="Icon" purpose="branding" value={v.icon} aspect="h-24 w-24" onChange={(x) => update({ icon: x })} />
+            <ImageUpload label="Login screen picture" purpose="branding" value={v.loginImage ?? null} onChange={(x) => update({ loginImage: x })} />
           </div>
           <Field label="Primary colour" hint="Hex, e.g. #B0102F — used for the panel accent">
             <div className="flex items-center gap-3">

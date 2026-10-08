@@ -46,6 +46,7 @@ router.get(
       features: s.features.value,
       location: s.location.value,
       marketplace: s.marketplace.value,
+      auctions: s.auctions.value,
       legal: await legalVersions(),
       languages: {
         default: s.languages.value.default,
