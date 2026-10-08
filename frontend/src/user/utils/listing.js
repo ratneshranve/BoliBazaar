@@ -3,10 +3,12 @@ export const formatPrice = (price, t, lang) => {
   if (!price) return '';
   if (price.type === 'on_request') return t('listing.onRequest');
   if (price.type === 'free') return t('listing.free');
-  const digits = Math.round(Math.log10(price.factor));
+  // decimals from the currency itself when the API did not send a factor
+  const digits = price.factor ? Math.round(Math.log10(price.factor)) : new Intl.NumberFormat('en', { style: 'currency', currency: price.currency }).resolvedOptions().maximumFractionDigits;
+  const factor = 10 ** digits;
   // Indian digit grouping (₹12,50,000) for INR, the app language elsewhere
   const locale = price.currency === 'INR' ? 'en-IN' : lang;
-  return new Intl.NumberFormat(locale, { style: 'currency', currency: price.currency, minimumFractionDigits: 0, maximumFractionDigits: digits }).format(price.amountMinor / price.factor);
+  return new Intl.NumberFormat(locale, { style: 'currency', currency: price.currency, minimumFractionDigits: 0, maximumFractionDigits: digits }).format(price.amountMinor / factor);
 };
 
 /** The search/browse query for where the user is: { lat, lng, scope, radiusKm, district, state, countryCode }. */

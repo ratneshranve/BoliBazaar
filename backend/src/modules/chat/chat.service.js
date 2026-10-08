@@ -1,5 +1,6 @@
 import { Conversation, Message, Block } from './chat.model.js';
 import { Listing } from '../listings/listing.model.js';
+import { minorFactor } from '../listings/listing.service.js';
 import { User } from '../users/user.model.js';
 import { ApiError } from '../../core/utils/ApiError.js';
 import { emitToUser } from '../../realtime/index.js';
@@ -71,7 +72,7 @@ export const listConversations = async (userId) => {
     return {
       id: oid(c._id),
       peer: peer ? peerCard(peer) : { id: null, name: null, avatar: null },
-      listing: l ? { id: oid(l._id), title: l.title, cover: l.media?.[0]?.url || null, status: l.status, price: { type: l.price.type, amountMinor: l.price.amountMinor ?? null, currency: l.price.currency } } : null,
+      listing: l ? { id: oid(l._id), title: l.title, cover: l.media?.[0]?.url || null, status: l.status, price: { type: l.price.type, amountMinor: l.price.amountMinor ?? null, currency: l.price.currency, factor: minorFactor(l.price.currency) } } : null,
       lastMessage: c.lastMessage ? { text: c.lastMessage.text, mine: oid(c.lastMessage.senderId) === oid(userId), at: c.lastMessage.at } : null,
       unread: c.unread?.[side] || 0,
       lastMessageAt: c.lastMessageAt,
@@ -91,7 +92,7 @@ export const conversationDetail = async (userId, conversationId) => {
   return {
     id: oid(c._id),
     peer: peer ? peerCard(peer) : { id: oid(peerId), name: null, avatar: null },
-    listing: l ? { id: oid(l._id), title: l.title, cover: l.media?.[0]?.url || null, status: l.status, price: { type: l.price.type, amountMinor: l.price.amountMinor ?? null, currency: l.price.currency } } : null,
+    listing: l ? { id: oid(l._id), title: l.title, cover: l.media?.[0]?.url || null, status: l.status, price: { type: l.price.type, amountMinor: l.price.amountMinor ?? null, currency: l.price.currency, factor: minorFactor(l.price.currency) } } : null,
     iBlockedThem: Boolean(blocked),
   };
 };
