@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, BadgeCheck, FileX, ImageOff, MapPin, Share2 } from 'lucide-react';
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, TextInput, View } from '../components/primitives';
 import { AppText, Button, Card, EmptyState } from '../components/ui';
 import { FavouriteButton } from '../components/ListingCard';
 import { colors, radius, spacing } from '@theme/tokens';
-import { listingsApi, chatApi } from '../api/endpoints';
+import { listingsApi, chatApi, leadsApi } from '../api/endpoints';
 import { useAppSelector } from '../store';
 import { formatPrice, formatDate } from '../utils/listing';
 import { formatDistance } from '../utils/distance';
@@ -17,6 +17,43 @@ const Pill = ({ label, tone = 'neutral' }) => (
     <AppText variant="small" color={colors.text}>{label}</AppText>
   </View>
 );
+
+/** "Apply" on a job ad, "Send enquiry" on a service ad. */
+const LeadBox = ({ ad, authed, onLogin }) => {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+  const kind = ad.listingType === 'job' ? 'apply' : 'enquire';
+
+  const submit = async () => {
+    setBusy(true);
+    try {
+      await leadsApi.send(ad.id, message.trim());
+      setSent(true);
+      setOpen(false);
+    } catch (e) {
+      if (e.code === 'ALREADY_SENT') setSent(true);
+      Alert.alert(errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (sent) return <Card style={{ backgroundColor: colors.sellSoft }}><AppText variant="bodyStrong">{t(`leads.${kind}_sent`)}</AppText></Card>;
+  if (!open) return <Button variant="sell" title={t(`leads.${kind}`)} onPress={() => (authed ? setOpen(true) : onLogin())} />;
+  return (
+    <Card style={{ gap: spacing.sm }}>
+      <AppText variant="bodyStrong">{t(`leads.${kind}_title`)}</AppText>
+      <TextInput value={message} onChangeText={setMessage} multiline maxLength={1000} placeholder={t(`leads.${kind}_placeholder`)} style={styles.leadInput} />
+      <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+        <Button size="md" variant="sell" title={t('leads.submit')} loading={busy} disabled={message.trim().length < 5} onPress={submit} />
+        <Button size="md" variant="ghost" title={t('common.cancel')} onPress={() => setOpen(false)} />
+      </View>
+    </Card>
+  );
+};
 
 export const ListingDetailScreen = () => {
   const { t, i18n } = useTranslation();
@@ -200,7 +237,9 @@ export const ListingDetailScreen = () => {
             </View>
           )}
 
-          {!ad.isOwner && ad.status === 'published' && <Button title={t('chat.chatWithSeller')} loading={opening} onPress={startChat} />}
+          {!ad.isOwner && ad.status === 'published' && ['job', 'service'].includes(ad.listingType) && <LeadBox ad={ad} authed={status === 'authenticated'} onLogin={() => navigate('/login')} />}
+          {!ad.isOwner && ad.status === 'published' && <Button title={t('chat.chatWithSeller')} variant={['job', 'service'].includes(ad.listingType) ? 'outline' : 'primary'} loading={opening} onPress={startChat} />}
+          {ad.isOwner && ['job', 'service'].includes(ad.listingType) && <Button title={t('leads.viewReceived')} variant="outline" onPress={() => navigate(`/leads/received?listing=${ad.id}`)} />}
 
           {ad.isOwner && (
             <Card style={{ gap: spacing.sm }}>
@@ -222,6 +261,7 @@ export const ListingDetailScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  leadInput: { minHeight: 96, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md, fontSize: 16 },
   fill: { flex: 1, backgroundColor: colors.white },
   back: { padding: spacing.lg },
   galleryWrap: { height: 280, backgroundColor: colors.surface },

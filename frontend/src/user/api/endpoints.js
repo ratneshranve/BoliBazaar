@@ -77,6 +77,16 @@ export const notificationsApi = {
   setPrefs: (groups) => api('/notifications/preferences', { method: 'PATCH', body: { groups } }),
 };
 
+/** Job applications and service enquiries. */
+export const leadsApi = {
+  send: (listingId, message) => api('/leads', { method: 'POST', body: { listingId, message } }),
+  received: (params) => api('/leads/received', { query: params }),
+  unseen: () => api('/leads/received/unseen-count'),
+  sent: (params) => api('/leads/sent', { query: params }),
+  setStatus: (id, status) => api(`/leads/${id}/status`, { method: 'PATCH', body: { status } }),
+  withdraw: (id) => api(`/leads/${id}`, { method: 'DELETE' }),
+};
+
 /** Buyer ↔ seller chat, one conversation per ad. */
 export const chatApi = {
   list: () => api('/chats'),

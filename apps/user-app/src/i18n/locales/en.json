@@ -134,7 +134,9 @@
     "language": "Language",
     "guestTitle": "You're browsing as a guest",
     "guestBody": "Log in to post ads, bid, chat and save items.",
-    "login": "Log in"
+    "login": "Log in",
+    "leads": "Applications & enquiries",
+    "leadsSub": "Jobs and services"
   },
   "security": {
     "title": "Account & Security",
@@ -321,5 +323,36 @@
     "placeholder": "Type a message",
     "send": "Send",
     "chatWithSeller": "Chat with seller"
+  },
+  "leads": {
+    "title": "Applications & enquiries",
+    "tab_received": "Received",
+    "tab_sent": "Sent",
+    "empty_received": "Nothing received yet",
+    "empty_sent": "You have not sent anything yet",
+    "type_application": "Job application",
+    "type_enquiry": "Service enquiry",
+    "status_new": "New",
+    "status_seen": "Seen",
+    "status_shortlisted": "Shortlisted",
+    "status_declined": "Declined",
+    "status_withdrawn": "Withdrawn",
+    "call": "Call",
+    "shortlist": "Shortlist",
+    "decline": "Decline",
+    "markSeen": "Mark as seen",
+    "viewAd": "View ad",
+    "withdraw": "Withdraw",
+    "confirmWithdraw": "Withdraw this? The owner will no longer see it.",
+    "viewReceived": "View applications & enquiries",
+    "apply": "Apply now",
+    "apply_title": "Apply for this job",
+    "apply_placeholder": "Tell them about yourself and your experience",
+    "apply_sent": "Your application was sent",
+    "enquire": "Send enquiry",
+    "enquire_title": "Send an enquiry",
+    "enquire_placeholder": "Describe what you need",
+    "enquire_sent": "Your enquiry was sent",
+    "submit": "Send"
   }
 }

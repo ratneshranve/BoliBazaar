@@ -20,6 +20,7 @@ import { LocationScreen } from './screens/LocationScreen';
 import { SecurityScreen } from './screens/SecurityScreen';
 import { PageScreen } from './screens/PageScreen';
 import { NotificationsScreen } from './screens/NotificationsScreen';
+import { LeadsScreen } from './screens/LeadsScreen';
 import { ChatsScreen, ChatScreen } from './screens/ChatScreens';
 import { TabBar } from './components/TabBar';
 import { colors } from '@theme/tokens';
@@ -88,6 +89,8 @@ const Navigation = () => (
       <Route path="/notifications" element={<NotificationsScreen />} />
       <Route path="/chats" element={<ChatsScreen />} />
       <Route path="/chat/:id" element={<ChatScreen />} />
+      <Route path="/leads/received" element={<LeadsScreen initial="received" />} />
+      <Route path="/leads/sent" element={<LeadsScreen initial="sent" />} />
     </Routes>
   </BrowserRouter>
 );

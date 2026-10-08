@@ -12,6 +12,7 @@ import homeRoutes from '../modules/home/user/home.routes.js';
 import listingsRoutes from '../modules/listings/user/listings.routes.js';
 import chatRoutes from '../modules/chat/user/chat.routes.js';
 import notificationsRoutes from '../modules/notifications/user/notifications.routes.js';
+import leadsRoutes from '../modules/leads/user/leads.routes.js';
 
 /** User-app API, mounted at /api/v1 */
 const router = Router();
@@ -30,5 +31,6 @@ router.use('/home', homeRoutes);
 router.use('/listings', listingsRoutes);
 router.use('/notifications', notificationsRoutes);
 router.use('/chats', chatRoutes);
+router.use('/leads', leadsRoutes);
 
 export default router;

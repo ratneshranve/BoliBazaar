@@ -134,7 +134,9 @@
     "language": "भाषा",
     "guestTitle": "आप मेहमान के रूप में देख रहे हैं",
     "guestBody": "विज्ञापन डालने, बोली लगाने, चैट करने और सामान सेव करने के लिए लॉग इन करें।",
-    "login": "लॉग इन करें"
+    "login": "लॉग इन करें",
+    "leads": "आवेदन और पूछताछ",
+    "leadsSub": "नौकरियाँ और सेवाएँ"
   },
   "security": {
     "title": "अकाउंट और सुरक्षा",
@@ -321,5 +323,36 @@
     "placeholder": "संदेश लिखें",
     "send": "भेजें",
     "chatWithSeller": "विक्रेता से चैट करें"
+  },
+  "leads": {
+    "title": "आवेदन और पूछताछ",
+    "tab_received": "प्राप्त",
+    "tab_sent": "भेजे गए",
+    "empty_received": "अभी कुछ प्राप्त नहीं हुआ",
+    "empty_sent": "आपने अभी कुछ नहीं भेजा",
+    "type_application": "नौकरी का आवेदन",
+    "type_enquiry": "सेवा की पूछताछ",
+    "status_new": "नया",
+    "status_seen": "देखा गया",
+    "status_shortlisted": "शॉर्टलिस्ट",
+    "status_declined": "अस्वीकृत",
+    "status_withdrawn": "वापस लिया",
+    "call": "कॉल करें",
+    "shortlist": "शॉर्टलिस्ट करें",
+    "decline": "अस्वीकार करें",
+    "markSeen": "देखा हुआ मार्क करें",
+    "viewAd": "विज्ञापन देखें",
+    "withdraw": "वापस लें",
+    "confirmWithdraw": "इसे वापस लें? मालिक इसे फिर नहीं देख पाएगा।",
+    "viewReceived": "आवेदन और पूछताछ देखें",
+    "apply": "अभी आवेदन करें",
+    "apply_title": "इस नौकरी के लिए आवेदन करें",
+    "apply_placeholder": "अपने और अपने अनुभव के बारे में बताएँ",
+    "apply_sent": "आपका आवेदन भेज दिया गया",
+    "enquire": "पूछताछ भेजें",
+    "enquire_title": "पूछताछ भेजें",
+    "enquire_placeholder": "बताएँ कि आपको क्या चाहिए",
+    "enquire_sent": "आपकी पूछताछ भेज दी गई",
+    "submit": "भेजें"
   }
 }
