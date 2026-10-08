@@ -223,7 +223,8 @@
     "paused": "Paused",
     "rejected": "Rejected",
     "expired": "Expired",
-    "sold": "Sold"
+    "sold": "Sold",
+    "payment_pending": "Payment pending"
   },
   "search": {
     "title": "Search",
@@ -279,7 +280,8 @@
     "reviewNote": "Changes to this ad will be reviewed again before it goes live.",
     "pickLeaf": "Pick the most specific category",
     "required": "Required",
-    "success_auction": "Your auction was sent for review. We will notify you once it is approved."
+    "success_auction": "Your auction was sent for review. We will notify you once it is approved.",
+    "success_payment": "You have used your free ads. Pay the posting fee to put this ad live."
   },
   "myListings": {
     "title": "My Listings",
@@ -299,7 +301,10 @@
     "confirmDelete": "Delete this ad?",
     "views": "{{count}} views",
     "reason": "Reason: {{reason}}",
-    "expires": "Expires {{date}}"
+    "expires": "Expires {{date}}",
+    "tab_payment_pending": "Payment pending",
+    "payFee": "Pay posting fee",
+    "promote": "Promote"
   },
   "favourites": {
     "title": "Favourites",
@@ -307,7 +312,9 @@
   },
   "homeRails": {
     "nearby": "Near you",
-    "latest": "Latest ads"
+    "latest": "Latest ads",
+    "featured": "Featured",
+    "auctions": "Live auctions"
   },
   "notifications": {
     "title": "Notifications",
@@ -319,7 +326,8 @@
     "group_system": "Updates from us",
     "markAll": "Mark all as read",
     "empty": "No notifications yet",
-    "group_auctions": "Auctions"
+    "group_auctions": "Auctions",
+    "group_payments": "Payments"
   },
   "chat": {
     "title": "Messages",
@@ -518,5 +526,69 @@
     "submit": "Submit for review",
     "createTitle": "Create an auction",
     "editTitle": "Edit auction"
+  },
+  "pay": {
+    "title": "Payment",
+    "price": "Price",
+    "discount": "Coupon {{code}}",
+    "total": "Total",
+    "coupon": "Have a coupon?",
+    "couponPlaceholder": "Enter coupon code",
+    "apply": "Apply",
+    "remove": "Remove",
+    "payNow": "Pay {{amount}}",
+    "secure": "Payments are processed securely by Razorpay.",
+    "success": "Payment successful",
+    "continue": "Continue",
+    "viewPayments": "View my payments",
+    "plusTax": "Prices are plus {{label}} {{percent}}%.",
+    "checkoutLoadFailed": "Could not open the payment window. Check your internet connection and try again.",
+    "successHint_listing_fee": "Your ad is on its way.",
+    "successHint_promotion": "Your ad is now promoted.",
+    "successHint_plan": "Your plan is active.",
+    "successHint_commission": "Thank you — the commission is paid."
+  },
+  "promote": {
+    "title": "Promote your ad",
+    "for": "For \"{{title}}\"",
+    "none": "No promotions are available right now",
+    "what_featured": "Shown in the Featured section",
+    "what_top": "Shown at the top of search results",
+    "what_urgent": "Gets an \"Urgent\" label",
+    "what_bump": "Moves your ad back to the top of the newest ads",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days"
+  },
+  "plans": {
+    "title": "Seller plans",
+    "none": "No plans are available right now",
+    "current": "Your plan {{name}} is active until {{date}}.",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "extraAds_one": "{{count}} extra free ad",
+    "extraAds_other": "{{count}} extra free ads",
+    "buy": "Choose this plan",
+    "extend": "Extend with this plan"
+  },
+  "payments": {
+    "title": "Payments",
+    "plans": "Seller plans",
+    "history": "Payment history",
+    "empty": "No payments yet",
+    "invoice": "Invoice",
+    "commissionDue": "Auction commission due: {{amount}}",
+    "overdue": "Overdue — pay now to keep posting",
+    "dueBy": "Due by {{date}}",
+    "payNow": "Pay now",
+    "status_paid": "Paid",
+    "status_failed": "Failed",
+    "status_refunded": "Refunded",
+    "status_partially_refunded": "Partly refunded",
+    "status_created": "Waiting"
+  },
+  "badge": {
+    "featured": "Featured",
+    "top": "Top",
+    "urgent": "Urgent"
   }
 }

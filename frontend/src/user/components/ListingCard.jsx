@@ -51,9 +51,18 @@ export const ListingCard = ({ listing, width, onFavouriteChange }) => {
             <ImageOff size={28} color={colors.textSubtle} />
           </View>
         )}
-        {typeTag && (
-          <View style={styles.tag}>
-            <AppText variant="small" color={colors.white}>{typeTag}</AppText>
+        {(typeTag || listing.badges?.length > 0) && (
+          <View style={styles.tags}>
+            {listing.badges?.map((b) => (
+              <View key={b} style={[styles.tagPill, { backgroundColor: b === 'urgent' ? colors.live : b === 'top' ? colors.primary : colors.warm }]}>
+                <AppText variant="small" color={colors.white}>{t(`badge.${b}`)}</AppText>
+              </View>
+            ))}
+            {typeTag && (
+              <View style={styles.tagPill}>
+                <AppText variant="small" color={colors.white}>{typeTag}</AppText>
+              </View>
+            )}
           </View>
         )}
         <View style={styles.heartPos}>
@@ -90,7 +99,8 @@ const styles = StyleSheet.create({
   imgWrap: { height: 130, backgroundColor: colors.surface },
   img: { width: '100%', height: '100%' },
   noImg: { alignItems: 'center', justifyContent: 'center' },
-  tag: { position: 'absolute', left: spacing.sm, top: spacing.sm, backgroundColor: colors.auctionBlue, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2 },
+  tags: { position: 'absolute', left: spacing.sm, top: spacing.sm, flexDirection: 'row', flexWrap: 'wrap', gap: 4, right: 40 },
+  tagPill: { backgroundColor: colors.auctionBlue, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2 },
   heartPos: { position: 'absolute', right: spacing.sm, top: spacing.sm },
   heart: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 4 },

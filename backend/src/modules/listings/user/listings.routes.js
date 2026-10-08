@@ -26,7 +26,7 @@ router.get('/', optionalUser, validate({ query: searchQuery }), asyncHandler(asy
 router.get(
   '/mine',
   requireUser,
-  validate({ query: paging.extend({ status: z.enum(['active', 'pending_review', 'rejected', 'expired', 'sold', 'paused']).optional() }) }),
+  validate({ query: paging.extend({ status: z.enum(['active', 'payment_pending', 'pending_review', 'rejected', 'expired', 'sold', 'paused']).optional() }) }),
   asyncHandler(async (req, res) => ok(res, await myListings(req.user.id, { ...req.query, lang: req.ctx.lang })))
 );
 

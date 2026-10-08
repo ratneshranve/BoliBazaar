@@ -94,13 +94,13 @@ export const HomeScreen = () => {
           ))}
         </View>
 
-        {[['nearby', home?.nearby], ['latest', home?.latest]].map(
+        {[['featured', home?.featured], ['auctions', home?.auctions], ['nearby', home?.nearby], ['latest', home?.latest]].map(
           ([key, list]) =>
             list?.length > 0 && (
               <View key={key} style={{ marginTop: spacing.lg }}>
                 <View style={styles.sectionHead}>
                   <AppText variant="h2">{t(`homeRails.${key}`)}</AppText>
-                  <AppText variant="bodyStrong" color={colors.primary} onPress={() => navigate(`/search${key === 'nearby' ? '?sort=nearest' : ''}`)}>
+                  <AppText variant="bodyStrong" color={colors.primary} onPress={() => navigate(key === 'auctions' ? '/auctions' : `/search${key === 'nearby' ? '?sort=nearest' : ''}`)}>
                     {t('common.seeAll')} ›
                   </AppText>
                 </View>

@@ -22,6 +22,7 @@ import { SecurityScreen } from './screens/SecurityScreen';
 import { PageScreen } from './screens/PageScreen';
 import { NotificationsScreen } from './screens/NotificationsScreen';
 import { LeadsScreen } from './screens/LeadsScreen';
+import { PayScreen, PromoteScreen, PlansScreen, PaymentsScreen } from './screens/PaymentScreens';
 import { ChatsScreen, ChatScreen } from './screens/ChatScreens';
 import { TabBar } from './components/TabBar';
 import { colors } from '@theme/tokens';
@@ -94,6 +95,10 @@ const Navigation = () => (
       <Route path="/auctions/:auctionId/edit" element={<SellScreen />} />
       <Route path="/my-auctions" element={<MyAuctionsScreen />} />
       <Route path="/deals" element={<DealsScreen />} />
+      <Route path="/pay" element={<PayScreen />} />
+      <Route path="/promote/:id" element={<PromoteScreen />} />
+      <Route path="/plans" element={<PlansScreen />} />
+      <Route path="/payments" element={<PaymentsScreen />} />
       <Route path="/deals/:id" element={<DealScreen />} />
       <Route path="/leads/received" element={<LeadsScreen initial="received" />} />
       <Route path="/leads/sent" element={<LeadsScreen initial="sent" />} />

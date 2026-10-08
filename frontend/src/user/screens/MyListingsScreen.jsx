@@ -10,9 +10,9 @@ import { listingsApi } from '../api/endpoints';
 import { formatPrice, formatDate } from '../utils/listing';
 import { errorText } from '../i18n';
 
-const TABS = ['active', 'pending_review', 'paused', 'rejected', 'expired', 'sold'];
+const TABS = ['active', 'payment_pending', 'pending_review', 'paused', 'rejected', 'expired', 'sold'];
 
-const TONE = { published: colors.sell, pending_review: colors.warning, paused: colors.textMuted, rejected: colors.danger, expired: colors.textMuted, sold: colors.auctionBlue };
+const TONE = { payment_pending: colors.warning, published: colors.sell, pending_review: colors.warning, paused: colors.textMuted, rejected: colors.danger, expired: colors.textMuted, sold: colors.auctionBlue };
 
 /** The seller's own ads, by status, with quick actions. */
 export const MyListingsScreen = () => {
@@ -83,6 +83,8 @@ export const MyListingsScreen = () => {
         {l.status === 'paused' && <Button size="md" variant="outline" title={t('myListings.resume')} onPress={() => act(l.id, 'resume')} />}
         {['published', 'paused'].includes(l.status) && <Button size="md" variant="outline" title={t('myListings.markSold')} onPress={() => act(l.id, 'sold')} />}
         {l.status === 'expired' && <Button size="md" title={t('myListings.renew')} onPress={() => act(l.id, 'renew')} />}
+        {l.status === 'payment_pending' && <Button size="md" title={t('myListings.payFee')} onPress={() => navigate(`/pay?purpose=listing_fee&refId=${l.id}`)} />}
+        {l.status === 'published' && <Button size="md" variant="sell" title={t('myListings.promote')} onPress={() => navigate(`/promote/${l.id}`)} />}
         <Button size="md" variant="ghost" title={t('myListings.delete')} onPress={() => act(l.id, 'delete')} />
       </View>
     </View>

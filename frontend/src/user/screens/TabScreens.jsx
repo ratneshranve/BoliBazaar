@@ -58,7 +58,7 @@ export const ProfileScreen = () => {
   const menu = [
     { icon: <MessageSquare size={22} color={colors.text} />, title: t('profile.messages'), sub: t('profile.messagesSub'), onPress: () => navigate('/chats') },
     { icon: <Inbox size={22} color={colors.text} />, title: t('profile.leads'), sub: t('profile.leadsSub'), onPress: () => navigate('/leads/received') },
-    { icon: <Wallet size={22} color={colors.text} />, title: t('profile.payments'), sub: t('profile.paymentsSub') },
+    { icon: <Wallet size={22} color={colors.text} />, title: t('profile.payments'), sub: t('profile.paymentsSub'), onPress: () => navigate('/payments') },
     { icon: <MapPin size={22} color={colors.text} />, title: t('profile.addresses'), sub: t('profile.addressesSub'), onPress: () => navigate('/location') },
     { icon: <FileText size={22} color={colors.text} />, title: t('profile.verification'), sub: t('profile.verificationSub') },
     { icon: <ShieldCheck size={22} color={colors.text} />, title: t('profile.security'), sub: t('profile.securitySub'), onPress: () => navigate('/security') },

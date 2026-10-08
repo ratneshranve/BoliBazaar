@@ -77,6 +77,18 @@ export const notificationsApi = {
   setPrefs: (groups) => api('/notifications/preferences', { method: 'PATCH', body: { groups } }),
 };
 
+/** Paid extras: posting fees, promotions, plans, commission; checkout via Razorpay. */
+export const paymentsApi = {
+  catalog: () => api('/payments/catalog'),
+  quota: (categoryId) => api('/payments/quota', { query: { categoryId } }),
+  quote: (body) => api('/payments/quote', { method: 'POST', body, idempotencyKey: false }),
+  order: (body) => api('/payments/orders', { method: 'POST', body }),
+  verify: (body) => api('/payments/verify', { method: 'POST', body }),
+  failed: (orderId, reason) => api('/payments/failed', { method: 'POST', body: { orderId, reason }, idempotencyKey: false }),
+  history: (params) => api('/payments', { query: params }),
+  commissions: () => api('/payments/commissions'),
+};
+
 /** Auctions: browse, bid, sell, and the deal after a win. */
 export const auctionsApi = {
   browse: (params) => api('/auctions', { auth: false, query: params }),

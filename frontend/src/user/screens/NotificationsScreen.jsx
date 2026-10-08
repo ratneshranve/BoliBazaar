@@ -11,7 +11,7 @@ import { onRealtime } from '../services/realtime';
 import { formatDate } from '../utils/listing';
 import { errorText } from '../i18n';
 
-const GROUPS = ['chat', 'listings', 'auctions', 'jobs', 'system'];
+const GROUPS = ['chat', 'listings', 'auctions', 'jobs', 'payments', 'system'];
 
 /** Inbox of everything the app told the user, plus per-group push switches. */
 export const NotificationsScreen = () => {

@@ -219,7 +219,8 @@ export const SellScreen = () => {
     return (
       <View style={[styles.fill, { alignItems: 'center', justifyContent: 'center', padding: spacing.xl, gap: spacing.md }]}>
         <CheckCircle2 size={64} color={colors.sell} />
-        <AppText variant="h2" style={{ textAlign: 'center' }}>{done.auction ? t('sell.success_auction') : done.status === 'published' ? t('sell.success_published') : t('sell.success_review')}</AppText>
+        <AppText variant="h2" style={{ textAlign: 'center' }}>{done.auction ? t('sell.success_auction') : done.status === 'payment_pending' ? t('sell.success_payment') : done.status === 'published' ? t('sell.success_published') : t('sell.success_review')}</AppText>
+        {done.status === 'payment_pending' && <Button title={t('myListings.payFee')} onPress={() => navigate(`/pay?purpose=listing_fee&refId=${done.id}`, { replace: true })} style={{ alignSelf: 'stretch' }} />}
         <View style={{ alignSelf: 'stretch', gap: spacing.sm, marginTop: spacing.lg }}>
           <Button title={done.auction ? t('auction.view') : t('sell.viewAd')} onPress={() => navigate(done.auction ? `/auctions/${done.id}` : `/listing/${done.id}`, { replace: true })} />
           {!editing && <Button variant="outline" title={t('sell.postAnother')} onPress={() => window.location.assign('/sell')} />}
