@@ -6,12 +6,14 @@ import LanguagesPage from './pages/LanguagesPage';
 import LocationPage from './pages/LocationPage';
 import MarketplacePage from './pages/MarketplacePage';
 import AuctionsSettingsPage from './pages/AuctionsPage';
+import MonetizationPage from './pages/MonetizationPage';
 
 const pages = [
   { label: 'Branding', path: '/settings/branding', element: <BrandingPage /> },
   { label: 'Location', path: '/settings/location', element: <LocationPage /> },
   { label: 'Marketplace', path: '/settings/marketplace', element: <MarketplacePage /> },
   { label: 'Auctions', path: '/settings/auctions', element: <AuctionsSettingsPage /> },
+  { label: 'Monetization', path: '/settings/monetization', element: <MonetizationPage /> },
   { label: 'Languages', path: '/settings/languages', element: <LanguagesPage /> },
   { label: 'Maintenance', path: '/settings/app-control', element: <AppControlPage /> },
   { label: 'Image Storage', path: '/settings/storage', element: <StoragePage /> },
