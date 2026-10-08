@@ -16,7 +16,9 @@ const schema = z
     PUBLIC_BASE_URL: z.string().url(),
 
     MONGODB_URI: required('MONGODB_URI'),
-    REDIS_URL: required('REDIS_URL'),
+    REDIS_ENABLED: z.enum(['true', 'false'], { errorMap: () => ({ message: 'REDIS_ENABLED must be "true" or "false"' }) }),
+    BULLMQ_ENABLED: z.enum(['true', 'false'], { errorMap: () => ({ message: 'BULLMQ_ENABLED must be "true" or "false"' }) }),
+    REDIS_URL: optional,
 
     USER_JWT_SECRET: z.string().min(32, 'USER_JWT_SECRET must be at least 32 chars'),
     ADMIN_JWT_SECRET: z.string().min(32, 'ADMIN_JWT_SECRET must be at least 32 chars'),
@@ -58,6 +60,10 @@ const schema = z
         if (!env[k]) ctx.addIssue({ code: z.ZodIssueCode.custom, path: [k], message: `${k} is required ${why}` });
       });
 
+    if (env.REDIS_ENABLED === 'true') need(['REDIS_URL'], 'when REDIS_ENABLED=true');
+    if (env.BULLMQ_ENABLED === 'true' && env.REDIS_ENABLED !== 'true') {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['BULLMQ_ENABLED'], message: 'BULLMQ_ENABLED=true requires REDIS_ENABLED=true (BullMQ runs on Redis)' });
+    }
     if (env.SMS_PROVIDER === 'msg91') need(['MSG91_AUTH_KEY', 'MSG91_OTP_TEMPLATE_ID'], 'when SMS_PROVIDER=msg91');
     if (env.SMS_PROVIDER === 'twilio') need(['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_FROM_NUMBER'], 'when SMS_PROVIDER=twilio');
     if (env.SMS_PROVIDER === 'console' && env.NODE_ENV !== 'development') {
@@ -84,6 +90,8 @@ export const env = Object.freeze({
   ...e,
   isDev: e.NODE_ENV === 'development',
   isProd: e.NODE_ENV === 'production',
+  redisEnabled: e.REDIS_ENABLED === 'true',
+  bullmqEnabled: e.BULLMQ_ENABLED === 'true',
   corsOrigins: e.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean),
   firebasePrivateKey: e.FIREBASE_PRIVATE_KEY ? e.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined,
 });
