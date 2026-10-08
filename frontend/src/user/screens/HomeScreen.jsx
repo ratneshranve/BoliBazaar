@@ -12,6 +12,7 @@ import { ListingCard } from '../components/ListingCard';
 import { locationQuery } from '../utils/listing';
 import { colors, radius, spacing, shadow } from '@theme/tokens';
 import { homeApi } from '../api/endpoints';
+import { AuctionCard } from './AuctionScreens';
 import { useAppSelector } from '../store';
 
 export const HomeScreen = () => {
@@ -105,9 +106,13 @@ export const HomeScreen = () => {
                   </AppText>
                 </View>
                 <ScrollView horizontal contentContainerStyle={{ gap: spacing.md, paddingHorizontal: spacing.lg, paddingBottom: spacing.sm }}>
-                  {list.map((l) => (
-                    <ListingCard key={l.id} listing={l} width={170} />
-                  ))}
+                  {list.map((l) =>
+                    key === 'auctions' ? (
+                      <View key={l.id} style={{ width: 200 }}><AuctionCard listing={l} /></View>
+                    ) : (
+                      <ListingCard key={l.id} listing={l} width={170} />
+                    )
+                  )}
                 </ScrollView>
               </View>
             )

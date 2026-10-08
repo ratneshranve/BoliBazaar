@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Clock, Gavel, Handshake, ImageOff, MapPin, Phone, MessageSquare, Plus, Trophy } from 'lucide-react';
+import { ArrowLeft, ArrowUpDown, ChevronDown, Clock, Gavel, Handshake, ImageOff, LayoutGrid, MapPin, Phone, MessageSquare, Radio, Search, Tag, Trophy } from 'lucide-react';
+import { FavouriteButton } from '../components/ListingCard';
+import { LocationChip } from '../components/LocationChip';
+import { Sheet } from '../components/Sheet';
 import { ActivityIndicator, Alert, Image, Linking, Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from '../components/primitives';
 import { AppText, Button, Card, EmptyState } from '../components/ui';
 import { BrandHeader } from '../components/BrandHeader';
 import { colors, radius, spacing } from '@theme/tokens';
-import { auctionsApi, listingsApi } from '../api/endpoints';
+import { auctionsApi, categoriesApi, listingsApi } from '../api/endpoints';
 import { ApiError } from '../api/client';
 import { useAppSelector } from '../store';
 import { onRealtime, watchAuction } from '../services/realtime';
@@ -38,53 +41,129 @@ const TimeLeft = ({ a, color = colors.text }) => {
   return <AppText variant="caption" color={colors.textMuted}>{t(`auction.status_${a.status}`)}</AppText>;
 };
 
-/** Card for an auction item (a listing card that carries an `auction` summary). */
+/** "02h 34m 15s" (days shown as "2d 04h" for long ones). */
+const clock = (ms) => {
+  if (ms == null) return '';
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const d = Math.floor(s / 86400);
+  const p = (n) => String(n).padStart(2, '0');
+  if (d > 0) return `${d}d ${p(Math.floor((s % 86400) / 3600))}h`;
+  return `${p(Math.floor(s / 3600))}h ${p(Math.floor((s % 3600) / 60))}m ${p(s % 60)}s`;
+};
+
+const TimerPill = ({ a }) => {
+  const ms = useCountdown(['scheduled', 'live'].includes(a.status) ? (a.status === 'scheduled' ? a.startAt : a.endAt) : null);
+  if (!['scheduled', 'live'].includes(a.status)) return null;
+  return (
+    <View style={styles.timer}>
+      <Clock size={13} color={colors.white} />
+      <AppText variant="caption" color={colors.white} style={{ fontWeight: '700', fontVariantNumeric: 'tabular-nums' }}>{clock(ms)}</AppText>
+    </View>
+  );
+};
+
+/** Auction card (Auctions page, Home rail, search results): photo with LIVE badge and countdown, the three numbers, Bid Now. */
 export const AuctionCard = ({ listing }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const a = listing.auction;
   if (!a) return null;
-  const amount = a.currentMinor ?? a.startingMinor;
+  const money = (m) => formatMinor(m, listing.price.currency, listing.price.factor, i18n.language);
+  const open = () => navigate(`/auctions/${a.id}`);
   return (
-    <Pressable onPress={() => navigate(`/auctions/${a.id}`)} style={styles.card}>
-      <View style={styles.cardImg}>
+    <View style={styles.card}>
+      <Pressable onPress={open} style={styles.cardImg}>
         {listing.cover ? <Image source={{ uri: listing.cover }} style={{ width: '100%', height: '100%' }} resizeMode="cover" /> : <View style={styles.noImg}><ImageOff size={28} color={colors.textSubtle} /></View>}
-        {a.status === 'live' && <View style={styles.liveTag}><AppText variant="small" color={colors.white}>● {t('auction.live')}</AppText></View>}
-      </View>
-      <View style={{ padding: spacing.sm, gap: 2 }}>
+        {a.status === 'live' && (
+          <View style={styles.liveTag}>
+            <Radio size={13} color={colors.white} />
+            <AppText variant="small" color={colors.white} style={{ fontWeight: '700' }}>{t('auction.live')}</AppText>
+          </View>
+        )}
+        {a.status === 'scheduled' && <View style={[styles.liveTag, { backgroundColor: colors.auction }]}><AppText variant="small" color={colors.white} style={{ fontWeight: '700' }}>{t('auction.upcoming')}</AppText></View>}
+        <View style={styles.heartPos}><FavouriteButton listing={listing} size={18} /></View>
+        <View style={styles.timerPos}><TimerPill a={a} /></View>
+      </Pressable>
+      <Pressable onPress={open} style={{ padding: spacing.sm, gap: 2 }}>
         <AppText variant="bodyStrong" numberOfLines={1}>{listing.title}</AppText>
-        <AppText variant="small" color={colors.textMuted}>{a.currentMinor != null ? t('auction.currentBid') : t('auction.startingBid')}</AppText>
-        <AppText variant="h3" color={colors.auction}>{formatMinor(amount, listing.price.currency, listing.price.factor, i18n.language)}</AppText>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <Clock size={12} color={colors.textMuted} />
-          <TimeLeft a={a} color={colors.textMuted} />
+        <AppText variant="small" color={colors.textMuted} numberOfLines={1}>{[listing.categoryName, listing.place].filter(Boolean).join(' • ')}</AppText>
+        <View style={styles.stats}>
+          <View style={{ flex: 1.3 }}>
+            <AppText variant="small" color={colors.primary}>{a.currentMinor != null ? t('auction.currentBid') : t('auction.startingBid')}</AppText>
+            <AppText style={styles.bigPrice} color={colors.primary} numberOfLines={1}>{money(a.currentMinor ?? a.startingMinor)}</AppText>
+          </View>
+          <View style={{ flex: 0.8 }}>
+            <AppText variant="small" color={colors.textMuted}>{t('auction.totalBids')}</AppText>
+            <AppText variant="bodyStrong">{a.bidCount}</AppText>
+          </View>
+          {a.nextMinimumMinor != null && (
+            <View style={{ flex: 1.1 }}>
+              <AppText variant="small" color={colors.textMuted}>{t('auction.nextMin')}</AppText>
+              <AppText variant="bodyStrong" numberOfLines={1}>{money(a.nextMinimumMinor)}</AppText>
+            </View>
+          )}
         </View>
-        <AppText variant="small" color={colors.textMuted}>{t('auction.bidsCount', { count: a.bidCount })}</AppText>
+      </Pressable>
+      <View style={{ paddingHorizontal: spacing.sm, paddingBottom: spacing.sm }}>
+        <Button size="md" title={a.status === 'live' ? t('auction.bidNow') : t('auction.view')} icon={<Gavel size={16} color={colors.white} />} onPress={open} />
       </View>
-    </Pressable>
+    </View>
   );
 };
 
 /* ───────── Auctions tab ───────── */
 
-const TABS = ['live', 'scheduled', 'ended'];
+const TABS = [
+  { key: 'live', status: 'live' },
+  { key: 'ending', status: 'live', endingWithinHours: 24, sort: 'ending' },
+  { key: 'scheduled', status: 'scheduled' },
+];
+const SORTS = ['ending', 'newest', 'bids', 'price_low', 'price_high'];
 
 export const AuctionsScreen = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const branding = useAppSelector((s) => s.app.bootstrap?.branding);
   const enabled = useAppSelector((s) => s.app.bootstrap?.auctions?.enabled);
   const authed = useAppSelector((s) => s.session.status === 'authenticated');
   const current = useAppSelector((s) => s.location.current);
   const [tab, setTab] = useState('live');
+  const [cats, setCats] = useState([]);
+  const [categoryId, setCategoryId] = useState('');
+  const [text, setText] = useState('');
+  const [q, setQ] = useState('');
+  const [sort, setSort] = useState('ending');
+  const [price, setPrice] = useState({ min: '', max: '' });
+  const [sheet, setSheet] = useState(null); // 'price' | 'sort'
   const [items, setItems] = useState(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
 
+  useEffect(() => {
+    categoriesApi.tree().then(({ data }) => setCats(data)).catch(() => setCats([]));
+  }, []);
+  useEffect(() => {
+    const id = setTimeout(() => setQ(text.trim()), 400);
+    return () => clearTimeout(id);
+  }, [text]);
+
   const near = current?.scope?.type === 'radius' ? { lat: current.lat, lng: current.lng, radiusKm: current.scope.km } : {};
+  const tabDef = TABS.find((x) => x.key === tab);
   const load = useCallback(
     async (p = 1) => {
       try {
-        const { data } = await auctionsApi.browse({ status: tab, page: p, limit: 20, ...near });
+        const { data } = await auctionsApi.browse({
+          status: tabDef.status,
+          endingWithinHours: tabDef.endingWithinHours,
+          sort: tabDef.sort || sort,
+          categoryId: categoryId || undefined,
+          q: q || undefined,
+          priceMin: price.min || undefined,
+          priceMax: price.max || undefined,
+          page: p,
+          limit: 20,
+          ...near,
+        });
         setItems((prev) => (p === 1 ? data.items : [...(prev ?? []), ...data.items]));
         setHasMore(data.hasMore);
         setPage(p);
@@ -93,40 +172,156 @@ export const AuctionsScreen = () => {
         setItems((prev) => prev ?? []);
       }
     },
-    [tab, near.lat, near.lng, near.radiusKm] // eslint-disable-line react-hooks/exhaustive-deps
+    [tab, sort, categoryId, q, price.min, price.max, near.lat, near.lng, near.radiusKm] // eslint-disable-line react-hooks/exhaustive-deps
   );
   useEffect(() => {
     setItems(null);
     load(1);
   }, [load]);
 
+  const priceActive = Boolean(price.min || price.max);
+
   return (
     <View style={styles.fill}>
-      <BrandHeader />
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, gap: spacing.sm }}>
-        <AppText variant="h2" style={{ flex: 1 }}>{t('auction.title')}</AppText>
-        {enabled && <Button size="md" variant="auction" title={t('auction.create')} icon={<Plus size={16} color={colors.white} />} onPress={() => navigate(authed ? '/sell?type=auction' : '/login')} style={{ backgroundColor: colors.auction }} />}
-      </View>
-      <View style={styles.tabs}>
-        {TABS.map((k) => (
-          <Pressable key={k} onPress={() => setTab(k)} style={[styles.tab, tab === k && styles.tabOn]}>
-            <AppText variant="bodyStrong" color={tab === k ? colors.white : colors.text}>{t(`auction.tab_${k}`)}</AppText>
+      <BrandHeader>
+        <LocationChip />
+      </BrandHeader>
+      <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxxl }}>
+        {/* hero */}
+        <View style={styles.hero}>
+          <View style={{ flex: 1, gap: spacing.xs, zIndex: 1 }}>
+            <AppText variant="small" color={colors.primary} style={{ letterSpacing: 1.5, fontWeight: '700' }}>{t('auction.heroEyebrow')}</AppText>
+            <AppText style={styles.heroTitle}>
+              <AppText style={styles.heroTitle} color={colors.primary}>{t('auction.heroBid')} </AppText>
+              <AppText style={styles.heroTitle} color={colors.auction}>{t('auction.heroWin')}</AppText>
+              {'\n'}
+              {t('auction.heroDeals')}
+            </AppText>
+            <AppText variant="caption" color={colors.textMuted} style={{ maxWidth: 220 }}>{t('auction.heroBody')}</AppText>
+            <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm, flexWrap: 'wrap' }}>
+              <Pressable onPress={() => navigate('/page/auctions-guide')} style={styles.heroBtn}>
+                <AppText variant="caption" color={colors.white} style={{ fontWeight: '700' }}>{t('auction.howItWorks')} →</AppText>
+              </Pressable>
+              {enabled && (
+                <Pressable onPress={() => navigate(authed ? '/sell?type=auction' : '/login')} style={[styles.heroBtn, styles.heroBtnGhost]}>
+                  <AppText variant="caption" color={colors.primary} style={{ fontWeight: '700' }}>{t('auction.create')}</AppText>
+                </Pressable>
+              )}
+            </View>
+          </View>
+          {branding?.auctionHeroImage?.url && <Image source={{ uri: branding.auctionHeroImage.url }} style={styles.heroImg} resizeMode="contain" />}
+        </View>
+
+        {/* search */}
+        <View style={styles.search}>
+          <Search size={20} color={colors.textMuted} />
+          <TextInput value={text} onChangeText={setText} placeholder={t('auction.searchPlaceholder')} style={{ flex: 1, fontSize: 15, height: 46, outline: 'none' }} />
+        </View>
+
+        {/* categories */}
+        <ScrollView horizontal contentContainerStyle={{ gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm }}>
+          <Pressable onPress={() => setCategoryId('')} style={styles.catItem}>
+            <View style={[styles.catCircle, !categoryId && { backgroundColor: colors.primary }]}>
+              <LayoutGrid size={26} color={!categoryId ? colors.white : colors.text} />
+            </View>
+            <AppText variant="small" color={!categoryId ? colors.primary : colors.text}>{t('auction.all')}</AppText>
           </Pressable>
-        ))}
-      </View>
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingTop: 0, paddingBottom: spacing.xxxl }}>
-        {!items && <ActivityIndicator style={{ padding: spacing.xl }} color={colors.auction} />}
-        {items?.length === 0 && <EmptyState icon={<Gavel size={44} color={colors.textMuted} />} title={t(`auction.empty_${tab}`)} />}
-        <View style={styles.grid}>
-          {items?.map((l) => (
-            <View key={l.id} style={{ width: 'calc(50% - 6px)' }}><AuctionCard listing={l} /></View>
+          {cats.map((c) => (
+            <Pressable key={c.id} onPress={() => setCategoryId(c.id === categoryId ? '' : c.id)} style={styles.catItem}>
+              <View style={[styles.catCircle, categoryId === c.id && { borderWidth: 2, borderColor: colors.primary }]}>
+                {c.icon ? <Image source={{ uri: c.icon }} style={{ width: 34, height: 34 }} resizeMode="contain" /> : <AppText variant="h3">{c.name.charAt(0)}</AppText>}
+              </View>
+              <AppText variant="small" numberOfLines={2} style={{ textAlign: 'center' }} color={categoryId === c.id ? colors.primary : colors.text}>{c.name}</AppText>
+            </Pressable>
+          ))}
+        </ScrollView>
+
+        {/* filter chips */}
+        <ScrollView horizontal contentContainerStyle={{ gap: spacing.sm, paddingHorizontal: spacing.lg, paddingBottom: spacing.sm }}>
+          <Pressable onPress={() => navigate('/location')} style={styles.chip}>
+            <MapPin size={16} color={colors.text} />
+            <AppText variant="caption" style={{ fontWeight: '600' }} numberOfLines={1}>{current?.name || t('auction.location')}</AppText>
+            <ChevronDown size={14} color={colors.textMuted} />
+          </Pressable>
+          <Pressable onPress={() => setSheet('price')} style={[styles.chip, priceActive && styles.chipOn]}>
+            <Tag size={16} color={priceActive ? colors.primary : colors.text} />
+            <AppText variant="caption" style={{ fontWeight: '600' }} color={priceActive ? colors.primary : colors.text}>{t('auction.price')}</AppText>
+            <ChevronDown size={14} color={colors.textMuted} />
+          </Pressable>
+          {tab !== 'ending' && (
+            <Pressable onPress={() => setSheet('sort')} style={styles.chip}>
+              <ArrowUpDown size={16} color={colors.text} />
+              <AppText variant="caption" style={{ fontWeight: '600' }}>{t(`auction.sort_${sort}`)}</AppText>
+              <ChevronDown size={14} color={colors.textMuted} />
+            </Pressable>
+          )}
+        </ScrollView>
+
+        {/* tabs */}
+        <View style={styles.segment}>
+          {TABS.map((x) => (
+            <Pressable key={x.key} onPress={() => setTab(x.key)} style={[styles.segBtn, tab === x.key && styles.segOn]}>
+              <AppText variant="bodyStrong" color={tab === x.key ? colors.white : colors.text}>{t(`auction.tab_${x.key}`)}</AppText>
+            </Pressable>
           ))}
         </View>
-        {hasMore && <Button title={t('search.loadMore')} variant="outline" onPress={() => load(page + 1)} style={{ marginTop: spacing.lg }} />}
+
+        <View style={{ paddingHorizontal: spacing.lg }}>
+          {!items && <ActivityIndicator style={{ padding: spacing.xl }} color={colors.primary} />}
+          {items?.length === 0 && <EmptyState icon={<Gavel size={44} color={colors.textMuted} />} title={t(`auction.empty_${tab}`)} />}
+          <View style={styles.grid}>
+            {items?.map((l) => (
+              <View key={l.id} style={{ width: 'calc(50% - 6px)' }}><AuctionCard listing={l} /></View>
+            ))}
+          </View>
+          {hasMore && <Button title={t('search.loadMore')} variant="outline" onPress={() => load(page + 1)} style={{ marginTop: spacing.lg }} />}
+        </View>
       </ScrollView>
+
+      {sheet === 'price' && (
+        <PriceSheet
+          value={price}
+          onApply={(v) => {
+            setPrice(v);
+            setSheet(null);
+          }}
+          onClose={() => setSheet(null)}
+        />
+      )}
+      {sheet === 'sort' && (
+        <Sheet title={t('auction.sortBy')} onClose={() => setSheet(null)}>
+          {SORTS.map((k) => (
+            <Pressable key={k} onPress={() => { setSort(k); setSheet(null); }} style={styles.sortRow}>
+              <AppText variant="bodyStrong" color={sort === k ? colors.primary : colors.text}>{t(`auction.sort_${k}`)}</AppText>
+            </Pressable>
+          ))}
+        </Sheet>
+      )}
     </View>
   );
 };
+
+function PriceSheet({ value, onApply, onClose }) {
+  const { t } = useTranslation();
+  const [min, setMin] = useState(value.min);
+  const [max, setMax] = useState(value.max);
+  return (
+    <Sheet
+      title={t('auction.priceRange')}
+      onClose={onClose}
+      footer={
+        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+          <Button size="md" variant="outline" title={t('auction.clear')} onPress={() => onApply({ min: '', max: '' })} style={{ flex: 1 }} />
+          <Button size="md" title={t('auction.apply')} onPress={() => onApply({ min, max })} style={{ flex: 1 }} />
+        </View>
+      }>
+      <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+        <TextInput value={min} onChangeText={(v) => setMin(v.replace(/\D/g, ''))} keyboardType="number-pad" placeholder={t('auction.min')} style={styles.priceInput} />
+        <TextInput value={max} onChangeText={(v) => setMax(v.replace(/\D/g, ''))} keyboardType="number-pad" placeholder={t('auction.max')} style={styles.priceInput} />
+      </View>
+    </Sheet>
+  );
+}
 
 /* ───────── auction detail ───────── */
 
@@ -615,12 +810,32 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.divider },
   tabs: { flexDirection: 'row', gap: spacing.sm, padding: spacing.lg, flexWrap: 'wrap' },
   tab: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border },
-  tabOn: { backgroundColor: colors.auction, borderColor: colors.auction },
+  tabOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-  card: { borderRadius: radius.lg, borderWidth: 1, borderColor: colors.divider, overflow: 'hidden', backgroundColor: colors.white },
-  cardImg: { height: 130, backgroundColor: colors.surface },
+  card: { borderRadius: radius.lg, borderWidth: 1, borderColor: colors.divider, overflow: 'hidden', backgroundColor: colors.white, boxShadow: '0 4px 14px rgba(17,24,39,0.06)' },
+  cardImg: { height: 128, backgroundColor: colors.surface },
+  heartPos: { position: 'absolute', top: 6, right: 6 },
+  timerPos: { position: 'absolute', right: 6, bottom: 6 },
+  timer: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(17,24,39,0.72)', borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 3 },
+  stats: { flexDirection: 'row', gap: 6, marginTop: spacing.xs, alignItems: 'flex-end' },
+  bigPrice: { fontSize: 17, lineHeight: 22, fontWeight: '800' },
+  hero: { flexDirection: 'row', alignItems: 'center', margin: spacing.lg, marginTop: spacing.sm, padding: spacing.lg, borderRadius: 20, background: 'linear-gradient(135deg, #FDECEF 0%, #FFF6F7 60%, #F3E8EC 100%)', overflow: 'hidden', minHeight: 170 },
+  heroTitle: { fontSize: 30, lineHeight: 34, fontWeight: '800', fontFamily: 'Georgia, serif', color: colors.text },
+  heroBtn: { backgroundColor: colors.primary, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: 8 },
+  heroBtnGhost: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.primary },
+  heroImg: { width: 130, height: 140, position: 'absolute', right: 0, bottom: 0 },
+  search: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginHorizontal: spacing.lg, paddingHorizontal: spacing.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.divider, backgroundColor: colors.white, boxShadow: '0 4px 14px rgba(17,24,39,0.05)' },
+  catItem: { alignItems: 'center', gap: 4, width: 64 },
+  catCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.md, paddingVertical: 8, borderRadius: radius.pill, backgroundColor: colors.surface, maxWidth: 170 },
+  chipOn: { backgroundColor: colors.primarySoft },
+  segment: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
+  segBtn: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.divider, backgroundColor: colors.white },
+  segOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  sortRow: { paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider },
+  priceInput: { flex: 1, height: 48, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: spacing.md, fontSize: 16 },
   noImg: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  liveTag: { position: 'absolute', top: 6, left: 6, backgroundColor: colors.live, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 2 },
+  liveTag: { position: 'absolute', top: 6, left: 6, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.live, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 3 },
   gallery: { height: 260, backgroundColor: colors.surface },
   amountBox: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: spacing.md },
   quick: { paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.auction },

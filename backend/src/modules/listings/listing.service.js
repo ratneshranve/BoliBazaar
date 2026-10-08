@@ -262,7 +262,7 @@ const priceDto = (p) => ({ type: p.type, amountMinor: p.amountMinor ?? null, cur
 /** Cards in lists. `ctx` carries categories, favourites and the viewer's point. */
 export const cardDtos = async (docs, { lang, viewerPoint, favourites = new Set(), withStatus = false } = {}) => {
   const categoryIds = [...new Set(docs.map((d) => String(d.categoryId)))];
-  const cats = new Map((await Category.find({ _id: { $in: categoryIds } }).select('attributes').lean()).map((c) => [String(c._id), c]));
+  const cats = new Map((await Category.find({ _id: { $in: categoryIds } }).select('name attributes').lean()).map((c) => [String(c._id), c]));
 
   // up to 3 highlighted fields per card (labels translated for the reader)
   const raw = docs.map((d) => {
@@ -296,6 +296,7 @@ export const cardDtos = async (docs, { lang, viewerPoint, favourites = new Set()
       highlights,
       publishedAt: d.publishedAt || null,
       isFavourite: favourites.has(String(d._id)),
+      categoryName: cats.get(String(d.categoryId))?.name || null,
       badges: ['top', 'featured', 'urgent'].filter((k) => d.promo?.[`${k}Until`] && new Date(d.promo[`${k}Until`]) > new Date()),
       ...(d.listingType === 'auction' ? { auction: auctions.get(String(d._id)) || null } : {}),
       ...(withStatus

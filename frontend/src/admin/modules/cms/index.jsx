@@ -11,6 +11,7 @@ const TABS = [
   { slug: 'support', label: 'Help & Support', note: 'Shown on the Help & Support screen in the app.' },
   { slug: 'safety', label: 'Safety Centre', note: 'Safety tips linked from ads, chats and payments.' },
   { slug: 'prohibited', label: 'Prohibited Items', note: 'What may not be sold. Linked from the Sell screen.' },
+  { slug: 'auctions-guide', label: 'How Auctions Work', note: 'Opened from the How It Works button on the Auctions page.' },
 ];
 
 function PageEditor({ slug, note, canEdit }) {

@@ -79,6 +79,7 @@ export const settingGroups = {
       logoDark: mediaRef,
       icon: mediaRef,
       loginImage: mediaRef.optional(), // picture on the login and OTP screens
+      auctionHeroImage: mediaRef.optional(), // picture in the Auctions page header
       primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullable(),
       supportEmail: z.string().email().nullable(),
       supportPhone: nullableText(20),
@@ -92,6 +93,7 @@ export const settingGroups = {
       logoDark: null,
       icon: null,
       loginImage: null,
+      auctionHeroImage: null,
       primaryColor: null,
       supportEmail: null,
       supportPhone: null,

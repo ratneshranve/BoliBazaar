@@ -197,6 +197,14 @@ const cardsFor = async (auctions, { lang, viewerPoint }) => {
 export const browseAuctions = async (q, { lang } = {}) => {
   const status = q.status || 'live';
   const filter = { status };
+  if (q.endingWithinHours && status === 'live') filter.endAt = { $lte: new Date(Date.now() + q.endingWithinHours * HOUR_MS) };
+  if (q.priceMin !== undefined || q.priceMax !== undefined) {
+    // the price that counts is the current bid, or the starting bid before anyone bids
+    const { currency } = await getSettingValue('marketplace');
+    const f = minorFactor(currency);
+    const range = { ...(q.priceMin !== undefined ? { $gte: Math.round(q.priceMin * f) } : {}), ...(q.priceMax !== undefined ? { $lte: Math.round(q.priceMax * f) } : {}) };
+    filter.$or = [{ 'state.bidCount': { $gt: 0 }, 'state.currentMinor': range }, { 'state.bidCount': 0, startingMinor: range }];
+  }
   const hasPoint = q.lat !== undefined && q.lng !== undefined;
   if (q.categoryId || q.q || (hasPoint && q.radiusKm)) {
     const lf = { listingType: 'auction', status: { $in: ['published', 'sold'] } };
@@ -205,7 +213,8 @@ export const browseAuctions = async (q, { lang } = {}) => {
     if (hasPoint && q.radiusKm) lf.publicGeo = { $geoWithin: { $centerSphere: [[q.lng, q.lat], q.radiusKm / EARTH_KM] } };
     filter.listingId = { $in: await Listing.find(lf).distinct('_id') };
   }
-  const sort = status === 'scheduled' ? { startAt: 1 } : status === 'ended' ? { endedAt: -1 } : { endAt: 1 };
+  const SORTS = { ending: status === 'scheduled' ? { startAt: 1 } : { endAt: 1 }, newest: { createdAt: -1 }, bids: { 'state.bidCount': -1, endAt: 1 }, price_low: { 'state.currentMinor': 1, startingMinor: 1 }, price_high: { 'state.currentMinor': -1, startingMinor: -1 } };
+  const sort = status === 'ended' ? { endedAt: -1 } : SORTS[q.sort] || SORTS.ending;
   const docs = await Auction.find(filter).sort(sort).skip((q.page - 1) * q.limit).limit(q.limit + 1).lean();
   const items = await cardsFor(docs.slice(0, q.limit), { lang, viewerPoint: hasPoint ? { lat: q.lat, lng: q.lng } : null });
   return { items, page: q.page, hasMore: docs.length > q.limit };

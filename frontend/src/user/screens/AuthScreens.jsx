@@ -3,7 +3,7 @@ import { useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ArrowRight, ChevronDown } from 'lucide-react';
 import { getCountryCallingCode } from 'libphonenumber-js';
-import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from '../components/primitives';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, TextInput, View } from '../components/primitives';
 import { PageSheet } from './PageScreen';
 import { AppText, Button, Checkbox, Field } from '../components/ui';
 import { AuthHero, HelpFooter, authStyles } from '../components/AuthChrome';
@@ -14,8 +14,8 @@ import { errorText } from '../i18n';
 import { env } from '../config/env';
 import { useAppDispatch, useAppSelector, signedIn, meUpdated } from '../store';
 
-/** 🇮🇳 from "IN" */
-const flagOf = (cc) => String.fromCodePoint(...[...cc.toUpperCase()].map((c) => 0x1f1a5 + c.charCodeAt(0)));
+/** Country flag picture (flag emoji do not show on Windows). */
+const Flag = ({ cc }) => <Image source={{ uri: `https://flagcdn.com/w40/${cc.toLowerCase()}.png` }} style={{ width: 28, height: 20, borderRadius: 3 }} resizeMode="cover" />;
 const dialOf = (cc) => {
   try {
     return `+${getCountryCallingCode(cc)}`;
@@ -57,12 +57,12 @@ export const LoginScreen = () => {
         <AuthHero />
         <View style={authStyles.card}>
           <AppText style={styles.cardTitle}>
-            {t('auth.loginTo')} {!!appName && <AppText style={styles.cardTitle} color={colors.primary}>{appName}</AppText>}
+            {appName ? <>{t('auth.loginTo')} <AppText style={styles.cardTitle} color={colors.primary}>{appName}</AppText></> : t('auth.login')}
           </AppText>
           <AppText color={colors.textMuted} style={{ fontSize: 17, marginTop: spacing.xs, marginBottom: spacing.xl }}>{t('auth.enterMobile')}</AppText>
 
           <View style={[styles.phoneBox, !!error && { borderColor: colors.danger }]}>
-            <AppText style={{ fontSize: 24 }}>{flagOf(cc)}</AppText>
+            <Flag cc={cc} />
             <ChevronDown size={16} color={colors.textMuted} />
             <AppText variant="bodyStrong" style={{ fontSize: 18, marginLeft: spacing.sm }}>{dialOf(cc)}</AppText>
             <View style={styles.sep} />

@@ -1,4 +1,5 @@
 import { Auction } from './auction.model.js';
+import { nextMinimum } from './auction.rules.js';
 
 /** What a card or detail page shows about an auction (never the hidden reserve or anyone's identity). */
 export const summaryOf = (a) => ({
@@ -13,6 +14,7 @@ export const summaryOf = (a) => ({
   hasReserve: Boolean(a.reserveMinor),
   reserveMet: a.reserveMinor ? Boolean(a.state.reserveMet) : null,
   buyNowMinor: buyNowOpen(a) ? a.buyNowMinor : null,
+  nextMinimumMinor: a.status === 'live' && a.rules?.incrementTiers?.length ? nextMinimum({ startingMinor: a.startingMinor, state: a.state, tiers: a.rules.incrementTiers, sellerIncrementMinor: a.incrementMinor }) : null,
   outcome: a.outcome || null,
 });
 

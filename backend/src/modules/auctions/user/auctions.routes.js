@@ -21,6 +21,10 @@ router.get(
   validate({
     query: z.object({
       status: z.enum(['live', 'scheduled', 'ended']).default('live'),
+      endingWithinHours: z.coerce.number().min(1).max(168).optional(), // the "Ending soon" tab
+      sort: z.enum(['ending', 'newest', 'bids', 'price_low', 'price_high']).default('ending'),
+      priceMin: num.min(0).optional(),
+      priceMax: num.min(0).optional(),
       categoryId: id.optional(),
       q: z.string().trim().max(100).optional(),
       lat: num.min(-90).max(90).optional(),
