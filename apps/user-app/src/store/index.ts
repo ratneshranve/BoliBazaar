@@ -1,6 +1,6 @@
 import { configureStore, createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
-import type { Bootstrap, Me } from '../api/types';
+import type { Bootstrap, CurrentPlace, Me } from '../api/types';
 import { configApi, meApi, authApi } from '../api/endpoints';
 import { loadTokens, clearTokens, hasSession } from '../api/client';
 import { kvGetJSON, kvSetJSON, KV, kv } from '../services/storage';
@@ -115,14 +115,46 @@ const sessionSlice = createSlice({
   },
 });
 
+/* ───────── location: the place the user is browsing from ───────── */
+
+const LOCATION_KEY = 'loc.current';
+
+const locationSlice = createSlice({
+  name: 'location',
+  initialState: { current: kvGetJSON<CurrentPlace>(LOCATION_KEY) ?? null } as { current: CurrentPlace | null },
+  reducers: {
+    setLocation(state, a: PayloadAction<CurrentPlace | null>) {
+      state.current = a.payload;
+      if (a.payload) kvSetJSON(LOCATION_KEY, a.payload);
+      else kv.remove(LOCATION_KEY);
+    },
+  },
+});
+
+export const { setLocation } = locationSlice.actions;
 export const { maintenanceDetected, dismissUpdate } = appSlice.actions;
 export const { signedIn, meUpdated, sessionExpired } = sessionSlice.actions;
 
 export const store = configureStore({
-  reducer: { app: appSlice.reducer, session: sessionSlice.reducer },
+  reducer: { app: appSlice.reducer, session: sessionSlice.reducer, location: locationSlice.reducer },
 });
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
+
+/** Choose a place: remembered on this device and, when logged in, saved to the user's profile. */
+export const chooseLocation =
+  (loc: CurrentPlace) =>
+  async (dispatch: AppDispatch, getState: () => RootState) => {
+    dispatch(setLocation({ id: loc.id, name: loc.name, path: loc.path, type: loc.type }));
+    if (getState().session.status === 'authenticated') {
+      try {
+        const { data } = await meApi.update({ homeLocationId: loc.id });
+        dispatch(meUpdated(data));
+      } catch {
+        /* the choice still applies on this device */
+      }
+    }
+  };
 export const useAppDispatch = () => useDispatch<AppDispatch>();
 export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;

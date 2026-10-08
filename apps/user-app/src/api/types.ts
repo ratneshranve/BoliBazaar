@@ -39,6 +39,7 @@ export type Me = {
   countryCode: string | null;
   timezone: string | null;
   sellerType: 'individual' | 'business';
+  homeLocation?: { leafId: string; leafType: string; displayName: string } | null;
   status: string;
   suspendedUntil: string | null;
   profileCompleted: boolean;
@@ -48,6 +49,30 @@ export type Me = {
 
 /** Terms / Privacy / Support text, managed in Admin › Content Pages */
 export type ContentPage = { slug: 'terms' | 'privacy' | 'support'; title: string; body: string; language: string; version: number; updatedAt: string };
+
+export type CategoryNode = {
+  id: string;
+  parentId: string | null;
+  name: string;
+  slug: string;
+  icon: string | null;
+  image: string | null;
+  order: number;
+  listingTypes: string[];
+  children: CategoryNode[];
+};
+
+export type Banner = { id: string; image: string; title: string | null; subtitle: string | null; action: { type: 'none' } | { type: 'category'; categoryId: string } };
+
+export type HomeFeed = {
+  banners: Banner[];
+  categories: (Omit<CategoryNode, 'children'> & { hasChildren: boolean })[];
+};
+
+export type PlaceLite = { id: string; type: string; name: string; path: string; countryCode?: string; parentId: string | null; geo: { lat: number; lng: number } | null };
+export type PlaceNode = PlaceLite & { aliases: string[]; pinCodes: string[]; status: string; childCount: number };
+
+export type CurrentPlace = { id: string; name: string; path: string; type: string };
 
 export type OtpSent = { phone: string; length: number; expiresInSec: number; resendInSec: number };
 

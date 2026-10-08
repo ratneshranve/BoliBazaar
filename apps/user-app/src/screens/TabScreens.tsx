@@ -23,24 +23,6 @@ const PhaseScreen = ({ header, children }: { header?: React.ReactNode; children?
   </SafeAreaView>
 );
 
-export const HomeScreen = () => {
-  const { t } = useTranslation();
-  return (
-    <PhaseScreen header={<BrandHeader />}>
-      <EmptyState title={t('home.empty')} />
-    </PhaseScreen>
-  );
-};
-
-export const ExploreScreen = () => {
-  const { t } = useTranslation();
-  return (
-    <PhaseScreen header={<BrandHeader />}>
-      <EmptyState title={t('common.comingSoon')} />
-    </PhaseScreen>
-  );
-};
-
 export const SellScreen = () => {
   const { t } = useTranslation();
   return (
@@ -52,10 +34,9 @@ export const SellScreen = () => {
 
 export const AuctionsScreen = () => {
   const { t } = useTranslation();
-  const enabled = useAppSelector(s => s.app.bootstrap?.features.auctions);
   return (
     <PhaseScreen header={<BrandHeader />}>
-      <EmptyState title={enabled ? t('common.comingSoon') : t('common.comingSoon')} />
+      <EmptyState title={t('common.comingSoon')} />
     </PhaseScreen>
   );
 };
@@ -106,7 +87,7 @@ export const ProfileScreen = () => {
   const menu: MenuItem[] = [
     { icon: <MessageSquare size={22} color={colors.text} />, title: t('profile.messages'), sub: t('profile.messagesSub') },
     { icon: <Wallet size={22} color={colors.text} />, title: t('profile.payments'), sub: t('profile.paymentsSub') },
-    { icon: <MapPin size={22} color={colors.text} />, title: t('profile.addresses'), sub: t('profile.addressesSub') },
+    { icon: <MapPin size={22} color={colors.text} />, title: t('profile.addresses'), sub: t('profile.addressesSub'), onPress: () => nav.navigate('Location') },
     { icon: <FileText size={22} color={colors.text} />, title: t('profile.verification'), sub: t('profile.verificationSub') },
     { icon: <ShieldCheck size={22} color={colors.text} />, title: t('profile.security'), sub: t('profile.securitySub'), onPress: () => nav.navigate('Security') },
     { icon: <Languages size={22} color={colors.text} />, title: t('profile.language'), sub: currentLang?.nativeName ?? i18n.language, onPress: () => nav.navigate('Language') },

@@ -4,7 +4,7 @@ import { ActivityIndicator, AppState, StatusBar, View } from 'react-native';
 import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { env, missingEnv } from './src/config/env';
-import { store, useAppDispatch, useAppSelector, fetchBootstrap, restoreSession, maintenanceDetected, sessionExpired } from './src/store';
+import { store, useAppDispatch, useAppSelector, fetchBootstrap, restoreSession, maintenanceDetected, sessionExpired, setLocation } from './src/store';
 import { setClientHooks } from './src/api/client';
 import { RootNavigator, navRef } from './src/navigation/RootNavigator';
 import { ConfigErrorScreen, LanguageScreen, MaintenanceScreen, OfflineScreen, UpdateScreen } from './src/screens/GateScreens';
@@ -39,6 +39,16 @@ const Gate = () => {
     const sub = AppState.addEventListener('change', s => s === 'active' && dispatch(fetchBootstrap()));
     return () => sub.remove();
   }, [dispatch]);
+
+  // A logged-in user's saved place applies on this device until they pick another.
+  const me = useAppSelector(s => s.session.me);
+  const currentLocation = useAppSelector(s => s.location.current);
+  useEffect(() => {
+    const h = me?.homeLocation;
+    if (h?.leafId && !currentLocation) {
+      store.dispatch(setLocation({ id: h.leafId, name: String(h.displayName).split(',')[0], path: h.displayName, type: h.leafType }));
+    }
+  }, [me, currentLocation]);
 
   // Push: register the device token whenever a session exists, and handle taps.
   useEffect(() => {

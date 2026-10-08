@@ -5,7 +5,10 @@ import { LanguageScreen } from '../screens/GateScreens';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useTranslation } from 'react-i18next';
 import { TabBar } from '../components/TabBar';
-import { HomeScreen, ExploreScreen, SellScreen, AuctionsScreen, ProfileScreen } from '../screens/TabScreens';
+import { SellScreen, AuctionsScreen, ProfileScreen } from '../screens/TabScreens';
+import { HomeScreen } from '../screens/HomeScreen';
+import { ExploreScreen } from '../screens/ExploreScreen';
+import { LocationScreen } from '../screens/LocationScreen';
 import { LoginScreen, OtpScreen, ProfileSetupScreen } from '../screens/AuthScreens';
 import { SecurityScreen } from '../screens/SecurityScreen';
 import { PageScreen } from '../screens/PageScreen';
@@ -59,6 +62,7 @@ export const RootNavigator = () => {
         <Stack.Screen name="Security" component={SecurityScreen} options={{ headerShown: true, title: t('security.title') }} />
         <Stack.Screen name="Page" component={PageScreen} />
         <Stack.Screen name="Language" component={LanguageRoute} />
+        <Stack.Screen name="Location" component={LocationScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

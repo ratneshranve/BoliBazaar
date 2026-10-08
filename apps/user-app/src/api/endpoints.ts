@@ -1,5 +1,15 @@
 import { api } from './client';
-import type { Bootstrap, ContentPage, LoginResult, Me, OtpSent, SessionInfo } from './types';
+import type { Bootstrap, CategoryNode, ContentPage, HomeFeed, LoginResult, Me, OtpSent, PlaceLite, PlaceNode, SessionInfo } from './types';
+
+export const homeApi = { get: () => api<HomeFeed>('/home', { auth: false }) };
+
+export const categoriesApi = { tree: () => api<CategoryNode[]>('/categories/tree', { auth: false }) };
+
+export const locationsApi = {
+  search: (q: string) => api<PlaceLite[]>('/locations/search', { auth: false, query: { q } }),
+  children: (parentId?: string) => api<PlaceNode[]>('/locations/children', { auth: false, query: { parentId } }),
+  reverse: (lat: number, lng: number) => api<PlaceLite | null>('/locations/reverse', { auth: false, query: { lat, lng } }),
+};
 
 /** Machine-translated UI strings for admin-enabled languages the app doesn't ship */
 export const i18nApi = {
@@ -35,7 +45,7 @@ export const authApi = {
 
 export const meApi = {
   get: () => api<Me>('/me'),
-  update: (body: Partial<{ name: string; about: string | null; language: string; avatarMediaId: string | null }>) =>
+  update: (body: Partial<{ name: string; about: string | null; language: string; avatarMediaId: string | null; homeLocationId: string | null }>) =>
     api<Me>('/me', { method: 'PATCH', body }),
   completeProfile: (body: {
     name: string;
