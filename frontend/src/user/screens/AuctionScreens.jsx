@@ -87,17 +87,15 @@ export const AuctionCard = ({ listing }) => {
       <Pressable onPress={open} style={{ padding: spacing.sm, gap: 2 }}>
         <AppText variant="bodyStrong" numberOfLines={1}>{listing.title}</AppText>
         <AppText variant="small" color={colors.textMuted} numberOfLines={1}>{[listing.categoryName, listing.place].filter(Boolean).join(' • ')}</AppText>
+        <AppText variant="small" color={colors.primary} style={{ marginTop: spacing.xs }}>{a.currentMinor != null ? t('auction.currentBid') : t('auction.startingBid')}</AppText>
+        <AppText style={styles.bigPrice} color={colors.primary} numberOfLines={1}>{money(a.currentMinor ?? a.startingMinor)}</AppText>
         <View style={styles.stats}>
-          <View style={{ flex: 1.3 }}>
-            <AppText variant="small" color={colors.primary}>{a.currentMinor != null ? t('auction.currentBid') : t('auction.startingBid')}</AppText>
-            <AppText style={styles.bigPrice} color={colors.primary} numberOfLines={1}>{money(a.currentMinor ?? a.startingMinor)}</AppText>
-          </View>
-          <View style={{ flex: 0.8 }}>
+          <View style={{ flex: 1 }}>
             <AppText variant="small" color={colors.textMuted}>{t('auction.totalBids')}</AppText>
             <AppText variant="bodyStrong">{a.bidCount}</AppText>
           </View>
           {a.nextMinimumMinor != null && (
-            <View style={{ flex: 1.1 }}>
+            <View style={{ flex: 1.4 }}>
               <AppText variant="small" color={colors.textMuted}>{t('auction.nextMin')}</AppText>
               <AppText variant="bodyStrong" numberOfLines={1}>{money(a.nextMinimumMinor)}</AppText>
             </View>
@@ -818,7 +816,7 @@ const styles = StyleSheet.create({
   timerPos: { position: 'absolute', right: 6, bottom: 6 },
   timer: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(17,24,39,0.72)', borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 3 },
   stats: { flexDirection: 'row', gap: 6, marginTop: spacing.xs, alignItems: 'flex-end' },
-  bigPrice: { fontSize: 17, lineHeight: 22, fontWeight: '800' },
+  bigPrice: { fontSize: 19, lineHeight: 24, fontWeight: '800' },
   hero: { flexDirection: 'row', alignItems: 'center', margin: spacing.lg, marginTop: spacing.sm, padding: spacing.lg, borderRadius: 20, background: 'linear-gradient(135deg, #FDECEF 0%, #FFF6F7 60%, #F3E8EC 100%)', overflow: 'hidden', minHeight: 170 },
   heroTitle: { fontSize: 30, lineHeight: 34, fontWeight: '800', fontFamily: 'Georgia, serif', color: colors.text },
   heroBtn: { backgroundColor: colors.primary, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: 8 },

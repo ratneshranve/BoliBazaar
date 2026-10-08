@@ -31,7 +31,12 @@ export const toCss = (input) => {
   }
   delete s.shadowColor; delete s.shadowOpacity; delete s.shadowRadius; delete s.shadowOffset; delete s.elevation;
 
-  if (typeof s.flex === 'number') { css.flex = `${s.flex} ${s.flex} 0%`; delete s.flex; }
+  if (typeof s.flex === 'number') {
+    css.flex = `${s.flex} ${s.flex} 0%`;
+    // like React Native Web: a flexible view may shrink below its content, so scroll areas inside it can scroll
+    if (s.minHeight === undefined) css.minHeight = 0;
+    delete s.flex;
+  }
   if (typeof s.lineHeight === 'number') { css.lineHeight = `${s.lineHeight}px`; delete s.lineHeight; }
   if (s.borderWidth !== undefined && s.borderStyle === undefined) css.borderStyle = 'solid';
   for (const side of ['Top', 'Bottom', 'Left', 'Right']) {
@@ -139,7 +144,16 @@ export const TextInput = forwardRef(function TextInput({
 
 export const ScrollView = forwardRef(function ScrollView({ style, contentContainerStyle, children, horizontal }, ref) {
   return (
-    <div ref={ref} style={{ ...base, flex: '1 1 0%', overflowY: horizontal ? 'hidden' : 'auto', overflowX: horizontal ? 'auto' : 'hidden', ...toCss(style) }}>
+    <div
+      ref={ref}
+      style={{
+        ...base,
+        // vertical: fill the space left and scroll inside it; horizontal: a strip as tall as its content
+        ...(horizontal ? { flex: '0 0 auto' } : { flex: '1 1 0%', minHeight: 0 }),
+        overflowY: horizontal ? 'hidden' : 'auto',
+        overflowX: horizontal ? 'auto' : 'hidden',
+        ...toCss(style),
+      }}>
       <div style={{ ...base, flexDirection: horizontal ? 'row' : 'column', ...toCss(contentContainerStyle) }}>{children}</div>
     </div>
   );

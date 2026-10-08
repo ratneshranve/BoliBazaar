@@ -254,7 +254,7 @@ export const deleteListing = async (ownerId, id) => {
 
 const shortPlace = (loc) => {
   const a = loc?.address || {};
-  return [a.area || a.city, a.district].filter(Boolean).join(', ') || loc?.label || '';
+  return [...new Set([a.area || a.city, a.district].filter(Boolean))].join(', ') || loc?.label || '';
 };
 
 const priceDto = (p) => ({ type: p.type, amountMinor: p.amountMinor ?? null, currency: p.currency, factor: minorFactor(p.currency) });
