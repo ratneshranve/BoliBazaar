@@ -1,6 +1,22 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
+/** FIREBASE_SERVICE_ACCOUNT is the downloaded service-account JSON as a single line. */
+const parseServiceAccount = (raw) => {
+  let json;
+  try {
+    json = JSON.parse(raw);
+  } catch {
+    throw new Error('FIREBASE_SERVICE_ACCOUNT must be the service-account JSON on one line, wrapped in single quotes');
+  }
+  for (const k of ['project_id', 'client_email', 'private_key']) {
+    if (typeof json[k] !== 'string' || !json[k]) throw new Error(`FIREBASE_SERVICE_ACCOUNT is missing "${k}"`);
+  }
+  // tolerate a key whose newlines were double-escaped
+  if (!json.private_key.includes('\n')) json.private_key = json.private_key.replace(/\\n/g, '\n');
+  return json;
+};
+
 const optional = z
   .string()
   .optional()
@@ -37,9 +53,8 @@ const schema = z
     TWILIO_AUTH_TOKEN: optional,
     TWILIO_FROM_NUMBER: optional,
 
-    FIREBASE_PROJECT_ID: optional,
-    FIREBASE_CLIENT_EMAIL: optional,
-    FIREBASE_PRIVATE_KEY: optional,
+    // Firebase Admin (push). The whole service-account JSON as ONE single-quoted line.
+    FIREBASE_SERVICE_ACCOUNT: optional,
 
     CLOUDINARY_CLOUD_NAME: optional,
     CLOUDINARY_API_KEY: optional,
@@ -71,7 +86,14 @@ const schema = z
     }
     // In staging/production push must be configured.
     if (env.NODE_ENV !== 'development') {
-      need(['FIREBASE_PROJECT_ID', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_PRIVATE_KEY'], 'outside development (push notifications)');
+      need(['FIREBASE_SERVICE_ACCOUNT'], 'outside development (push notifications)');
+    }
+    if (env.FIREBASE_SERVICE_ACCOUNT) {
+      try {
+        parseServiceAccount(env.FIREBASE_SERVICE_ACCOUNT);
+      } catch (err) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['FIREBASE_SERVICE_ACCOUNT'], message: err.message });
+      }
     }
   });
 
@@ -93,13 +115,13 @@ export const env = Object.freeze({
   redisEnabled: e.REDIS_ENABLED === 'true',
   bullmqEnabled: e.BULLMQ_ENABLED === 'true',
   corsOrigins: e.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean),
-  firebasePrivateKey: e.FIREBASE_PRIVATE_KEY ? e.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined,
+  firebaseServiceAccount: e.FIREBASE_SERVICE_ACCOUNT ? parseServiceAccount(e.FIREBASE_SERVICE_ACCOUNT) : undefined,
 });
 
 /** Which third-party integrations have credentials present (used by admin Integrations page). */
 export const integrations = Object.freeze({
   sms: { provider: e.SMS_PROVIDER, configured: true },
-  firebase: { configured: Boolean(e.FIREBASE_PROJECT_ID && e.FIREBASE_CLIENT_EMAIL && e.FIREBASE_PRIVATE_KEY) },
+  firebase: { configured: Boolean(e.FIREBASE_SERVICE_ACCOUNT) },
   cloudinary: { configured: Boolean(e.CLOUDINARY_CLOUD_NAME && e.CLOUDINARY_API_KEY && e.CLOUDINARY_API_SECRET) },
   translate: { configured: Boolean(e.GOOGLE_TRANSLATE_API_KEY) },
   maps: { configured: Boolean(e.GOOGLE_MAPS_SERVER_KEY) },

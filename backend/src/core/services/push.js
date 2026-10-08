@@ -8,13 +8,7 @@ let app = null;
 const getMessaging = () => {
   if (!integrations.firebase.configured) return null;
   if (!app) {
-    app = admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: env.FIREBASE_PROJECT_ID,
-        clientEmail: env.FIREBASE_CLIENT_EMAIL,
-        privateKey: env.firebasePrivateKey,
-      }),
-    });
+    app = admin.initializeApp({ credential: admin.credential.cert(env.firebaseServiceAccount) });
   }
   return admin.messaging(app);
 };
