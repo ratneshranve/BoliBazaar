@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, BadgeCheck, FileX, ImageOff, MapPin, Share2 } from 'lucide-react';
+import { ArrowLeft, BadgeCheck, Building2, FileX, Flag, ImageOff, MapPin, Share2, ShieldCheck } from 'lucide-react';
+import { ReportSheet } from '../components/ReportSheet';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, TextInput, View } from '../components/primitives';
 import { AppText, Button, Card, EmptyState } from '../components/ui';
 import { FavouriteButton } from '../components/ListingCard';
@@ -82,6 +83,7 @@ export const ListingDetailScreen = () => {
 
   const status = useAppSelector((s) => s.session.status);
   const [opening, setOpening] = useState(false);
+  const [reporting, setReporting] = useState(null);
   const startChat = async () => {
     if (status !== 'authenticated') return navigate('/login');
     setOpening(true);
@@ -160,6 +162,7 @@ export const ListingDetailScreen = () => {
           <View style={styles.overlayRight}>
             <Pressable accessibilityLabel={t('listing.share')} onPress={share} style={styles.round}><Share2 size={20} color={colors.text} /></Pressable>
             {!ad.isOwner && <FavouriteButton listing={ad} />}
+            {!ad.isOwner && <Pressable accessibilityLabel={t('report.title_listing')} onPress={() => setReporting('listing')} style={styles.round}><Flag size={18} color={colors.text} /></Pressable>}
           </View>
           {photos.length > 1 && (
             <View style={styles.counter}><AppText variant="small" color={colors.white}>{slide + 1}/{photos.length}</AppText></View>
@@ -235,12 +238,24 @@ export const ListingDetailScreen = () => {
                 </View>
                 {ad.seller.phoneVerified && <BadgeCheck size={20} color={colors.verified} />}
               </Card>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm }}>
+                {ad.seller.idVerified && <Pill label={`✓ ${t('verify.idBadge')}`} tone="green" />}
+                {ad.seller.businessVerified && <Pill label={`✓ ${t('verify.businessBadge')}${ad.seller.businessName ? ` · ${ad.seller.businessName}` : ''}`} tone="blue" />}
+              </View>
+              {!ad.isOwner && ad.seller.id && <AppText variant="caption" color={colors.primary} onPress={() => setReporting('user')} style={{ marginTop: spacing.sm }}>{t('report.title_user')}</AppText>}
             </View>
           )}
 
           {!ad.isOwner && ad.status === 'published' && ['job', 'service'].includes(ad.listingType) && <LeadBox ad={ad} authed={status === 'authenticated'} onLogin={() => navigate('/login')} />}
           {!ad.isOwner && ad.status === 'published' && <Button title={t('chat.chatWithSeller')} variant={['job', 'service'].includes(ad.listingType) ? 'outline' : 'primary'} loading={opening} onPress={startChat} />}
           {ad.isOwner && ['job', 'service'].includes(ad.listingType) && <Button title={t('leads.viewReceived')} variant="outline" onPress={() => navigate(`/leads/received?listing=${ad.id}`)} />}
+
+          {!ad.isOwner && (
+            <Pressable onPress={() => navigate('/page/safety')} style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center', padding: spacing.md, borderRadius: 12, backgroundColor: colors.sellSoft }}>
+              <ShieldCheck size={20} color={colors.sell} />
+              <AppText variant="caption" style={{ flex: 1 }}>{t('safety.tip')}</AppText>
+            </Pressable>
+          )}
 
           {ad.isOwner && (
             <Card style={{ gap: spacing.sm }}>
@@ -257,6 +272,7 @@ export const ListingDetailScreen = () => {
           )}
         </View>
       </ScrollView>
+      {reporting && <ReportSheet targetType={reporting} targetId={reporting === 'user' ? ad.seller.id : ad.id} onClose={() => setReporting(null)} />}
     </View>
   );
 };

@@ -10,6 +10,7 @@ import { auctionsApi, listingsApi } from '../api/endpoints';
 import { ApiError } from '../api/client';
 import { useAppSelector } from '../store';
 import { onRealtime, watchAuction } from '../services/realtime';
+import { ReportSheet } from '../components/ReportSheet';
 import { factorOf, formatMinor, formatLeft, syncServerTime, useCountdown } from '../utils/auction';
 import { formatDate } from '../utils/listing';
 import { errorText } from '../i18n';
@@ -144,6 +145,7 @@ export const AuctionDetailScreen = () => {
   const [max, setMax] = useState('');
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
+  const [reporting, setReporting] = useState(false);
 
   const money = (minor) => (a ? formatMinor(minor, a.currency, a.factor, i18n.language) : '');
   const major = (minor) => (a && minor != null ? String(Math.round(minor / a.factor)) : '');
@@ -395,6 +397,7 @@ export const AuctionDetailScreen = () => {
                 </Card>
               )}
               {item.seller && <AppText variant="caption" color={colors.textMuted}>{t('listing.seller')}: {item.seller.name}</AppText>}
+              {!a.isSeller && <AppText variant="caption" color={colors.primary} onPress={() => setReporting(true)}>{t('report.title_listing')}</AppText>}
             </View>
           )}
 
@@ -415,6 +418,7 @@ export const AuctionDetailScreen = () => {
           </View>
         </View>
       </ScrollView>
+      {reporting && <ReportSheet targetType="listing" targetId={a.listingId} onClose={() => setReporting(false)} />}
     </View>
   );
 };

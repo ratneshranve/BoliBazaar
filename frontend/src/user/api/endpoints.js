@@ -34,6 +34,30 @@ export const uploadsApi = {
     form.append('file', file);
     return api('/uploads/image', { method: 'POST', form, idempotencyKey: false });
   },
+  /** Private files (ID documents, evidence): only the owner and reviewing staff can open them. */
+  document: (file, purpose = 'kyc') => {
+    const form = new FormData();
+    form.append('purpose', purpose);
+    form.append('file', file);
+    return api('/uploads/document', { method: 'POST', form, idempotencyKey: false });
+  },
+};
+
+/** Reports, help desk, verification badges, my data and account deletion. */
+export const trustApi = {
+  report: (body) => api('/reports', { method: 'POST', body }),
+  myReports: () => api('/reports'),
+  cases: () => api('/cases'),
+  newCase: (body) => api('/cases', { method: 'POST', body }),
+  getCase: (id) => api(`/cases/${id}`),
+  replyCase: (id, text) => api(`/cases/${id}/reply`, { method: 'POST', body: { text } }),
+  closeCase: (id) => api(`/cases/${id}/close`, { method: 'POST' }),
+  verification: () => api('/verification'),
+  submitVerification: (body) => api('/verification', { method: 'POST', body }),
+  exportData: () => api('/account/export'),
+  deletionInfo: () => api('/account/deletion'),
+  requestDeletion: () => api('/account/deletion', { method: 'POST' }),
+  cancelDeletion: () => api('/account/deletion', { method: 'DELETE' }),
 };
 
 /** Places come from Google via our server: search a name/PIN, or turn a GPS point / map pin into an address. */

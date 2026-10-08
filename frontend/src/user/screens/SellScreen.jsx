@@ -353,6 +353,7 @@ export const SellScreen = () => {
               </Pressable>
             </Section>
 
+            <AppText variant="caption" color={colors.primary} onPress={() => navigate('/page/prohibited')}>{t('sell.prohibitedLink')}</AppText>
             {!!formError && <AppText color={colors.danger}>{formError}</AppText>}
             <Button title={editing ? t('sell.saveChanges') : isAuction ? t('auction.submit') : t('sell.publish')} loading={saving} disabled={photos.some((p) => p.uploading)} onPress={submit} />
           </>

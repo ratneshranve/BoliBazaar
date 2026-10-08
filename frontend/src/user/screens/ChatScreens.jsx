@@ -8,6 +8,7 @@ import { colors, radius, spacing } from '@theme/tokens';
 import { chatApi } from '../api/endpoints';
 import { useAppDispatch, useAppSelector, fetchUnread } from '../store';
 import { emitRealtime, onRealtime } from '../services/realtime';
+import { ReportSheet } from '../components/ReportSheet';
 import { formatPrice, formatChatTime } from '../utils/listing';
 import { errorText } from '../i18n';
 
@@ -96,6 +97,7 @@ export const ChatScreen = () => {
   const bottom = useRef(null);
   const lastTypingSent = useRef(0);
   const typingTimer = useRef(null);
+  const [reporting, setReporting] = useState(false);
 
   const markRead = useCallback(() => {
     chatApi.read(id).then(() => dispatch(fetchUnread())).catch(() => {});
@@ -186,6 +188,7 @@ export const ChatScreen = () => {
           <AppText variant="bodyStrong" numberOfLines={1}>{info?.peer.name ?? ''}</AppText>
           {typing && <AppText variant="small" color={colors.sell}>{t('chat.typing')}</AppText>}
         </View>
+        {info?.peer?.id && <Pressable onPress={() => setReporting(true)}><AppText variant="caption" color={colors.textMuted}>{t('report.short')}</AppText></Pressable>}
         {info && <Pressable onPress={toggleBlock}><AppText variant="caption" color={colors.danger}>{info.iBlockedThem ? t('chat.unblock') : t('chat.block')}</AppText></Pressable>}
       </View>
 
@@ -200,6 +203,7 @@ export const ChatScreen = () => {
       )}
 
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.xs }}>
+        <AppText variant="small" color={colors.textMuted} style={{ textAlign: 'center', marginBottom: spacing.sm }} onPress={() => navigate('/page/safety')}>{t('safety.chat')}</AppText>
         {!messages && <ActivityIndicator style={{ padding: spacing.xl }} color={colors.primary} />}
         {hasMore && <Button size="md" variant="ghost" title={t('chat.older')} onPress={older} />}
         {messages?.map((m) => {
@@ -216,6 +220,7 @@ export const ChatScreen = () => {
         <div ref={bottom} />
       </ScrollView>
 
+      {reporting && <ReportSheet targetType="user" targetId={info.peer.id} onClose={() => setReporting(false)} />}
       {info?.iBlockedThem ? (
         <View style={styles.composerNote}><AppText color={colors.textMuted}>{t('chat.youBlocked')}</AppText></View>
       ) : (

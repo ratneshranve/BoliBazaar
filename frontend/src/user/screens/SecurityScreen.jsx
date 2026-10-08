@@ -67,7 +67,10 @@ export const SecurityScreen = () => {
             </Card>
           )}
           ListFooterComponent={
-            items.length > 1 ? <Button title={t('security.logoutOthers')} variant="outline" onPress={() => run(() => meApi.revokeOtherSessions())} style={{ marginTop: spacing.md }} /> : undefined
+            <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
+              {items.length > 1 && <Button title={t('security.logoutOthers')} variant="outline" onPress={() => run(() => meApi.revokeOtherSessions())} />}
+              <Button title={t('account.title')} variant="ghost" onPress={() => navigate('/account')} />
+            </View>
           }
         />
       )}

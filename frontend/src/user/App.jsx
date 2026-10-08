@@ -23,6 +23,7 @@ import { PageScreen } from './screens/PageScreen';
 import { NotificationsScreen } from './screens/NotificationsScreen';
 import { LeadsScreen } from './screens/LeadsScreen';
 import { PayScreen, PromoteScreen, PlansScreen, PaymentsScreen } from './screens/PaymentScreens';
+import { HelpScreen, NewCaseScreen, CaseScreen, MyReportsScreen, VerificationScreen, AccountScreen } from './screens/TrustScreens';
 import { ChatsScreen, ChatScreen } from './screens/ChatScreens';
 import { TabBar } from './components/TabBar';
 import { colors } from '@theme/tokens';
@@ -99,6 +100,12 @@ const Navigation = () => (
       <Route path="/promote/:id" element={<PromoteScreen />} />
       <Route path="/plans" element={<PlansScreen />} />
       <Route path="/payments" element={<PaymentsScreen />} />
+      <Route path="/help" element={<HelpScreen />} />
+      <Route path="/help/new" element={<NewCaseScreen />} />
+      <Route path="/help/cases/:id" element={<CaseScreen />} />
+      <Route path="/reports" element={<MyReportsScreen />} />
+      <Route path="/verification" element={<VerificationScreen />} />
+      <Route path="/account" element={<AccountScreen />} />
       <Route path="/deals/:id" element={<DealScreen />} />
       <Route path="/leads/received" element={<LeadsScreen initial="received" />} />
       <Route path="/leads/sent" element={<LeadsScreen initial="sent" />} />
