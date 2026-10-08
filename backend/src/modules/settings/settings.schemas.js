@@ -26,6 +26,13 @@ export const settingGroups = {
     initial: { default: 'en', enabled: ['en'] },
   },
 
+  /** Marketplace-wide defaults. */
+  marketplace: {
+    public: true,
+    schema: z.object({ currency: z.string().length(3).toUpperCase() }),
+    initial: { currency: 'INR' },
+  },
+
   /**
    * How "near me" works. A location is a map point; users pick a radius around it.
    * The admin controls the choices below; places themselves come from Google, not from admin typing.

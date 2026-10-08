@@ -9,6 +9,7 @@ import i18nRoutes from '../modules/i18n/user/i18n.routes.js';
 import categoriesRoutes from '../modules/categories/user/categories.routes.js';
 import placesRoutes from '../modules/places/user/places.routes.js';
 import homeRoutes from '../modules/home/user/home.routes.js';
+import listingsRoutes from '../modules/listings/user/listings.routes.js';
 
 /** User-app API, mounted at /api/v1 */
 const router = Router();
@@ -24,5 +25,6 @@ router.use('/i18n', i18nRoutes);
 router.use('/categories', categoriesRoutes);
 router.use('/places', placesRoutes);
 router.use('/home', homeRoutes);
+router.use('/listings', listingsRoutes);
 
 export default router;

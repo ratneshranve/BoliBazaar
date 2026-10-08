@@ -34,6 +34,13 @@ export const getSetting = async (key) => {
 export const getSettingValue = async (key) => (await getSetting(key)).value;
 
 const validateBusinessRules = (key, value) => {
+  if (key === 'marketplace') {
+    try {
+      new Intl.NumberFormat('en', { style: 'currency', currency: value.currency });
+    } catch {
+      throw ApiError.badRequest('VALIDATION_FAILED', 'Unknown currency code', { fields: { currency: 'Use an ISO code such as INR, USD' } });
+    }
+  }
   if (key === 'location') {
     const sorted = [...new Set(value.radiusOptionsKm)].sort((a, b) => a - b);
     if (sorted.length !== value.radiusOptionsKm.length) throw ApiError.badRequest('VALIDATION_FAILED', 'Radius options must be unique', { fields: { radiusOptionsKm: 'Remove duplicates' } });

@@ -1,0 +1,75 @@
+import mongoose from 'mongoose';
+
+const { Schema } = mongoose;
+
+export const PRICE_TYPES = ['fixed', 'negotiable', 'on_request', 'free'];
+export const CONDITIONS = ['new', 'used', 'refurbished'];
+/** draft is kept on the device; the server only stores submitted listings */
+export const LISTING_STATUSES = ['pending_review', 'published', 'paused', 'rejected', 'expired', 'sold', 'removed', 'deleted'];
+
+const geoPoint = { type: { type: String, enum: ['Point'] }, coordinates: { type: [Number], default: undefined } };
+
+const listingSchema = new Schema(
+  {
+    listingNo: { type: String, required: true, unique: true },
+    ownerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+
+    categoryId: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
+    categoryPath: [{ type: Schema.Types.ObjectId }], // ancestors + the category itself
+    listingType: { type: String, required: true },
+
+    title: { type: String, required: true, trim: true, maxlength: 80 },
+    description: { type: String, required: true, trim: true, maxlength: 2000 },
+    attributes: { type: Schema.Types.Mixed, default: {} }, // validated against the category's form fields
+    condition: { type: String, enum: CONDITIONS },
+
+    price: {
+      type: { type: String, enum: PRICE_TYPES, required: true },
+      amountMinor: { type: Number, min: 0 }, // minor units (paise, cents…)
+      currency: { type: String, required: true },
+    },
+
+    media: [new Schema({ mediaId: { type: Schema.Types.ObjectId, ref: 'Media' }, url: String }, { _id: false })],
+
+    location: {
+      label: String,
+      name: String,
+      placeId: String,
+      address: Schema.Types.Mixed, // { area, city, district, state, country, countryCode, pin }
+      geo: geoPoint, // exact — never sent to other users
+    },
+    publicGeo: geoPoint, // shifted by the admin's "public location shift"; the only point other users see
+
+    status: { type: String, enum: LISTING_STATUSES, required: true },
+    moderation: { reviewedBy: { type: Schema.Types.ObjectId, ref: 'AdminUser' }, reviewedAt: Date, reason: String },
+    publishedAt: Date,
+    expiresAt: Date,
+    soldAt: Date,
+
+    stats: { views: { type: Number, default: 0 }, favourites: { type: Number, default: 0 } },
+    searchText: { type: String, default: '' }, // lowercase title + description + category + attribute values
+  },
+  { timestamps: true, minimize: false }
+);
+
+listingSchema.index({ ownerId: 1, status: 1, updatedAt: -1 });
+listingSchema.index({ status: 1, expiresAt: 1, publishedAt: -1 });
+listingSchema.index({ categoryPath: 1, status: 1, publishedAt: -1 });
+listingSchema.index({ publicGeo: '2dsphere' });
+listingSchema.index({ status: 1, createdAt: 1 }); // moderation queue
+listingSchema.index({ 'location.address.countryCode': 1, 'location.address.state': 1, 'location.address.district': 1 });
+
+export const Listing = mongoose.model('Listing', listingSchema);
+
+const favouriteSchema = new Schema(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    listingId: { type: Schema.Types.ObjectId, ref: 'Listing', required: true },
+    priceAtSaveMinor: Number,
+  },
+  { timestamps: { createdAt: true, updatedAt: false } }
+);
+favouriteSchema.index({ userId: 1, listingId: 1 }, { unique: true });
+favouriteSchema.index({ userId: 1, createdAt: -1 });
+
+export const Favourite = mongoose.model('Favourite', favouriteSchema);

@@ -147,7 +147,10 @@ export const deleteCategory = async (id) => {
   const doc = await Category.findById(id);
   if (!doc) throw ApiError.notFound('CATEGORY_NOT_FOUND');
   if (await Category.exists({ parentId: doc._id })) throw ApiError.conflict('CATEGORY_HAS_CHILDREN', 'Delete or move its sub-categories first');
-  // Phase 3 adds: block when listings exist in this category.
+  const { Listing } = await import('../listings/listing.model.js');
+  if (await Listing.exists({ categoryPath: doc._id, status: { $ne: 'deleted' } })) {
+    throw ApiError.conflict('CATEGORY_IN_USE', 'Ads exist in this category — hide it instead of deleting it');
+  }
   await doc.deleteOne();
   return doc.toObject();
 };
