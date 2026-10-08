@@ -73,7 +73,33 @@
   },
   "home": {
     "searchPlaceholder": "Search for cars, phones, property, tractors…",
-    "empty": "Listings will appear here."
+    "empty": "Listings will appear here.",
+    "chooseLocation": "Select location",
+    "buy": "Buy",
+    "buySub": "Find what you need",
+    "sell": "Sell",
+    "sellSub": "List anything you want to sell",
+    "auctions": "Auctions",
+    "auctionsSub": "Bid & win great deals",
+    "exploreCategories": "Explore Categories"
+  },
+  "explore": {
+    "title": "Explore",
+    "allCategories": "All categories",
+    "noListings": "Ads in this category will appear here soon.",
+    "noCategories": "No categories available yet."
+  },
+  "location": {
+    "title": "Choose location",
+    "search": "Search village, town, district or PIN",
+    "current": "Use my current location",
+    "locating": "Finding your location…",
+    "denied": "Location permission was denied. Search for your place instead.",
+    "notFound": "We couldn't find a known place near you. Search for your place instead.",
+    "unsupported": "Location is not available on this device. Search for your place instead.",
+    "selectHere": "Select {{name}}",
+    "noResults": "No places found",
+    "countries": "Countries"
   },
   "profile": {
     "editProfile": "Edit Profile",

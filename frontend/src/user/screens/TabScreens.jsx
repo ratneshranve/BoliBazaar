@@ -26,15 +26,6 @@ const Soon = () => {
   );
 };
 
-export const HomeScreen = () => {
-  const { t } = useTranslation();
-  return (
-    <PhaseScreen>
-      <EmptyState title={t('home.empty')} />
-    </PhaseScreen>
-  );
-};
-export const ExploreScreen = Soon;
 export const SellScreen = Soon;
 export const AuctionsScreen = Soon;
 
@@ -78,7 +69,7 @@ export const ProfileScreen = () => {
   const menu = [
     { icon: <MessageSquare size={22} color={colors.text} />, title: t('profile.messages'), sub: t('profile.messagesSub') },
     { icon: <Wallet size={22} color={colors.text} />, title: t('profile.payments'), sub: t('profile.paymentsSub') },
-    { icon: <MapPin size={22} color={colors.text} />, title: t('profile.addresses'), sub: t('profile.addressesSub') },
+    { icon: <MapPin size={22} color={colors.text} />, title: t('profile.addresses'), sub: t('profile.addressesSub'), onPress: () => navigate('/location') },
     { icon: <FileText size={22} color={colors.text} />, title: t('profile.verification'), sub: t('profile.verificationSub') },
     { icon: <ShieldCheck size={22} color={colors.text} />, title: t('profile.security'), sub: t('profile.securitySub'), onPress: () => navigate('/security') },
     { icon: <Languages size={22} color={colors.text} />, title: t('profile.language'), sub: currentLang?.nativeName ?? i18n.language, onPress: () => navigate('/language') },

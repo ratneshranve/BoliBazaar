@@ -3,12 +3,15 @@ import { BrowserRouter, Outlet, Route, Routes, useNavigate } from 'react-router-
 import { Provider } from 'react-redux';
 import { ActivityIndicator, View } from './components/primitives';
 import { missingEnv } from './config/env';
-import { store, useAppDispatch, useAppSelector, fetchBootstrap, restoreSession, maintenanceDetected, sessionExpired } from './store';
+import { store, useAppDispatch, useAppSelector, fetchBootstrap, restoreSession, maintenanceDetected, sessionExpired, setLocation } from './store';
 import { setClientHooks } from './api/client';
 import i18n, { savedLanguage, setLanguage, ensureLanguage } from './i18n';
 import { ConfigErrorScreen, LanguageScreen, MaintenanceScreen, OfflineScreen, UpdateScreen } from './screens/GateScreens';
 import { LoginScreen, OtpScreen, ProfileSetupScreen } from './screens/AuthScreens';
-import { HomeScreen, ExploreScreen, SellScreen, AuctionsScreen, ProfileScreen } from './screens/TabScreens';
+import { SellScreen, AuctionsScreen, ProfileScreen } from './screens/TabScreens';
+import { HomeScreen } from './screens/HomeScreen';
+import { ExploreScreen } from './screens/ExploreScreen';
+import { LocationScreen } from './screens/LocationScreen';
 import { SecurityScreen } from './screens/SecurityScreen';
 import { PageScreen } from './screens/PageScreen';
 import { TabBar } from './components/TabBar';
@@ -36,6 +39,7 @@ const Navigation = () => (
       <Route element={<MainTabs />}>
         <Route path="/" element={<HomeScreen />} />
         <Route path="/explore" element={<ExploreScreen />} />
+        <Route path="/explore/:id" element={<ExploreScreen />} />
         <Route path="/sell" element={<SellScreen />} />
         <Route path="/auctions" element={<AuctionsScreen />} />
         <Route path="/profile" element={<ProfileScreen />} />
@@ -46,6 +50,7 @@ const Navigation = () => (
       <Route path="/security" element={<SecurityScreen />} />
       <Route path="/page/:slug" element={<PageScreen />} />
       <Route path="/language" element={<LanguageRoute />} />
+      <Route path="/location" element={<LocationScreen />} />
     </Routes>
   </BrowserRouter>
 );
@@ -78,6 +83,16 @@ const Gate = () => {
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [dispatch]);
+
+  // A logged-in user's saved place applies on this device until they pick another.
+  const me = useAppSelector((s) => s.session.me);
+  const currentLocation = useAppSelector((s) => s.location.current);
+  useEffect(() => {
+    const h = me?.homeLocation;
+    if (h?.leafId && !currentLocation) {
+      store.dispatch(setLocation({ id: h.leafId, name: String(h.displayName).split(',')[0], path: h.displayName, type: h.leafType }));
+    }
+  }, [me, currentLocation]);
 
   useEffect(() => {
     const b = bootstrap?.branding;

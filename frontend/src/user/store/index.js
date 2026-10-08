@@ -89,10 +89,40 @@ const sessionSlice = createSlice({
   },
 });
 
+/* ───── location: the place the user is browsing from ───── */
+const LOCATION_KEY = 'loc.current';
+
+const locationSlice = createSlice({
+  name: 'location',
+  initialState: { current: kvGetJSON(LOCATION_KEY) ?? null },
+  reducers: {
+    setLocation(state, a) {
+      state.current = a.payload;
+      if (a.payload) kvSetJSON(LOCATION_KEY, a.payload);
+      else kv.remove(LOCATION_KEY);
+    },
+  },
+});
+
+export const { setLocation } = locationSlice.actions;
+
+/** Choose a place: remembered on this device and, when logged in, saved to the user's profile. */
+export const chooseLocation = (loc) => async (dispatch, getState) => {
+  dispatch(setLocation({ id: loc.id, name: loc.name, path: loc.path, type: loc.type }));
+  if (getState().session.status === 'authenticated') {
+    try {
+      const { data } = await meApi.update({ homeLocationId: loc.id });
+      dispatch(meUpdated(data));
+    } catch {
+      /* the choice still applies on this device */
+    }
+  }
+};
+
 export const { maintenanceDetected, dismissUpdate } = appSlice.actions;
 export const { signedIn, meUpdated, sessionExpired } = sessionSlice.actions;
 
-export const store = configureStore({ reducer: { app: appSlice.reducer, session: sessionSlice.reducer } });
+export const store = configureStore({ reducer: { app: appSlice.reducer, session: sessionSlice.reducer, location: locationSlice.reducer } });
 
 export const useAppDispatch = () => useDispatch();
 export const useAppSelector = useSelector;

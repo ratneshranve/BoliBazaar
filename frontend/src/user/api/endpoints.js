@@ -4,6 +4,16 @@ export const configApi = {
   bootstrap: () => api('/config/bootstrap', { auth: false }),
 };
 
+export const homeApi = { get: () => api('/home', { auth: false }) };
+
+export const categoriesApi = { tree: () => api('/categories/tree', { auth: false }) };
+
+export const locationsApi = {
+  search: (q) => api('/locations/search', { auth: false, query: { q } }),
+  children: (parentId) => api('/locations/children', { auth: false, query: { parentId } }),
+  reverse: (lat, lng) => api('/locations/reverse', { auth: false, query: { lat, lng } }),
+};
+
 /** Machine-translated UI strings for admin-enabled languages the app doesn't ship */
 export const i18nApi = {
   bundle: (lang, strings) => api('/i18n/bundle', { method: 'POST', body: { lang, strings }, auth: false, idempotencyKey: false }),
