@@ -46,6 +46,8 @@ const schema = z
     CLOUDINARY_API_SECRET: optional,
     CLOUDINARY_FOLDER: optional,
 
+    GOOGLE_TRANSLATE_API_KEY: optional,
+
     RAZORPAY_KEY_ID: optional,
     RAZORPAY_KEY_SECRET: optional,
     RAZORPAY_WEBHOOK_SECRET: optional,
@@ -97,5 +99,6 @@ export const integrations = Object.freeze({
   sms: { provider: e.SMS_PROVIDER, configured: true },
   firebase: { configured: Boolean(e.FIREBASE_PROJECT_ID && e.FIREBASE_CLIENT_EMAIL && e.FIREBASE_PRIVATE_KEY) },
   cloudinary: { configured: Boolean(e.CLOUDINARY_CLOUD_NAME && e.CLOUDINARY_API_KEY && e.CLOUDINARY_API_SECRET) },
+  translate: { configured: Boolean(e.GOOGLE_TRANSLATE_API_KEY) },
   razorpay: { configured: Boolean(e.RAZORPAY_KEY_ID && e.RAZORPAY_KEY_SECRET) },
 });

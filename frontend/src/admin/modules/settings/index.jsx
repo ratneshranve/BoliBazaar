@@ -2,17 +2,13 @@ import { Settings as SettingsIcon } from 'lucide-react';
 import BrandingPage from './pages/BrandingPage';
 import AppControlPage from './pages/AppControlPage';
 import StoragePage from './pages/StoragePage';
-import SecurityPage from './pages/SecurityPage';
-import FeaturesPage from './pages/FeaturesPage';
-import IntegrationsPage from './pages/IntegrationsPage';
+import LanguagesPage from './pages/LanguagesPage';
 
 const pages = [
   { label: 'Branding', path: '/settings/branding', element: <BrandingPage /> },
-  { label: 'App Control & Maintenance', path: '/settings/app-control', element: <AppControlPage /> },
+  { label: 'Languages', path: '/settings/languages', element: <LanguagesPage /> },
+  { label: 'Maintenance', path: '/settings/app-control', element: <AppControlPage /> },
   { label: 'Image Storage', path: '/settings/storage', element: <StoragePage /> },
-  { label: 'Security & OTP', path: '/settings/security', element: <SecurityPage /> },
-  { label: 'Feature Flags', path: '/settings/features', element: <FeaturesPage /> },
-  { label: 'Integrations', path: '/settings/integrations', element: <IntegrationsPage /> },
 ];
 
 export default {

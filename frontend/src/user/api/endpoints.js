@@ -4,6 +4,11 @@ export const configApi = {
   bootstrap: () => api('/config/bootstrap', { auth: false }),
 };
 
+/** Machine-translated UI strings for admin-enabled languages the app doesn't ship */
+export const i18nApi = {
+  bundle: (lang, strings) => api('/i18n/bundle', { method: 'POST', body: { lang, strings }, auth: false, idempotencyKey: false }),
+};
+
 /** Terms, Privacy and Support text, managed in Admin › Content Pages */
 export const pagesApi = {
   get: (slug) => api(`/pages/${slug}`, { auth: false }),

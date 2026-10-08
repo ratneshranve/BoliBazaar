@@ -1,11 +1,11 @@
-import React from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Wrench, CloudOff, Download, Settings2 } from 'lucide-react-native';
 import { AppText, Button, EmptyState } from '../components/ui';
 import { colors, radius, spacing } from '../theme/tokens';
-import { LANGUAGES, setLanguage, LanguageCode } from '../i18n';
+import { setLanguage } from '../i18n';
 import { useAppDispatch, useAppSelector, fetchBootstrap, dismissUpdate } from '../store';
 
 const Center = ({ children }: { children: React.ReactNode }) => (
@@ -79,10 +79,15 @@ export const UpdateScreen = ({ required }: { required: boolean }) => {
   );
 };
 
+/** Languages come from Admin › Settings › Languages (bootstrap). */
 export const LanguageScreen = ({ onDone }: { onDone: () => void }) => {
-  const { t } = useTranslation();
-  const choose = async (code: LanguageCode) => {
+  const { t, i18n } = useTranslation();
+  const languages = useAppSelector(s => s.app.bootstrap?.languages?.items) ?? [];
+  const [busy, setBusy] = useState<string | null>(null);
+  const choose = async (code: string) => {
+    setBusy(code);
     await setLanguage(code);
+    setBusy(null);
     onDone();
   };
   return (
@@ -92,9 +97,10 @@ export const LanguageScreen = ({ onDone }: { onDone: () => void }) => {
         <AppText color={colors.textMuted} style={{ marginTop: spacing.xs, marginBottom: spacing.xl }}>
           {t('language.subtitle')}
         </AppText>
-        {LANGUAGES.map(l => (
-          <Pressable key={l.code} accessibilityRole="button" onPress={() => choose(l.code)} style={styles.lang}>
+        {languages.map(l => (
+          <Pressable key={l.code} accessibilityRole="button" disabled={!!busy} onPress={() => choose(l.code)} style={[styles.lang, i18n.language === l.code && { borderColor: colors.primary }]}>
             <AppText variant="h3">{l.nativeName}</AppText>
+            {busy === l.code && <ActivityIndicator color={colors.primary} />}
           </Pressable>
         ))}
       </ScrollView>
@@ -104,5 +110,5 @@ export const LanguageScreen = ({ onDone }: { onDone: () => void }) => {
 
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: colors.white, justifyContent: 'center' },
-  lang: { padding: spacing.lg, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, marginBottom: spacing.md },
+  lang: { padding: spacing.lg, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, marginBottom: spacing.md, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 });

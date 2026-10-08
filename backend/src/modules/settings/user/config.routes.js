@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { asyncHandler, ok } from '../../../core/utils/http.js';
 import { getPublicSettings } from '../settings.service.js';
 import { legalVersions } from '../../cms/page.service.js';
+import { languageInfo } from '../../i18n/catalogue.js';
 
 const router = Router();
 
@@ -44,6 +45,13 @@ router.get(
       branding: s.branding.value,
       features: s.features.value,
       legal: await legalVersions(),
+      languages: {
+        default: s.languages.value.default,
+        items: s.languages.value.enabled.map((code) => {
+          const info = languageInfo(code);
+          return { code, name: info.name, nativeName: info.nativeName, rtl: Boolean(info.rtl) };
+        }),
+      },
       maintenance,
       update,
       versions: {

@@ -2,27 +2,71 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import en from '@locales/en.json';
 import hi from '@locales/hi.json';
-import { kv, KV } from '../services/storage';
+import { kv, KV, kvGetJSON, kvSetJSON } from '../services/storage';
 import { ApiError } from '../api/client';
+import { i18nApi } from '../api/endpoints';
 
-export const LANGUAGES = [
-  { code: 'hi', nativeName: 'हिन्दी' },
-  { code: 'en', nativeName: 'English' },
-];
+/** UI strings shipped with the app. Any other language an admin enables is translated automatically. */
+const BUNDLED = { en, hi };
 
 export const savedLanguage = () => kv.getString(KV.language);
 
 i18n.use(initReactI18next).init({
   resources: { en: { translation: en }, hi: { translation: hi } },
-  lng: savedLanguage() ?? 'en',
+  lng: BUNDLED[savedLanguage()] ? savedLanguage() : 'en',
   fallbackLng: 'en',
   interpolation: { escapeValue: false },
   returnNull: false,
 });
 
+/* ───── flatten / unflatten nested JSON ('a.b.c' keys) ───── */
+const flatten = (obj, prefix = '', out = {}) => {
+  for (const [k, v] of Object.entries(obj)) {
+    if (v && typeof v === 'object') flatten(v, `${prefix}${k}.`, out);
+    else out[`${prefix}${k}`] = String(v);
+  }
+  return out;
+};
+const unflatten = (flat) => {
+  const out = {};
+  for (const [path, value] of Object.entries(flat)) {
+    path.split('.').reduce((o, key, i, arr) => (o[key] = i === arr.length - 1 ? value : o[key] || {}), out);
+  }
+  return out;
+};
+const hashOf = (s) => {
+  let h = 5381;
+  for (let i = 0; i < s.length; i += 1) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return String(h);
+};
+
+const EN_FLAT = flatten(en);
+const EN_HASH = hashOf(JSON.stringify(EN_FLAT));
+
+/** Make sure UI strings for `code` are loaded (bundled → cached translation → fetch translation). */
+export const ensureLanguage = async (code) => {
+  if (i18n.hasResourceBundle(code, 'translation')) return true;
+  const cacheKey = `i18n.bundle.${code}`;
+  const cached = kvGetJSON(cacheKey);
+  if (cached?.hash === EN_HASH) {
+    i18n.addResourceBundle(code, 'translation', cached.strings, true, true);
+    return true;
+  }
+  try {
+    const { data } = await i18nApi.bundle(code, EN_FLAT);
+    const strings = unflatten(data.strings);
+    kvSetJSON(cacheKey, { hash: EN_HASH, strings });
+    i18n.addResourceBundle(code, 'translation', strings, true, true);
+    return true;
+  } catch {
+    return false; // English strings stay in place
+  }
+};
+
 export const setLanguage = async (code) => {
-  kv.set(KV.language, code);
+  kv.set(KV.language, code); // also sent as Accept-Language so server content is translated
   document.documentElement.lang = code;
+  await ensureLanguage(code);
   await i18n.changeLanguage(code);
 };
 

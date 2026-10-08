@@ -1,35 +1,29 @@
 import { z } from 'zod';
 import { ContentPage, PAGE_SLUGS, CONSENT_SLUGS } from './page.model.js';
 import { ApiError } from '../../core/utils/ApiError.js';
+import { logger } from '../../core/utils/logger.js';
+import { enabledLanguageCodes, translateTexts, translateBlock } from '../i18n/translate.service.js';
 
-const langKey = z.string().regex(/^[a-z]{2,3}(-[A-Za-z]{2,4})?$/, 'Invalid language code');
-
+/** Admin writes English only. Other languages are produced automatically for the reader. */
 export const pageInput = z.object({
-  title: z.record(langKey, z.string().trim().max(120)),
-  body: z.record(langKey, z.string().max(100_000)),
+  title: z.string().trim().min(1).max(120),
+  body: z.string().trim().min(1).max(100_000),
 });
-
-const clean = (obj) => Object.fromEntries(Object.entries(obj).filter(([, v]) => v.trim() !== ''));
 
 export const getPageDoc = (slug) => ContentPage.findOne({ slug }).lean();
 
-/** Admin save. Bumps `version` when the body text changed (or on first publish). */
+/** Admin save. Bumps `version` when the text changed (or on first publish). */
 export const savePage = async (slug, input, adminId) => {
   if (!PAGE_SLUGS.includes(slug)) throw ApiError.notFound('PAGE_NOT_FOUND');
-  const title = clean(input.title);
-  const body = clean(input.body);
-  if (!body.en) throw ApiError.badRequest('VALIDATION_FAILED', 'English text is required', { fields: { 'body.en': 'Required' } });
-  if (!title.en) throw ApiError.badRequest('VALIDATION_FAILED', 'English title is required', { fields: { 'title.en': 'Required' } });
-
   const existing = await ContentPage.findOne({ slug });
   const before = existing ? { title: existing.title, body: existing.body, version: existing.version } : null;
-  const bodyChanged = !existing || JSON.stringify(existing.body) !== JSON.stringify(body);
+  const changed = !existing || existing.body?.en !== input.body;
 
   const doc = existing || new ContentPage({ slug });
-  doc.title = title;
-  doc.body = body;
+  doc.title = { en: input.title };
+  doc.body = { en: input.body };
   doc.updatedBy = adminId;
-  if (bodyChanged) {
+  if (changed) {
     doc.version = (doc.version || 0) + 1;
     doc.publishedAt = new Date();
   }
@@ -39,22 +33,29 @@ export const savePage = async (slug, input, adminId) => {
   return { before, after: { title: doc.title, body: doc.body, version: doc.version }, doc };
 };
 
-/** Pick the user's language, falling back to English. */
-const pick = (map, lang) => (lang && map?.[lang]) || map?.en || null;
-
+/** The page in the reader's language: translated automatically when it isn't English. */
 export const pageForUser = async (slug, lang) => {
   if (!PAGE_SLUGS.includes(slug)) throw ApiError.notFound('PAGE_NOT_FOUND');
   const doc = await getPageDoc(slug);
   if (!doc || !doc.body?.en) throw ApiError.notFound('PAGE_NOT_PUBLISHED', 'This page has not been published yet');
-  const language = doc.body[lang] ? lang : 'en';
-  return {
-    slug,
-    title: pick(doc.title, lang),
-    body: pick(doc.body, lang),
-    language,
-    version: doc.version,
-    updatedAt: doc.updatedAt,
-  };
+
+  let title = doc.title.en;
+  let body = doc.body.en;
+  let language = 'en';
+
+  if (lang && lang !== 'en' && (await enabledLanguageCodes()).includes(lang)) {
+    try {
+      [title] = await translateTexts([doc.title.en], lang);
+      body = await translateBlock(doc.body.en, lang);
+      language = lang;
+    } catch (err) {
+      // Translation is best-effort: the reader still gets the English original.
+      logger.warn('Page translation failed, serving English', { slug, lang, err: err.message });
+      title = doc.title.en;
+      body = doc.body.en;
+    }
+  }
+  return { slug, title, body, language, version: doc.version, updatedAt: doc.updatedAt };
 };
 
 /** Current versions of the documents users must accept. null = not published yet. */

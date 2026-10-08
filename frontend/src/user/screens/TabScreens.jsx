@@ -8,7 +8,6 @@ import { AppText, Button, Card, EmptyState } from '../components/ui';
 import { BrandHeader } from '../components/BrandHeader';
 import { colors, radius, spacing, shadow } from '@theme/tokens';
 import { useAppDispatch, useAppSelector, logoutThunk } from '../store';
-import { LANGUAGES, setLanguage } from '../i18n';
 
 /** Tabs whose content arrives in a later phase (listings, search, auctions). */
 const PhaseScreen = ({ children }) => (
@@ -57,6 +56,7 @@ export const ProfileScreen = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { status, me } = useAppSelector((s) => s.session);
+  const bootstrapLanguages = useAppSelector((s) => s.app.bootstrap?.languages?.items);
 
   if (status !== 'authenticated' || !me) {
     return (
@@ -66,7 +66,7 @@ export const ProfileScreen = () => {
     );
   }
 
-  const nextLang = LANGUAGES.find((l) => l.code !== i18n.language) ?? LANGUAGES[0];
+  const currentLang = (bootstrapLanguages ?? []).find((l) => l.code === i18n.language);
 
   const tiles = [
     { icon: <Package size={26} color={colors.primary} />, bg: colors.primarySoft, title: t('profile.myListings'), sub: t('profile.myListingsSub') },
@@ -81,7 +81,7 @@ export const ProfileScreen = () => {
     { icon: <MapPin size={22} color={colors.text} />, title: t('profile.addresses'), sub: t('profile.addressesSub') },
     { icon: <FileText size={22} color={colors.text} />, title: t('profile.verification'), sub: t('profile.verificationSub') },
     { icon: <ShieldCheck size={22} color={colors.text} />, title: t('profile.security'), sub: t('profile.securitySub'), onPress: () => navigate('/security') },
-    { icon: <Languages size={22} color={colors.text} />, title: t('profile.language'), sub: nextLang.nativeName, onPress: () => setLanguage(nextLang.code) },
+    { icon: <Languages size={22} color={colors.text} />, title: t('profile.language'), sub: currentLang?.nativeName ?? i18n.language, onPress: () => navigate('/language') },
     { icon: <Headphones size={22} color={colors.text} />, title: t('profile.help'), sub: t('profile.helpSub'), onPress: () => navigate('/page/support') },
   ];
 

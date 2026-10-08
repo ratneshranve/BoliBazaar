@@ -8,7 +8,7 @@ import { store, useAppDispatch, useAppSelector, fetchBootstrap, restoreSession, 
 import { setClientHooks } from './src/api/client';
 import { RootNavigator, navRef } from './src/navigation/RootNavigator';
 import { ConfigErrorScreen, LanguageScreen, MaintenanceScreen, OfflineScreen, UpdateScreen } from './src/screens/GateScreens';
-import { savedLanguage } from './src/i18n';
+import i18n, { savedLanguage, setLanguage, ensureLanguage } from './src/i18n';
 import { registerPushToken, startPushListeners } from './src/services/push';
 import { colors } from './src/theme/tokens';
 
@@ -16,7 +16,17 @@ const Gate = () => {
   const dispatch = useAppDispatch();
   const { status, maintenance, bootstrap, updateDismissed } = useAppSelector(s => s.app);
   const session = useAppSelector(s => s.session.status);
-  const [languageChosen, setLanguageChosen] = useState(Boolean(savedLanguage()));
+  const [, setLangTick] = useState(0);
+  const langs = bootstrap?.languages?.items ?? [];
+  const saved = savedLanguage();
+  const languageValid = Boolean(saved && langs.some(l => l.code === saved));
+
+  // One enabled language → no chooser, just use it. A saved translated language → load its strings.
+  useEffect(() => {
+    if (status !== 'ready') return;
+    if (!languageValid && langs.length === 1) setLanguage(langs[0].code).then(() => setLangTick(n => n + 1));
+    else if (languageValid && saved) ensureLanguage(saved).then(() => i18n.changeLanguage(saved));
+  }, [status, languageValid, langs.length, saved]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     setClientHooks({
@@ -54,7 +64,7 @@ const Gate = () => {
   if (maintenance?.enabled) return <MaintenanceScreen />;
   if (bootstrap?.update.required) return <UpdateScreen required />;
   if (bootstrap?.update.available && !updateDismissed) return <UpdateScreen required={false} />;
-  if (!languageChosen) return <LanguageScreen onDone={() => setLanguageChosen(true)} />;
+  if (!languageValid && langs.length > 1) return <LanguageScreen onDone={() => setLangTick(n => n + 1)} />;
   return <RootNavigator />;
 };
 

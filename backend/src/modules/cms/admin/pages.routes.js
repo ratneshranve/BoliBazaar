@@ -12,8 +12,8 @@ const slugParam = z.object({ slug: z.enum(PAGE_SLUGS) });
 
 const dto = (slug, d) => ({
   slug,
-  title: d?.title || {},
-  body: d?.body || {},
+  title: d?.title?.en || '',
+  body: d?.body?.en || '',
   version: d?.version || 0,
   publishedAt: d?.publishedAt || null,
   updatedAt: d?.updatedAt || null,

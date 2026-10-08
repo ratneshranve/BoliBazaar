@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createNativeStackNavigator, NativeStackScreenProps } from '@react-navigation/native-stack';
+import { LanguageScreen } from '../screens/GateScreens';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useTranslation } from 'react-i18next';
 import { TabBar } from '../components/TabBar';
@@ -15,6 +16,11 @@ export const navRef = createNavigationContainerRef<RootStackParamList>();
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tabs = createBottomTabNavigator<MainTabParamList>();
+
+/** Change language later from Profile (same list as the first-run chooser) */
+const LanguageRoute = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'Language'>) => (
+  <LanguageScreen onDone={() => navigation.goBack()} />
+);
 
 const Main = () => {
   const loggedIn = useAppSelector(s => s.session.status === 'authenticated');
@@ -52,6 +58,7 @@ export const RootNavigator = () => {
         <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} options={{ gestureEnabled: false }} />
         <Stack.Screen name="Security" component={SecurityScreen} options={{ headerShown: true, title: t('security.title') }} />
         <Stack.Screen name="Page" component={PageScreen} />
+        <Stack.Screen name="Language" component={LanguageRoute} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -1,6 +1,12 @@
 import { api } from './client';
 import type { Bootstrap, ContentPage, LoginResult, Me, OtpSent, SessionInfo } from './types';
 
+/** Machine-translated UI strings for admin-enabled languages the app doesn't ship */
+export const i18nApi = {
+  bundle: (lang: string, strings: Record<string, string>) =>
+    api<{ lang: string; strings: Record<string, string> }>('/i18n/bundle', { method: 'POST', body: { lang, strings }, auth: false, idempotencyKey: false }),
+};
+
 export const pagesApi = {
   get: (slug: ContentPage['slug']) => api<ContentPage>(`/pages/${slug}`, { auth: false }),
 };

@@ -1,9 +1,10 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Wrench, CloudOff, Download, Settings2 } from 'lucide-react';
-import { Linking, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
 import { AppText, Button, EmptyState } from '../components/ui';
 import { colors, radius, spacing } from '@theme/tokens';
-import { LANGUAGES, setLanguage } from '../i18n';
+import { setLanguage } from '../i18n';
 import { useAppDispatch, useAppSelector, fetchBootstrap, dismissUpdate } from '../store';
 
 const Center = ({ children }) => <View style={styles.fill}>{children}</View>;
@@ -69,10 +70,15 @@ export const UpdateScreen = ({ required }) => {
   );
 };
 
+/** Languages come from Admin › Settings › Languages (bootstrap). */
 export const LanguageScreen = ({ onDone }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const languages = useAppSelector((s) => s.app.bootstrap?.languages?.items) ?? [];
+  const [busy, setBusy] = useState(null);
   const choose = async (code) => {
+    setBusy(code);
     await setLanguage(code);
+    setBusy(null);
     onDone();
   };
   return (
@@ -82,9 +88,10 @@ export const LanguageScreen = ({ onDone }) => {
         <AppText color={colors.textMuted} style={{ marginTop: spacing.xs, marginBottom: spacing.xl }}>
           {t('language.subtitle')}
         </AppText>
-        {LANGUAGES.map((l) => (
-          <Pressable key={l.code} onPress={() => choose(l.code)} style={styles.lang}>
+        {languages.map((l) => (
+          <Pressable key={l.code} onPress={() => choose(l.code)} disabled={!!busy} style={[styles.lang, i18n.language === l.code && { borderColor: colors.primary }]}>
             <AppText variant="h3">{l.nativeName}</AppText>
+            {busy === l.code && <ActivityIndicator color={colors.primary} />}
           </Pressable>
         ))}
       </ScrollView>
@@ -94,5 +101,5 @@ export const LanguageScreen = ({ onDone }) => {
 
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: colors.white, justifyContent: 'center' },
-  lang: { padding: spacing.lg, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, marginBottom: spacing.md },
+  lang: { padding: spacing.lg, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, marginBottom: spacing.md, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 });

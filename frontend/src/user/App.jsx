@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Outlet, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Outlet, Route, Routes, useNavigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { ActivityIndicator, View } from './components/primitives';
 import { missingEnv } from './config/env';
 import { store, useAppDispatch, useAppSelector, fetchBootstrap, restoreSession, maintenanceDetected, sessionExpired } from './store';
 import { setClientHooks } from './api/client';
-import { savedLanguage } from './i18n';
+import i18n, { savedLanguage, setLanguage, ensureLanguage } from './i18n';
 import { ConfigErrorScreen, LanguageScreen, MaintenanceScreen, OfflineScreen, UpdateScreen } from './screens/GateScreens';
 import { LoginScreen, OtpScreen, ProfileSetupScreen } from './screens/AuthScreens';
 import { HomeScreen, ExploreScreen, SellScreen, AuctionsScreen, ProfileScreen } from './screens/TabScreens';
@@ -13,6 +13,12 @@ import { SecurityScreen } from './screens/SecurityScreen';
 import { PageScreen } from './screens/PageScreen';
 import { TabBar } from './components/TabBar';
 import { colors } from '@theme/tokens';
+
+/** Change language later from Profile (same list as the first-run chooser) */
+const LanguageRoute = () => {
+  const navigate = useNavigate();
+  return <LanguageScreen onDone={() => navigate(-1)} />;
+};
 
 /** Screens with the bottom tab bar (same as the app's MainTabs). */
 const MainTabs = () => (
@@ -39,6 +45,7 @@ const Navigation = () => (
       <Route path="/profile-setup" element={<ProfileSetupScreen />} />
       <Route path="/security" element={<SecurityScreen />} />
       <Route path="/page/:slug" element={<PageScreen />} />
+      <Route path="/language" element={<LanguageRoute />} />
     </Routes>
   </BrowserRouter>
 );
@@ -47,7 +54,17 @@ const Gate = () => {
   const dispatch = useAppDispatch();
   const { status, maintenance, bootstrap, updateDismissed } = useAppSelector((s) => s.app);
   const session = useAppSelector((s) => s.session.status);
-  const [languageChosen, setLanguageChosen] = useState(Boolean(savedLanguage()));
+  const [, setLangTick] = useState(0);
+  const langs = bootstrap?.languages?.items ?? [];
+  const saved = savedLanguage();
+  const languageValid = Boolean(saved && langs.some((l) => l.code === saved));
+
+  // One enabled language → no chooser, just use it. A saved translated language → load its strings.
+  useEffect(() => {
+    if (status !== 'ready') return;
+    if (!languageValid && langs.length === 1) setLanguage(langs[0].code).then(() => setLangTick((n) => n + 1));
+    else if (languageValid) ensureLanguage(saved).then(() => i18n.changeLanguage(saved));
+  }, [status, languageValid, langs.length, saved]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     setClientHooks({
@@ -81,7 +98,7 @@ const Gate = () => {
   if (maintenance?.enabled) return <MaintenanceScreen />;
   if (bootstrap?.update.required) return <UpdateScreen required />;
   if (bootstrap?.update.available && !updateDismissed) return <UpdateScreen required={false} />;
-  if (!languageChosen) return <LanguageScreen onDone={() => setLanguageChosen(true)} />;
+  if (!languageValid && langs.length > 1) return <LanguageScreen onDone={() => setLangTick((n) => n + 1)} />;
   return <Navigation />;
 };
 

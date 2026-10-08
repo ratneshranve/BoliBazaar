@@ -17,6 +17,7 @@ export type Bootstrap = {
   serverTime: string;
   branding: Branding;
   features: Record<string, boolean>;
+  languages: { default: string; items: { code: string; name: string; nativeName: string; rtl: boolean }[] };
   legal: {
     terms: { version: number | null };
     privacy: { version: number | null };

@@ -5,6 +5,7 @@ export type RootStackParamList = {
   ProfileSetup: undefined;
   Security: undefined;
   Page: { slug: 'terms' | 'privacy' | 'support' };
+  Language: undefined;
 };
 
 export type MainTabParamList = {

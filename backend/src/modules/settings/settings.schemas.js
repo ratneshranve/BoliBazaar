@@ -16,6 +16,16 @@ const platformControl = z.object({
 });
 
 export const settingGroups = {
+  /** Languages the app offers. English is the source language and is always on; others are machine-translated. */
+  languages: {
+    public: true,
+    schema: z.object({
+      default: z.string().regex(/^[a-z]{2,3}$/),
+      enabled: z.array(z.string().regex(/^[a-z]{2,3}$/)).min(1).max(40),
+    }),
+    initial: { default: 'en', enabled: ['en'] },
+  },
+
   branding: {
     public: true,
     schema: z.object({

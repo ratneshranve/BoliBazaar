@@ -11,12 +11,6 @@ const TABS = [
   { slug: 'support', label: 'Help & Support', note: 'Shown on the Help & Support screen in the app.' },
 ];
 
-// Languages the app supports. English is required (it is the fallback for every other language).
-const LANGS = [
-  { code: 'en', label: 'English', required: true },
-  { code: 'hi', label: 'हिन्दी (Hindi)', required: false },
-];
-
 function PageEditor({ slug, note, canEdit }) {
   const [page, setPage] = useState(null);
   const [form, setForm] = useState(null);
@@ -28,7 +22,7 @@ function PageEditor({ slug, note, canEdit }) {
     try {
       const { data } = await call(http.get(`/cms/pages/${slug}`));
       setPage(data);
-      setForm({ title: { ...data.title }, body: { ...data.body } });
+      setForm({ title: data.title, body: data.body });
     } catch (e) {
       setError(errorMessage(e));
     }
@@ -42,16 +36,15 @@ function PageEditor({ slug, note, canEdit }) {
   if (error) return <ErrorBox message={error} onRetry={load} />;
   if (!page || !form) return <Spinner />;
 
-  const setLang = (field, code, value) => setForm((f) => ({ ...f, [field]: { ...f[field], [code]: value } }));
-  const dirty = JSON.stringify(form) !== JSON.stringify({ title: page.title, body: page.body });
-  const valid = form.title.en?.trim() && form.body.en?.trim();
+  const dirty = form.title !== page.title || form.body !== page.body;
+  const valid = form.title.trim() && form.body.trim();
 
   const save = async () => {
     setSaving(true);
     try {
-      const { data } = await call(http.put(`/cms/pages/${slug}`, form));
+      const { data } = await call(http.put(`/cms/pages/${slug}`, { title: form.title, body: form.body }));
       setPage(data);
-      setForm({ title: { ...data.title }, body: { ...data.body } });
+      setForm({ title: data.title, body: data.body });
       toast.success(`Saved — version ${data.version}`);
     } catch (e) {
       toast.error(errorMessage(e));
@@ -61,7 +54,7 @@ function PageEditor({ slug, note, canEdit }) {
   };
 
   return (
-    <Card className="space-y-6">
+    <Card className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-neutral-600">{note}</p>
         <div className="flex items-center gap-2 text-sm">
@@ -70,19 +63,12 @@ function PageEditor({ slug, note, canEdit }) {
         </div>
       </div>
 
-      {LANGS.map(({ code, label, required }) => (
-        <div key={code} className="space-y-3 rounded-xl border border-neutral-200 p-4">
-          <div className="text-sm font-semibold">
-            {label} {required ? <span className="text-red-600">*</span> : <span className="font-normal text-neutral-500">(optional — falls back to English)</span>}
-          </div>
-          <Field label="Title">
-            <Input value={form.title[code] || ''} maxLength={120} disabled={!canEdit} onChange={(e) => setLang('title', code, e.target.value)} />
-          </Field>
-          <Field label="Content" hint={`${(form.body[code] || '').length.toLocaleString()} characters · plain text, blank line between paragraphs`}>
-            <Textarea rows={14} value={form.body[code] || ''} disabled={!canEdit} onChange={(e) => setLang('body', code, e.target.value)} className="font-sans leading-relaxed" />
-          </Field>
-        </div>
-      ))}
+      <Field label="Title">
+        <Input value={form.title} maxLength={120} disabled={!canEdit} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+      </Field>
+      <Field label="Content (English)" hint={`${form.body.length.toLocaleString()} characters · plain text, blank line between paragraphs · translated automatically for users of other languages`}>
+        <Textarea rows={18} value={form.body} disabled={!canEdit} onChange={(e) => setForm({ ...form, body: e.target.value })} className="font-sans leading-relaxed" />
+      </Field>
 
       {canEdit && (
         <div className="flex items-center justify-between">
@@ -102,7 +88,7 @@ function ContentPages() {
   const current = TABS.find((t) => t.slug === tab);
   return (
     <>
-      <PageHeader title="Content Pages" subtitle="Terms, Privacy and Support text shown inside the app — no external web pages needed" />
+      <PageHeader title="Content Pages" subtitle="Terms, Privacy and Support text shown inside the app. Write in English; other languages are translated automatically." />
       <div className="mb-4 flex flex-wrap gap-2">
         {TABS.map((t) => (
           <button key={t.slug} onClick={() => setTab(t.slug)} className={`rounded-lg px-4 py-2 text-sm font-semibold ${tab === t.slug ? 'bg-neutral-900 text-white' : 'bg-white text-neutral-700 hover:bg-neutral-50'}`}>
