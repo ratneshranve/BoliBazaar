@@ -47,6 +47,8 @@ const schema = z
     CLOUDINARY_FOLDER: optional,
 
     GOOGLE_TRANSLATE_API_KEY: optional,
+    // Places API (New) + Geocoding API. Used by the server only, so the key is never sent to apps.
+    GOOGLE_MAPS_SERVER_KEY: optional,
 
     RAZORPAY_KEY_ID: optional,
     RAZORPAY_KEY_SECRET: optional,
@@ -100,5 +102,6 @@ export const integrations = Object.freeze({
   firebase: { configured: Boolean(e.FIREBASE_PROJECT_ID && e.FIREBASE_CLIENT_EMAIL && e.FIREBASE_PRIVATE_KEY) },
   cloudinary: { configured: Boolean(e.CLOUDINARY_CLOUD_NAME && e.CLOUDINARY_API_KEY && e.CLOUDINARY_API_SECRET) },
   translate: { configured: Boolean(e.GOOGLE_TRANSLATE_API_KEY) },
+  maps: { configured: Boolean(e.GOOGLE_MAPS_SERVER_KEY) },
   razorpay: { configured: Boolean(e.RAZORPAY_KEY_ID && e.RAZORPAY_KEY_SECRET) },
 });

@@ -2,14 +2,14 @@ import mongoose from 'mongoose';
 
 const { Schema } = mongoose;
 
+/** A place is a map point plus a readable label (from Google). `geo.coordinates` is [lng, lat]. */
 const locationRefSchema = new Schema(
   {
+    label: String, // "Bagbahara, Mahasamund, Chhattisgarh"
+    name: String,
+    placeId: String,
     countryCode: String,
-    leafId: { type: Schema.Types.ObjectId, ref: 'Location' },
-    leafType: String,
-    ancestorIds: [{ type: Schema.Types.ObjectId }],
-    displayName: { type: Schema.Types.Mixed }, // I18n
-    pinCode: String,
+    address: { type: Schema.Types.Mixed }, // { area, city, district, state, country, pin }
     geo: { type: { type: String, enum: ['Point'] }, coordinates: [Number] },
   },
   { _id: false }

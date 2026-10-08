@@ -44,6 +44,7 @@ router.get(
       serverTime: new Date().toISOString(),
       branding: s.branding.value,
       features: s.features.value,
+      location: s.location.value,
       legal: await legalVersions(),
       languages: {
         default: s.languages.value.default,

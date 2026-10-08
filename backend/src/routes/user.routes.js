@@ -7,7 +7,7 @@ import uploadRoutes from '../modules/uploads/user/uploads.routes.js';
 import pagesRoutes from '../modules/cms/user/pages.routes.js';
 import i18nRoutes from '../modules/i18n/user/i18n.routes.js';
 import categoriesRoutes from '../modules/categories/user/categories.routes.js';
-import locationsRoutes from '../modules/locations/user/locations.routes.js';
+import placesRoutes from '../modules/places/user/places.routes.js';
 import homeRoutes from '../modules/home/user/home.routes.js';
 
 /** User-app API, mounted at /api/v1 */
@@ -22,7 +22,7 @@ router.use('/uploads', uploadRoutes);
 router.use('/pages', pagesRoutes);
 router.use('/i18n', i18nRoutes);
 router.use('/categories', categoriesRoutes);
-router.use('/locations', locationsRoutes);
+router.use('/places', placesRoutes);
 router.use('/home', homeRoutes);
 
 export default router;

@@ -34,6 +34,11 @@ export const getSetting = async (key) => {
 export const getSettingValue = async (key) => (await getSetting(key)).value;
 
 const validateBusinessRules = (key, value) => {
+  if (key === 'location') {
+    const sorted = [...new Set(value.radiusOptionsKm)].sort((a, b) => a - b);
+    if (sorted.length !== value.radiusOptionsKm.length) throw ApiError.badRequest('VALIDATION_FAILED', 'Radius options must be unique', { fields: { radiusOptionsKm: 'Remove duplicates' } });
+    if (!sorted.includes(value.defaultRadiusKm)) throw ApiError.badRequest('VALIDATION_FAILED', 'The default radius must be one of the radius options', { fields: { defaultRadiusKm: 'Pick one of the options' } });
+  }
   if (key === 'languages') {
     const bad = value.enabled.filter((c) => !catalogueCodes.includes(c));
     if (bad.length) throw ApiError.badRequest('LANGUAGE_UNKNOWN', `Unknown language: ${bad.join(', ')}`);

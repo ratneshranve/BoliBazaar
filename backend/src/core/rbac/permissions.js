@@ -9,7 +9,6 @@ export const PERMISSIONS = {
   listings: ['view', 'moderate', 'edit', 'remove', 'feature', 'export'],
   auctions: ['view', 'create', 'decide', 'control', 'void_bid', 'export'],
   categories: ['view', 'edit'],
-  locations: ['view', 'edit', 'import', 'merge'],
   moderation: ['view', 'edit'],
   reports: ['view', 'action'],
   cases: ['view', 'action'],

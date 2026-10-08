@@ -26,6 +26,43 @@ export const settingGroups = {
     initial: { default: 'en', enabled: ['en'] },
   },
 
+  /**
+   * How "near me" works. A location is a map point; users pick a radius around it.
+   * The admin controls the choices below; places themselves come from Google, not from admin typing.
+   */
+  location: {
+    public: true,
+    schema: z.object({
+      radiusOptionsKm: z.array(z.number().int().min(1).max(1000)).min(1).max(10),
+      defaultRadiusKm: z.number().int().min(1).max(1000),
+      wideScopes: z.object({ district: z.boolean(), state: z.boolean(), country: z.boolean(), worldwide: z.boolean() }),
+      allowedCountries: z.array(z.string().length(2).toUpperCase()).max(15), // empty = no restriction (place search is then worldwide)
+      distanceUnit: z.enum(['km', 'mi']),
+      publicOffsetMeters: z.number().int().min(0).max(5000),
+      popularPlaces: z
+        .array(
+          z.object({
+            placeId: z.string().max(300),
+            name: z.string().max(120),
+            label: z.string().max(200),
+            lat: z.number().min(-90).max(90),
+            lng: z.number().min(-180).max(180),
+            countryCode: z.string().length(2).optional(),
+          })
+        )
+        .max(30),
+    }),
+    initial: {
+      radiusOptionsKm: [1, 5, 10, 25, 50, 100],
+      defaultRadiusKm: 25,
+      wideScopes: { district: true, state: true, country: true, worldwide: false },
+      allowedCountries: [],
+      distanceUnit: 'km',
+      publicOffsetMeters: 500,
+      popularPlaces: [],
+    },
+  },
+
   branding: {
     public: true,
     schema: z.object({
