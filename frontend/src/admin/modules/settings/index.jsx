@@ -4,10 +4,12 @@ import AppControlPage from './pages/AppControlPage';
 import StoragePage from './pages/StoragePage';
 import LanguagesPage from './pages/LanguagesPage';
 import LocationPage from './pages/LocationPage';
+import MarketplacePage from './pages/MarketplacePage';
 
 const pages = [
   { label: 'Branding', path: '/settings/branding', element: <BrandingPage /> },
   { label: 'Location', path: '/settings/location', element: <LocationPage /> },
+  { label: 'Marketplace', path: '/settings/marketplace', element: <MarketplacePage /> },
   { label: 'Languages', path: '/settings/languages', element: <LanguagesPage /> },
   { label: 'Maintenance', path: '/settings/app-control', element: <AppControlPage /> },
   { label: 'Image Storage', path: '/settings/storage', element: <StoragePage /> },
