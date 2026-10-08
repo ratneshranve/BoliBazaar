@@ -48,6 +48,8 @@ router.get(
       marketplace: s.marketplace.value,
       auctions: s.auctions.value,
       monetization: s.monetization.value,
+      reportReasons: s.moderation.value.reportReasons,
+      grievanceOfficer: s.support.value.grievanceOfficer,
       legal: await legalVersions(),
       languages: {
         default: s.languages.value.default,

@@ -270,6 +270,58 @@ export const settingGroups = {
     },
   },
 
+  /**
+   * Content rules applied to ads, auctions and chat, plus what users can report.
+   * The report reasons below are starting wording — the admin edits them.
+   */
+  moderation: {
+    public: true,
+    schema: z.object({
+      blockedWords: z.array(z.string().trim().min(2).max(60)).max(2000), // refused outright
+      reviewWords: z.array(z.string().trim().min(2).max(60)).max(2000), // allowed, but the ad waits for review
+      blockPhonesInText: z.boolean(), // phone numbers typed into titles/descriptions
+      blockLinksInText: z.boolean(),
+      reportAutoHideThreshold: z.number().int().min(0).max(100), // 0 = never auto-hide
+      reportReasons: z.object({
+        listing: z.array(z.string().trim().min(2).max(80)).min(1).max(30),
+        user: z.array(z.string().trim().min(2).max(80)).min(1).max(30),
+        message: z.array(z.string().trim().min(2).max(80)).min(1).max(30),
+      }),
+    }),
+    initial: {
+      blockedWords: [],
+      reviewWords: [],
+      blockPhonesInText: true,
+      blockLinksInText: true,
+      reportAutoHideThreshold: 3,
+      reportReasons: {
+        listing: ['Fraud or scam', 'Prohibited or illegal item', 'Wrong category', 'Offensive content', 'Duplicate ad', 'Already sold', 'Other'],
+        user: ['Fraud or scam', 'Abusive behaviour', 'Fake profile', 'Spam', 'Other'],
+        message: ['Fraud or scam', 'Abusive or threatening', 'Spam', 'Asking for advance payment', 'Other'],
+      },
+    },
+  },
+
+  /** Help desk: how fast each kind of case must be answered, and the grievance officer (IT Rules 2021). */
+  support: {
+    public: true,
+    schema: z.object({
+      ackHours: z.number().int().min(1).max(168),
+      resolveHours: z.object({
+        support: z.number().int().min(1).max(2160),
+        grievance: z.number().int().min(1).max(2160),
+        fraud: z.number().int().min(1).max(2160),
+        appeal: z.number().int().min(1).max(2160),
+      }),
+      grievanceOfficer: z.object({ name: nullableText(80), email: z.string().email().nullable(), phone: nullableText(20), address: nullableText(300) }),
+    }),
+    initial: {
+      ackHours: 24,
+      resolveHours: { support: 72, grievance: 360, fraud: 72, appeal: 168 },
+      grievanceOfficer: { name: null, email: null, phone: null, address: null },
+    },
+  },
+
   features: {
     public: true,
     schema: z.record(z.string().regex(/^[a-zA-Z][a-zA-Z0-9_]*$/), z.boolean()),

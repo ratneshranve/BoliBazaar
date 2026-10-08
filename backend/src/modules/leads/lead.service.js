@@ -4,6 +4,7 @@ import { User } from '../users/user.model.js';
 import { Block } from '../chat/chat.model.js';
 import { ApiError } from '../../core/utils/ApiError.js';
 import { notify } from '../notifications/notification.service.js';
+import { checkContent } from '../trust/moderation.service.js';
 
 const oid = (v) => String(v);
 const TYPE_FOR = { job: 'application', service: 'enquiry' };
@@ -33,6 +34,7 @@ const senderDto = (l, listing) => ({
 export const createLead = async (senderId, listingId, message) => {
   const listing = await Listing.findById(listingId).select('ownerId status title listingType').lean();
   if (!listing || listing.status !== 'published') throw ApiError.notFound('LISTING_NOT_FOUND');
+  await checkContent([message], { where: 'message', allowContact: true });
   const type = TYPE_FOR[listing.listingType];
   if (!type) throw ApiError.badRequest('LISTING_TYPE_NOT_SUPPORTED', 'This ad does not take applications or enquiries');
   if (oid(listing.ownerId) === oid(senderId)) throw ApiError.badRequest('OWN_LISTING', 'You cannot respond to your own ad');

@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 /** Page slugs managed from Admin › Content Pages. */
-export const PAGE_SLUGS = ['terms', 'privacy', 'support'];
+export const PAGE_SLUGS = ['terms', 'privacy', 'support', 'safety', 'prohibited'];
 /** Slugs users must accept (version is recorded with their consent). */
 export const CONSENT_SLUGS = ['terms', 'privacy'];
 

@@ -57,6 +57,10 @@ const userSchema = new Schema(
 
     notificationPrefs: { type: Schema.Types.Mixed, default: {} },
 
+    // badges granted by the team after document review
+    verification: { idVerifiedAt: Date, businessVerifiedAt: Date, businessName: String },
+    deletionRequestedAt: Date,
+
     status: {
       type: String,
       enum: ['active', 'limited', 'suspended', 'banned', 'deactivated', 'pending_deletion', 'deleted'],

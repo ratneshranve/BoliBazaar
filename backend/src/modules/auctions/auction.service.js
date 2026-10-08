@@ -4,6 +4,7 @@ import { incrementFor, nextMinimum } from './auction.rules.js';
 import { summaryOf, buyNowOpen } from './auction.summary.js';
 import { restriction } from './deal.service.js';
 import { assertNoOverdueCommission } from '../payments/pricing.service.js';
+import { checkContent } from '../trust/moderation.service.js';
 import { publicState } from './bidding.service.js';
 import { oid, snapshotRules, formatMoney, HOUR_MS } from './auction.util.js';
 import { Listing } from '../listings/listing.model.js';
@@ -113,6 +114,7 @@ export const cancelBySeller = async (sellerId, id) => {
 export const addNote = async (sellerId, id, text) => {
   const a = await mine(sellerId, id);
   if (!['scheduled', 'live'].includes(a.status)) throw ApiError.badRequest('INVALID_STATE', 'Notes can be added while the auction is open');
+  await checkContent([text], { where: 'note' });
   if (a.notes.length >= 10) throw ApiError.badRequest('TOO_MANY_NOTES', 'At most 10 notes');
   a.notes.push({ text, at: new Date() });
   await a.save();

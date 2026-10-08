@@ -4,6 +4,7 @@ import { User } from '../users/user.model.js';
 import { ApiError } from '../../core/utils/ApiError.js';
 import { emitToUser } from '../../realtime/index.js';
 import { notify } from '../notifications/notification.service.js';
+import { checkContent } from '../trust/moderation.service.js';
 
 const oid = (v) => String(v);
 
@@ -35,6 +36,7 @@ export const startConversation = async (userId, listingId) => {
 
 export const sendMessage = async (userId, conversationId, text) => {
   const c = await loadMine(conversationId, userId);
+  await checkContent([text], { where: 'message', allowContact: true }); // people may share numbers to meet
   const other = sideOf(c, userId) === 'buyer' ? c.sellerId : c.buyerId;
   if (await isBlocked(userId, other)) throw ApiError.forbidden('CHAT_BLOCKED', 'You cannot message this person');
   const otherUser = await User.findById(other).select('status').lean();

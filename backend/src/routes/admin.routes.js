@@ -16,6 +16,7 @@ import notificationsRoutes from '../modules/notifications/admin/notifications.ro
 import leadsRoutes from '../modules/leads/admin/leads.routes.js';
 import auctionsRoutes from '../modules/auctions/admin/auctions.routes.js';
 import paymentsRoutes from '../modules/payments/admin/payments.routes.js';
+import trustRoutes from '../modules/trust/admin/trust.routes.js';
 
 /** Admin-panel API, mounted at /api/v1/admin */
 const router = Router();
@@ -38,5 +39,6 @@ router.use('/notifications', notificationsRoutes);
 router.use('/leads', leadsRoutes);
 router.use('/auctions', auctionsRoutes);
 router.use('/payments', paymentsRoutes);
+router.use('/', trustRoutes); // /reports, /cases, /verifications, /documents/:id
 
 export default router;

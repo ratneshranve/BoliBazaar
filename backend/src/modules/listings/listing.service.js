@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import mongoose from 'mongoose';
 import { auctionSummaries } from '../auctions/auction.summary.js';
 import { listingQuota, assertNoOverdueCommission } from '../payments/pricing.service.js';
+import { checkContent } from '../trust/moderation.service.js';
 import { Listing, Favourite } from './listing.model.js';
 import { buildAttributesSchema } from './listing.schema.js';
 import { Category } from '../categories/category.model.js';
@@ -83,6 +84,8 @@ const prepare = async (input, ownerId, listingId, { auction = false } = {}) => {
     throw ApiError.badRequest('LISTING_TYPE_NOT_ALLOWED', 'This category does not allow that type of ad');
   }
 
+  const { needsReview } = await checkContent([input.title, input.description], { where: 'ad' });
+
   const parsed = buildAttributesSchema(category.attributes).safeParse(input.attributes);
   if (!parsed.success) {
     const fields = {};
@@ -114,6 +117,7 @@ const prepare = async (input, ownerId, listingId, { auction = false } = {}) => {
 
   return {
     category,
+    needsReview,
     fields: {
       categoryId: category._id,
       categoryPath: [...category.ancestors, category._id],
@@ -134,13 +138,13 @@ const prepare = async (input, ownerId, listingId, { auction = false } = {}) => {
 export const createListing = async (ownerId, input) => {
   const _id = new ObjectId();
   await assertNoOverdueCommission(ownerId);
-  const { category, fields } = await prepare(input, ownerId, String(_id));
+  const { category, fields, needsReview } = await prepare(input, ownerId, String(_id));
   const quota = await listingQuota(ownerId, fields.categoryPath);
   if (quota.needsPayment) {
     // over the free limit: the ad waits for the posting fee (Payments › listing_fee)
     return Listing.create({ _id, listingNo: newListingNo(), ownerId, ...fields, status: 'payment_pending' });
   }
-  const publish = !category.rules.requiresReview;
+  const publish = !category.rules.requiresReview && !needsReview;
   const now = new Date();
   return Listing.create({
     _id,
@@ -175,9 +179,9 @@ export const updateListing = async (ownerId, id, input) => {
   if (doc.status === 'sold') throw ApiError.badRequest('LISTING_SOLD', 'A sold ad cannot be edited');
   if (String(doc.categoryId) !== input.categoryId) throw ApiError.badRequest('CATEGORY_LOCKED', 'Post a new ad to change the category');
 
-  const { category, fields } = await prepare(input, ownerId, String(doc._id));
+  const { category, fields, needsReview } = await prepare(input, ownerId, String(doc._id));
   Object.assign(doc, fields);
-  if (category.rules.requiresReview) {
+  if (category.rules.requiresReview || needsReview) {
     // edits to a reviewed category go back through moderation; the ad is hidden until approved
     doc.status = 'pending_review';
     doc.moderation = undefined;
@@ -422,7 +426,7 @@ export const listingDetail = async (id, { viewerId, lang, viewerPoint } = {}) =>
 
   const [category, owner, favs] = await Promise.all([
     Category.findById(d.categoryId).lean(),
-    User.findById(d.ownerId).select('publicId name avatar createdAt phone.verifiedAt').lean(),
+    User.findById(d.ownerId).select('publicId name avatar createdAt phone.verifiedAt verification').lean(),
     favouriteSet(viewerId, [d]),
   ]);
   const pathDocs = category ? await Category.find({ _id: { $in: d.categoryPath } }).select('name depth').sort({ depth: 1 }).lean() : [];
@@ -452,7 +456,7 @@ export const listingDetail = async (id, { viewerId, lang, viewerPoint } = {}) =>
       ...(isOwner ? { exactLat: d.location?.geo?.coordinates?.[1], exactLng: d.location?.geo?.coordinates?.[0] } : {}),
     },
     seller: owner
-      ? { publicId: owner.publicId, name: owner.name || null, avatar: owner.avatar?.url || null, memberSince: owner.createdAt, phoneVerified: Boolean(owner.phone?.verifiedAt) }
+      ? { id: String(owner._id), publicId: owner.publicId, name: owner.name || null, avatar: owner.avatar?.url || null, memberSince: owner.createdAt, phoneVerified: Boolean(owner.phone?.verifiedAt), idVerified: Boolean(owner.verification?.idVerifiedAt), businessVerified: Boolean(owner.verification?.businessVerifiedAt), businessName: owner.verification?.businessVerifiedAt ? owner.verification.businessName || null : null }
       : null,
     isOwner: Boolean(isOwner),
     stats: isOwner ? d.stats : undefined,
