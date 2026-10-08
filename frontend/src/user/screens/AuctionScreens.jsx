@@ -11,6 +11,7 @@ import { ApiError } from '../api/client';
 import { useAppSelector } from '../store';
 import { onRealtime, watchAuction } from '../services/realtime';
 import { ReportSheet } from '../components/ReportSheet';
+import { usePageMeta } from '../utils/pageMeta';
 import { factorOf, formatMinor, formatLeft, syncServerTime, useCountdown } from '../utils/auction';
 import { formatDate } from '../utils/listing';
 import { errorText } from '../i18n';
@@ -146,6 +147,7 @@ export const AuctionDetailScreen = () => {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
   const [reporting, setReporting] = useState(false);
+  usePageMeta(item?.title, item?.description);
 
   const money = (minor) => (a ? formatMinor(minor, a.currency, a.factor, i18n.language) : '');
   const major = (minor) => (a && minor != null ? String(Math.round(minor / a.factor)) : '');

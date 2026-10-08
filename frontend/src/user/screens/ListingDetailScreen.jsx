@@ -3,6 +3,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, BadgeCheck, Building2, FileX, Flag, ImageOff, MapPin, Share2, ShieldCheck } from 'lucide-react';
 import { ReportSheet } from '../components/ReportSheet';
+import { usePageMeta } from '../utils/pageMeta';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, TextInput, View } from '../components/primitives';
 import { AppText, Button, Card, EmptyState } from '../components/ui';
 import { FavouriteButton } from '../components/ListingCard';
@@ -84,6 +85,7 @@ export const ListingDetailScreen = () => {
   const status = useAppSelector((s) => s.session.status);
   const [opening, setOpening] = useState(false);
   const [reporting, setReporting] = useState(null);
+  usePageMeta(ad?.title, ad?.description);
   const startChat = async () => {
     if (status !== 'authenticated') return navigate('/login');
     setOpening(true);
@@ -225,6 +227,7 @@ export const ListingDetailScreen = () => {
             <View>
               <AppText variant="h3" style={{ marginBottom: spacing.sm }}>{t('listing.seller')}</AppText>
               <Card style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+                <Pressable onPress={() => navigate(`/u/${ad.seller.publicId}`)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 }} accessibilityLabel={t('seller.open')} />
                 {ad.seller.avatar ? (
                   <Image source={{ uri: ad.seller.avatar }} style={styles.avatar} />
                 ) : (

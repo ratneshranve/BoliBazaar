@@ -23,6 +23,7 @@ import { PageScreen } from './screens/PageScreen';
 import { NotificationsScreen } from './screens/NotificationsScreen';
 import { LeadsScreen } from './screens/LeadsScreen';
 import { PayScreen, PromoteScreen, PlansScreen, PaymentsScreen } from './screens/PaymentScreens';
+import { SavedSearchesScreen, SavedSearchRedirect, SellerScreen } from './screens/GrowthScreens';
 import { HelpScreen, NewCaseScreen, CaseScreen, MyReportsScreen, VerificationScreen, AccountScreen } from './screens/TrustScreens';
 import { ChatsScreen, ChatScreen } from './screens/ChatScreens';
 import { TabBar } from './components/TabBar';
@@ -100,6 +101,9 @@ const Navigation = () => (
       <Route path="/promote/:id" element={<PromoteScreen />} />
       <Route path="/plans" element={<PlansScreen />} />
       <Route path="/payments" element={<PaymentsScreen />} />
+      <Route path="/saved-searches" element={<SavedSearchesScreen />} />
+      <Route path="/saved-searches/:id" element={<SavedSearchRedirect />} />
+      <Route path="/u/:publicId" element={<SellerScreen />} />
       <Route path="/help" element={<HelpScreen />} />
       <Route path="/help/new" element={<NewCaseScreen />} />
       <Route path="/help/cases/:id" element={<CaseScreen />} />

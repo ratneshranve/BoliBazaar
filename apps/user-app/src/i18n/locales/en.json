@@ -690,5 +690,30 @@
   "safety": {
     "tip": "Stay safe: meet in a public place, check the item before paying, and never pay in advance to someone you have not met.",
     "chat": "Never share OTPs or pay in advance. Tap for safety tips."
+  },
+  "saved": {
+    "title": "Saved searches",
+    "sub": "Get alerts for new ads",
+    "empty": "No saved searches yet",
+    "emptyHint": "Search for something and tap the bookmark to get alerts when new ads appear.",
+    "search": "Start searching",
+    "from": "from",
+    "upTo": "up to",
+    "everything": "All ads",
+    "alertsOn": "Turn alerts on",
+    "alertsOff": "Turn alerts off",
+    "delete": "Delete",
+    "confirmDelete": "Delete the saved search \"{{name}}\"?",
+    "save": "Save this search",
+    "namePrompt": "Name this search",
+    "saved": "Saved. We will tell you when new ads match."
+  },
+  "seller": {
+    "meta": "{{name}} has {{count}} ads for sale",
+    "unavailable": "This profile is not available",
+    "ads": "Ads for sale",
+    "noAds": "No live ads right now",
+    "stats": "{{active}} live ads · {{sold}} sold",
+    "open": "Open seller profile"
   }
 }

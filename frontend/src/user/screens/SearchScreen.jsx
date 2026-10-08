@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { growthApi } from '../api/endpoints';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ArrowUpDown, SearchX, SlidersHorizontal, X } from 'lucide-react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
+import { ArrowLeft, ArrowUpDown, Bookmark, SearchX, SlidersHorizontal, X } from 'lucide-react';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
 import { AppText, Button, EmptyState, Field } from '../components/ui';
 import { ListingCard } from '../components/ListingCard';
 import { LocationChip } from '../components/LocationChip';
@@ -199,6 +200,20 @@ export const SearchScreen = () => {
     setLoadingMore(false);
   };
 
+  const authed = useAppSelector((s) => s.session.status === 'authenticated');
+  const saveSearch = async () => {
+    if (!authed) return navigate('/login');
+    const name = window.prompt(t('saved.namePrompt'), params.q || category?.name || '');
+    if (!name || name.trim().length < 2) return;
+    const { sort: _s, ...q } = query; // eslint-disable-line no-unused-vars
+    try {
+      await growthApi.saveSearch({ name: name.trim(), query: Object.fromEntries(Object.entries(q).filter(([, v]) => v !== undefined && v !== '')), alerts: true });
+      Alert.alert(t('saved.saved'));
+    } catch (e) {
+      Alert.alert(errorText(e));
+    }
+  };
+
   const sort = params.sort || 'newest';
   const activeFilters = ['priceMin', 'priceMax', 'condition', 'listingType', 'filters'].filter((k) => params[k]).length;
 
@@ -219,6 +234,9 @@ export const SearchScreen = () => {
           <Pressable onPress={() => setSheet('sort')} style={styles.tool}>
             <ArrowUpDown size={16} color={colors.text} />
             <AppText variant="bodyStrong">{t('search.sort')}</AppText>
+          </Pressable>
+          <Pressable accessibilityLabel={t('saved.save')} onPress={saveSearch} style={styles.tool}>
+            <Bookmark size={16} color={colors.text} />
           </Pressable>
           <Pressable onPress={() => setSheet('filters')} style={styles.tool}>
             <SlidersHorizontal size={16} color={colors.text} />

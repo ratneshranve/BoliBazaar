@@ -43,6 +43,15 @@ export const uploadsApi = {
   },
 };
 
+/** Saved searches and public seller pages. */
+export const growthApi = {
+  searches: () => api('/saved-searches'),
+  saveSearch: (body) => api('/saved-searches', { method: 'POST', body }),
+  updateSearch: (id, body) => api(`/saved-searches/${id}`, { method: 'PATCH', body }),
+  deleteSearch: (id) => api(`/saved-searches/${id}`, { method: 'DELETE' }),
+  seller: (publicId, page = 1) => api(`/sellers/${publicId}`, { auth: false, query: { page } }),
+};
+
 /** Reports, help desk, verification badges, my data and account deletion. */
 export const trustApi = {
   report: (body) => api('/reports', { method: 'POST', body }),

@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  Package, Gavel, ShoppingBag, Heart, MessageSquare, Wallet, MapPin, FileText, ShieldCheck, Headphones, ChevronRight, BadgeCheck, Languages, LogOut, Inbox,
+  Package, Gavel, ShoppingBag, Heart, MessageSquare, Wallet, MapPin, FileText, ShieldCheck, Headphones, ChevronRight, BadgeCheck, Languages, LogOut, Inbox, Bookmark,
 } from 'lucide-react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
 import { AppText, Button, Card, EmptyState } from '../components/ui';
@@ -57,6 +57,7 @@ export const ProfileScreen = () => {
 
   const menu = [
     { icon: <MessageSquare size={22} color={colors.text} />, title: t('profile.messages'), sub: t('profile.messagesSub'), onPress: () => navigate('/chats') },
+    { icon: <Bookmark size={22} color={colors.text} />, title: t('saved.title'), sub: t('saved.sub'), onPress: () => navigate('/saved-searches') },
     { icon: <Inbox size={22} color={colors.text} />, title: t('profile.leads'), sub: t('profile.leadsSub'), onPress: () => navigate('/leads/received') },
     { icon: <Wallet size={22} color={colors.text} />, title: t('profile.payments'), sub: t('profile.paymentsSub'), onPress: () => navigate('/payments') },
     { icon: <MapPin size={22} color={colors.text} />, title: t('profile.addresses'), sub: t('profile.addressesSub'), onPress: () => navigate('/location') },
