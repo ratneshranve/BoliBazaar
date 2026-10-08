@@ -91,15 +91,22 @@
   },
   "location": {
     "title": "Choose location",
-    "search": "Search village, town, district or PIN",
+    "search": "Search village, town, area or PIN",
     "current": "Use my current location",
     "locating": "Finding your location…",
     "denied": "Location permission was denied. Search for your place instead.",
-    "notFound": "We couldn't find a known place near you. Search for your place instead.",
+    "notFound": "We couldn't get your location. Search for your place instead.",
     "unsupported": "Location is not available on this device. Search for your place instead.",
-    "selectHere": "Select {{name}}",
-    "noResults": "No places found",
-    "countries": "Countries"
+    "popular": "Popular places",
+    "dragPin": "Drag the pin to adjust",
+    "pinned": "Selected point",
+    "mapUnavailable": "The map is not available right now, but your selected place will still be used.",
+    "radius": "Show ads within",
+    "scope_district": "Whole district",
+    "scope_state": "Whole state",
+    "scope_country": "Whole country",
+    "scope_worldwide": "Worldwide",
+    "apply": "Apply"
   },
   "profile": {
     "editProfile": "Edit Profile",

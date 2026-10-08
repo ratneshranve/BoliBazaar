@@ -106,12 +106,18 @@ const locationSlice = createSlice({
 
 export const { setLocation } = locationSlice.actions;
 
-/** Choose a place: remembered on this device and, when logged in, saved to the user's profile. */
-export const chooseLocation = (loc) => async (dispatch, getState) => {
-  dispatch(setLocation({ id: loc.id, name: loc.name, path: loc.path, type: loc.type }));
+/**
+ * Choose where you are (a map point + label) and how far to look around it (`scope`).
+ * Remembered on this device and, when logged in, the place is saved to the profile.
+ * current = { label, name, lat, lng, placeId, address, scope: { type: 'radius', km } | { type: 'district'|'state'|'country'|'worldwide' } }
+ */
+export const chooseLocation = (place) => async (dispatch, getState) => {
+  dispatch(setLocation(place));
   if (getState().session.status === 'authenticated') {
     try {
-      const { data } = await meApi.update({ homeLocationId: loc.id });
+      const { data } = await meApi.update({
+        homeLocation: { label: place.label, name: place.name, placeId: place.placeId, lat: place.lat, lng: place.lng, address: place.address },
+      });
       dispatch(meUpdated(data));
     } catch {
       /* the choice still applies on this device */

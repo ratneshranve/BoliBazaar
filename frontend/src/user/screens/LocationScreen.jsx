@@ -1,136 +1,198 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ChevronRight, LocateFixed, MapPin, Search } from 'lucide-react';
+import { ArrowLeft, LocateFixed, MapPin, Search } from 'lucide-react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
-import { AppText, Field } from '../components/ui';
+import { AppText, Button, Field } from '../components/ui';
+import { MapPicker } from '../components/MapPicker';
 import { colors, radius, spacing } from '@theme/tokens';
-import { locationsApi } from '../api/endpoints';
-import { chooseLocation, useAppDispatch } from '../store';
+import { placesApi } from '../api/endpoints';
+import { errorText } from '../i18n';
+import { chooseLocation, useAppDispatch, useAppSelector } from '../store';
+import { getPosition } from '../services/geolocation';
+import { formatDistance } from '../utils/distance';
 
-/** Ask the browser/device for GPS; resolves { lat, lng } or rejects with 'denied' | 'unavailable'. */
-const getPosition = () =>
-  new Promise((resolve, reject) => {
-    if (!navigator.geolocation) return reject(new Error('unsupported'));
-    navigator.geolocation.getCurrentPosition(
-      (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
-      (err) => reject(new Error(err.code === 1 ? 'denied' : 'unavailable')),
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 5 * 60 * 1000 }
-    );
-  });
+const newToken = () => crypto.randomUUID().replace(/-/g, '');
 
-const Row = ({ title, subtitle, onPress, chevron }) => (
-  <Pressable onPress={onPress} style={styles.row}>
-    <MapPin size={20} color={colors.textMuted} />
-    <View style={{ flex: 1 }}>
-      <AppText variant="bodyStrong">{title}</AppText>
-      {!!subtitle && (
-        <AppText variant="caption" color={colors.textMuted} numberOfLines={1}>
-          {subtitle}
-        </AppText>
-      )}
-    </View>
-    {chevron && <ChevronRight size={20} color={colors.textMuted} />}
+const Chip = ({ label, active, onPress }) => (
+  <Pressable onPress={onPress} style={[styles.chip, active && styles.chipOn]}>
+    <AppText variant="bodyStrong" color={active ? colors.white : colors.text}>
+      {label}
+    </AppText>
   </Pressable>
 );
 
 /**
- * Pick the place you're browsing from: search by name/PIN, browse down from the country,
- * or use GPS (matched to the nearest known place from the admin-managed location list).
+ * Choose where you are and how far to look — like OLX:
+ * search any place (Google), use GPS, or drag the pin; then pick a distance around it.
  */
 export const LocationScreen = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const [q, setQ] = useState('');
-  const [results, setResults] = useState(null);
-  const [trail, setTrail] = useState([]); // drilled-down places
-  const [children, setChildren] = useState(null);
-  const [gps, setGps] = useState({ state: 'idle', message: '' });
-  const parent = trail[trail.length - 1];
+  const settings = useAppSelector((s) => s.app.bootstrap?.location);
+  const current = useAppSelector((s) => s.location.current);
 
-  // search as you type
+  const [q, setQ] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [draft, setDraft] = useState(current); // the place being chosen
+  const [scope, setScope] = useState(current?.scope ?? { type: 'radius', km: settings?.defaultRadiusKm });
+  const [message, setMessage] = useState({ kind: '', text: '' });
+  const [busy, setBusy] = useState(false);
+  const token = useRef(newToken());
+  const dragTimer = useRef(null);
+
+  // autocomplete while typing
   useEffect(() => {
-    if (q.trim().length < 2) return setResults(null);
+    if (q.trim().length < 2) return setSuggestions([]);
     const id = setTimeout(() => {
-      locationsApi.search(q.trim()).then(({ data }) => setResults(data)).catch(() => setResults([]));
+      placesApi
+        .autocomplete(q.trim(), token.current)
+        .then(({ data }) => setSuggestions(data))
+        .catch((e) => {
+          setSuggestions([]);
+          setMessage({ kind: 'error', text: errorText(e) });
+        });
     }, 300);
     return () => clearTimeout(id);
   }, [q]);
 
-  // browse
-  useEffect(() => {
-    setChildren(null);
-    locationsApi.children(parent?.id).then(({ data }) => setChildren(data)).catch(() => setChildren([]));
-  }, [parent?.id]);
+  const withScope = (place) => ({ ...place, scope });
 
-  const pick = async (loc) => {
-    await dispatch(chooseLocation(loc));
-    navigate(-1);
-  };
-
-  const useGps = async () => {
-    setGps({ state: 'busy', message: t('location.locating') });
+  const pickSuggestion = async (s) => {
+    setBusy(true);
+    setMessage({ kind: '', text: '' });
     try {
-      const { lat, lng } = await getPosition();
-      const { data } = await locationsApi.reverse(lat, lng);
-      if (!data) return setGps({ state: 'error', message: t('location.notFound') });
-      setGps({ state: 'idle', message: '' });
-      await pick(data);
+      const { data } = await placesApi.details(s.placeId, token.current);
+      token.current = newToken(); // a new search session starts after a place is chosen
+      setDraft(withScope(data));
+      setQ('');
+      setSuggestions([]);
     } catch (e) {
-      setGps({ state: 'error', message: e.message === 'denied' ? t('location.denied') : e.message === 'unsupported' ? t('location.unsupported') : t('location.notFound') });
+      setMessage({ kind: 'error', text: errorText(e) });
+    } finally {
+      setBusy(false);
     }
   };
 
-  const back = () => (trail.length && !q ? setTrail(trail.slice(0, -1)) : navigate(-1));
+  const useGps = async () => {
+    setBusy(true);
+    setMessage({ kind: 'info', text: t('location.locating') });
+    try {
+      const { lat, lng } = await getPosition();
+      const { data } = await placesApi.reverse(lat, lng);
+      setDraft(withScope(data ?? { label: t('location.pinned'), name: t('location.pinned'), lat, lng, address: {} }));
+      setMessage({ kind: '', text: '' });
+    } catch (e) {
+      const code = e instanceof Error ? e.message : '';
+      setMessage({ kind: 'error', text: code === 'denied' ? t('location.denied') : code === 'unsupported' ? t('location.unsupported') : code === 'unavailable' ? t('location.notFound') : errorText(e) });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const pickPopular = (p) => setDraft(withScope({ placeId: p.placeId, name: p.name, label: p.label, lat: p.lat, lng: p.lng, address: p.countryCode ? { countryCode: p.countryCode } : {} }));
+
+  // pin moved on the map → look up the new address (after the user stops dragging)
+  const onPinMoved = (lat, lng) => {
+    setDraft((d) => ({ ...d, lat, lng }));
+    clearTimeout(dragTimer.current);
+    dragTimer.current = setTimeout(async () => {
+      try {
+        const { data } = await placesApi.reverse(lat, lng);
+        setDraft((d) => ({ ...(data ?? { label: t('location.pinned'), name: t('location.pinned'), address: {} }), lat, lng, scope: d.scope }));
+        setMessage({ kind: '', text: '' });
+      } catch (e) {
+        setMessage({ kind: 'error', text: errorText(e) });
+      }
+    }, 500);
+  };
+
+  const chooseScope = (next) => {
+    setScope(next);
+    setDraft((d) => (d ? { ...d, scope: next } : d));
+  };
+
+  const apply = async () => {
+    await dispatch(chooseLocation({ ...draft, scope }));
+    navigate(-1);
+  };
+
+  if (!settings) return null;
+  const wide = Object.entries(settings.wideScopes).filter(([, on]) => on);
 
   return (
     <View style={styles.fill}>
       <View style={styles.header}>
-        <Pressable accessibilityLabel={t('common.back')} onPress={back}>
+        <Pressable accessibilityLabel={t('common.back')} onPress={() => navigate(-1)}>
           <ArrowLeft size={24} color={colors.text} />
         </Pressable>
         <AppText variant="h3">{t('location.title')}</AppText>
       </View>
 
-      <View style={{ padding: spacing.lg, gap: spacing.md }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxxl }}>
         <Field value={q} onChangeText={setQ} placeholder={t('location.search')} left={<Search size={18} color={colors.textMuted} style={{ marginRight: 8 }} />} />
-        <Pressable onPress={useGps} disabled={gps.state === 'busy'} style={styles.gps}>
-          {gps.state === 'busy' ? <ActivityIndicator color={colors.primary} /> : <LocateFixed size={20} color={colors.primary} />}
-          <AppText variant="bodyStrong" color={colors.primary}>
-            {t('location.current')}
-          </AppText>
+
+        {suggestions.length > 0 && (
+          <View style={styles.list}>
+            {suggestions.map((s) => (
+              <Pressable key={s.placeId} onPress={() => pickSuggestion(s)} style={styles.row}>
+                <MapPin size={18} color={colors.textMuted} />
+                <View style={{ flex: 1 }}>
+                  <AppText variant="bodyStrong">{s.primary}</AppText>
+                  <AppText variant="caption" color={colors.textMuted} numberOfLines={1}>{s.secondary}</AppText>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        <Pressable onPress={useGps} disabled={busy} style={styles.gps}>
+          {busy ? <ActivityIndicator color={colors.primary} /> : <LocateFixed size={20} color={colors.primary} />}
+          <AppText variant="bodyStrong" color={colors.primary}>{t('location.current')}</AppText>
         </Pressable>
-        {!!gps.message && (
-          <AppText variant="caption" color={gps.state === 'error' ? colors.danger : colors.textMuted}>
-            {gps.message}
+
+        {!!message.text && (
+          <AppText variant="caption" color={message.kind === 'error' ? colors.danger : colors.textMuted}>
+            {message.text}
           </AppText>
         )}
-      </View>
 
-      <ScrollView>
-        {results ? (
-          results.length === 0 ? (
-            <AppText color={colors.textMuted} style={{ padding: spacing.xl, textAlign: 'center' }}>
-              {t('location.noResults')}
-            </AppText>
-          ) : (
-            results.map((r) => <Row key={r.id} title={r.name} subtitle={r.path} onPress={() => pick(r)} />)
-          )
-        ) : (
+        {settings.popularPlaces.length > 0 && !draft && (
+          <View>
+            <AppText variant="small" color={colors.textMuted} style={{ marginBottom: spacing.sm }}>{t('location.popular')}</AppText>
+            <View style={styles.chips}>
+              {settings.popularPlaces.map((p) => (
+                <Chip key={p.placeId} label={p.name} onPress={() => pickPopular(p)} />
+              ))}
+            </View>
+          </View>
+        )}
+
+        {draft && (
           <>
-            <AppText variant="small" color={colors.textMuted} style={styles.section}>
-              {parent ? parent.path : t('location.countries')}
-            </AppText>
-            {parent && <Row title={t('location.selectHere', { name: parent.name })} subtitle={parent.path} onPress={() => pick(parent)} />}
-            {!children && (
-              <View style={{ padding: spacing.xl, alignItems: 'center' }}>
-                <ActivityIndicator color={colors.primary} />
+            <View style={styles.selected}>
+              <MapPin size={20} color={colors.primary} />
+              <View style={{ flex: 1 }}>
+                <AppText variant="bodyStrong">{draft.label}</AppText>
+                <AppText variant="caption" color={colors.textMuted}>{t('location.dragPin')}</AppText>
               </View>
-            )}
-            {children?.map((c) => (
-              <Row key={c.id} title={c.name} subtitle={c.pinCodes?.[0]} chevron={c.childCount > 0} onPress={() => (c.childCount > 0 ? setTrail([...trail, c]) : pick(c))} />
-            ))}
+            </View>
+            <MapPicker lat={draft.lat} lng={draft.lng} onMove={onPinMoved} fallback={<AppText variant="caption" color={colors.textMuted}>{t('location.mapUnavailable')}</AppText>} />
+
+            <View>
+              <AppText variant="bodyStrong" style={{ marginBottom: spacing.sm }}>{t('location.radius')}</AppText>
+              <View style={styles.chips}>
+                {settings.radiusOptionsKm.map((km) => (
+                  <Chip key={km} label={formatDistance(km, settings.distanceUnit)} active={scope.type === 'radius' && scope.km === km} onPress={() => chooseScope({ type: 'radius', km })} />
+                ))}
+                {wide.map(([type]) => (
+                  <Chip key={type} label={t(`location.scope_${type}`)} active={scope.type === type} onPress={() => chooseScope({ type })} />
+                ))}
+              </View>
+            </View>
+
+            <Button title={t('location.apply')} onPress={apply} />
           </>
         )}
       </ScrollView>
@@ -141,7 +203,11 @@ export const LocationScreen = () => {
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: colors.white },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.divider },
+  list: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, overflow: 'hidden' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider },
   gps: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.primarySoft },
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider },
-  section: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, backgroundColor: colors.surface },
+  selected: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white },
+  chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
 });

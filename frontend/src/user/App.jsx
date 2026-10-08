@@ -87,12 +87,15 @@ const Gate = () => {
   // A logged-in user's saved place applies on this device until they pick another.
   const me = useAppSelector((s) => s.session.me);
   const currentLocation = useAppSelector((s) => s.location.current);
+  const defaultRadius = bootstrap?.location?.defaultRadiusKm;
   useEffect(() => {
     const h = me?.homeLocation;
-    if (h?.leafId && !currentLocation) {
-      store.dispatch(setLocation({ id: h.leafId, name: String(h.displayName).split(',')[0], path: h.displayName, type: h.leafType }));
+    if (h?.geo?.coordinates && !currentLocation && defaultRadius) {
+      store.dispatch(
+        setLocation({ label: h.label, name: h.name, placeId: h.placeId, lat: h.geo.coordinates[1], lng: h.geo.coordinates[0], address: h.address, scope: { type: 'radius', km: defaultRadius } })
+      );
     }
-  }, [me, currentLocation]);
+  }, [me, currentLocation, defaultRadius]);
 
   useEffect(() => {
     const b = bootstrap?.branding;

@@ -3,9 +3,11 @@ import BrandingPage from './pages/BrandingPage';
 import AppControlPage from './pages/AppControlPage';
 import StoragePage from './pages/StoragePage';
 import LanguagesPage from './pages/LanguagesPage';
+import LocationPage from './pages/LocationPage';
 
 const pages = [
   { label: 'Branding', path: '/settings/branding', element: <BrandingPage /> },
+  { label: 'Location', path: '/settings/location', element: <LocationPage /> },
   { label: 'Languages', path: '/settings/languages', element: <LanguagesPage /> },
   { label: 'Maintenance', path: '/settings/app-control', element: <AppControlPage /> },
   { label: 'Image Storage', path: '/settings/storage', element: <StoragePage /> },

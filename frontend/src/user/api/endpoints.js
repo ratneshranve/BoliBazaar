@@ -8,10 +8,11 @@ export const homeApi = { get: () => api('/home', { auth: false }) };
 
 export const categoriesApi = { tree: () => api('/categories/tree', { auth: false }) };
 
-export const locationsApi = {
-  search: (q) => api('/locations/search', { auth: false, query: { q } }),
-  children: (parentId) => api('/locations/children', { auth: false, query: { parentId } }),
-  reverse: (lat, lng) => api('/locations/reverse', { auth: false, query: { lat, lng } }),
+/** Places come from Google via our server: search a name/PIN, or turn a GPS point / map pin into an address. */
+export const placesApi = {
+  autocomplete: (q, sessionToken) => api('/places/autocomplete', { auth: false, query: { q, sessionToken } }),
+  details: (placeId, sessionToken) => api(`/places/details/${encodeURIComponent(placeId)}`, { auth: false, query: { sessionToken } }),
+  reverse: (lat, lng) => api('/places/reverse', { auth: false, query: { lat, lng } }),
 };
 
 /** Machine-translated UI strings for admin-enabled languages the app doesn't ship */
