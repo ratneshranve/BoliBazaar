@@ -3,6 +3,7 @@ import { Auction, Bid, Deal } from './auction.model.js';
 import { incrementFor, nextMinimum } from './auction.rules.js';
 import { summaryOf, buyNowOpen } from './auction.summary.js';
 import { restriction } from './deal.service.js';
+import { assertNoOverdueCommission } from '../payments/pricing.service.js';
 import { publicState } from './bidding.service.js';
 import { oid, snapshotRules, formatMoney, HOUR_MS } from './auction.util.js';
 import { Listing } from '../listings/listing.model.js';
@@ -63,6 +64,7 @@ const itemOf = (input) => ({ ...input, auction: undefined, price: { type: 'fixed
 
 export const createAuction = async (sellerId, input) => {
   if ((await restriction(sellerId, 'seller')).restricted) throw ApiError.forbidden('ACCOUNT_RESTRICTED', 'You cannot create auctions right now');
+  await assertNoOverdueCommission(sellerId);
   const { rules, fields } = await auctionFields(input.auction);
   const listing = await createAuctionItem(sellerId, itemOf(input));
   try {

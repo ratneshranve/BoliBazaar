@@ -4,7 +4,7 @@
  * (written in English, translated automatically for each user). The text below is only the starting
  * wording used the first time an event is needed.
  */
-export const GROUPS = ['chat', 'listings', 'auctions', 'jobs', 'system'];
+export const GROUPS = ['chat', 'listings', 'auctions', 'jobs', 'payments', 'system'];
 
 export const EVENTS = {
   'listing.approved': { group: 'listings', vars: ['title'], title: 'Your ad is live', body: '"{{title}}" is now visible to buyers.' },
@@ -21,6 +21,9 @@ export const EVENTS = {
   'auction.offer': { group: 'auctions', vars: ['title', 'amount'], title: 'The seller made you an offer', body: 'You can buy "{{title}}" for {{amount}}. Confirm before the offer expires.' },
   'deal.update': { group: 'auctions', vars: ['title', 'status'], title: 'Deal update', body: 'Your deal for "{{title}}" is now {{status}}.' },
   'account.strike': { group: 'auctions', vars: ['reason'], title: 'A strike was added to your account', body: '{{reason}}' },
+  'payment.success': { group: 'payments', vars: ['item', 'amount'], title: 'Payment received', body: 'We received {{amount}} for {{item}}.' },
+  'payment.refunded': { group: 'payments', vars: ['item', 'amount'], title: 'Refund issued', body: '{{amount}} was refunded for {{item}}. It may take a few days to reach you.' },
+  'commission.due': { group: 'payments', vars: ['amount', 'days'], title: 'Auction commission due', body: 'Your auction sale is complete. Please pay the commission of {{amount}} within {{days}} days.' },
   'job.application_received': { group: 'jobs', vars: ['name', 'title'], title: 'New application', body: '{{name}} applied for "{{title}}".' },
   'job.application_status': { group: 'jobs', vars: ['title', 'status'], title: 'Application update', body: 'Your application for "{{title}}" is now {{status}}.' },
   'enquiry.received': { group: 'jobs', vars: ['name', 'title'], title: 'New enquiry', body: '{{name}} sent an enquiry about "{{title}}".' },

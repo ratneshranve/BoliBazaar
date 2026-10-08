@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import mongoose from 'mongoose';
 import { auctionSummaries } from '../auctions/auction.summary.js';
+import { listingQuota, assertNoOverdueCommission } from '../payments/pricing.service.js';
 import { Listing, Favourite } from './listing.model.js';
 import { buildAttributesSchema } from './listing.schema.js';
 import { Category } from '../categories/category.model.js';
@@ -132,7 +133,13 @@ const prepare = async (input, ownerId, listingId, { auction = false } = {}) => {
 
 export const createListing = async (ownerId, input) => {
   const _id = new ObjectId();
+  await assertNoOverdueCommission(ownerId);
   const { category, fields } = await prepare(input, ownerId, String(_id));
+  const quota = await listingQuota(ownerId, fields.categoryPath);
+  if (quota.needsPayment) {
+    // over the free limit: the ad waits for the posting fee (Payments › listing_fee)
+    return Listing.create({ _id, listingNo: newListingNo(), ownerId, ...fields, status: 'payment_pending' });
+  }
   const publish = !category.rules.requiresReview;
   const now = new Date();
   return Listing.create({
@@ -285,6 +292,7 @@ export const cardDtos = async (docs, { lang, viewerPoint, favourites = new Set()
       highlights,
       publishedAt: d.publishedAt || null,
       isFavourite: favourites.has(String(d._id)),
+      badges: ['top', 'featured', 'urgent'].filter((k) => d.promo?.[`${k}Until`] && new Date(d.promo[`${k}Until`]) > new Date()),
       ...(d.listingType === 'auction' ? { auction: auctions.get(String(d._id)) || null } : {}),
       ...(withStatus
         ? { status: effectiveStatus(d), rejectReason: d.status === 'rejected' ? d.moderation?.reason || null : null, expiresAt: d.expiresAt || null, stats: d.stats }
@@ -329,9 +337,10 @@ const attributeFilters = async (categoryId, raw) => {
   return out;
 };
 
-export const searchListings = async (query, { viewerId, lang } = {}) => {
+export const searchListings = async (query, { viewerId, lang, featuredOnly = false } = {}) => {
   const now = new Date();
   const match = { status: 'published', expiresAt: { $gt: now } };
+  if (featuredOnly) match['promo.featuredUntil'] = { $gt: now };
 
   for (const token of (query.q || '').toLowerCase().split(/\s+/).filter(Boolean).slice(0, 6)) {
     (match.$and ||= []).push({ searchText: new RegExp(escapeRegex(token)) });
@@ -387,6 +396,11 @@ export const searchListings = async (query, { viewerId, lang } = {}) => {
     if (radiusScope) match.publicGeo = { $geoWithin: { $centerSphere: [[query.lng, query.lat], query.radiusKm / EARTH_KM] } };
     const sort = query.sort === 'price_asc' ? { 'price.amountMinor': 1, _id: 1 } : query.sort === 'price_desc' ? { 'price.amountMinor': -1, _id: 1 } : { publishedAt: -1, _id: -1 };
     docs = await Listing.find(match).sort(sort).skip(skip).limit(take).lean();
+    if (query.page === 1 && query.sort === 'newest' && !featuredOnly) {
+      const tops = await Listing.aggregate([{ $match: { ...match, 'promo.topUntil': { $gt: now } } }, { $sample: { size: 2 } }]); // rotate among top advertisers
+      const topIds = new Set(tops.map((t) => String(t._id)));
+      docs = [...tops, ...docs.filter((d) => !topIds.has(String(d._id)))];
+    }
   }
 
   const hasMore = docs.length > query.limit;
@@ -522,9 +536,10 @@ export const myFavourites = async (userId, { page = 1, limit = 20, lang }) => {
 export const homeListings = async (query, { viewerId, lang }) => {
   const base = { ...query, page: 1, limit: 10 };
   const hasPoint = query.lat !== undefined && query.lng !== undefined && query.scope;
-  const [latest, nearby] = await Promise.all([
+  const [latest, nearby, featured] = await Promise.all([
     searchListings({ ...base, sort: 'newest' }, { viewerId, lang }),
     hasPoint ? searchListings({ ...base, sort: 'nearest' }, { viewerId, lang }) : Promise.resolve(null),
+    searchListings({ ...base, sort: 'newest' }, { viewerId, lang, featuredOnly: true }),
   ]);
-  return { latest: latest.items, nearby: nearby?.items ?? [] };
+  return { latest: latest.items, nearby: nearby?.items ?? [], featured: featured.items };
 };

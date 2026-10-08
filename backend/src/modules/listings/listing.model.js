@@ -5,7 +5,7 @@ const { Schema } = mongoose;
 export const PRICE_TYPES = ['fixed', 'negotiable', 'on_request', 'free'];
 export const CONDITIONS = ['new', 'used', 'refurbished'];
 /** draft is kept on the device; the server only stores submitted listings */
-export const LISTING_STATUSES = ['pending_review', 'published', 'paused', 'rejected', 'expired', 'sold', 'removed', 'deleted'];
+export const LISTING_STATUSES = ['payment_pending', 'pending_review', 'published', 'paused', 'rejected', 'expired', 'sold', 'removed', 'deleted'];
 
 const geoPoint = { type: { type: String, enum: ['Point'] }, coordinates: { type: [Number], default: undefined } };
 
@@ -46,6 +46,10 @@ const listingSchema = new Schema(
     expiresAt: Date,
     soldAt: Date,
 
+    // paid boosts (see payments/Promotion); each is active while its date is in the future
+    promo: { featuredUntil: Date, topUntil: Date, urgentUntil: Date },
+    paidListing: Boolean, // posted by paying the ad fee (does not use up the free quota)
+
     stats: { views: { type: Number, default: 0 }, favourites: { type: Number, default: 0 } },
     searchText: { type: String, default: '' }, // lowercase title + description + category + attribute values
   },
@@ -57,6 +61,8 @@ listingSchema.index({ status: 1, expiresAt: 1, publishedAt: -1 });
 listingSchema.index({ categoryPath: 1, status: 1, publishedAt: -1 });
 listingSchema.index({ publicGeo: '2dsphere' });
 listingSchema.index({ status: 1, createdAt: 1 }); // moderation queue
+listingSchema.index({ 'promo.featuredUntil': 1, status: 1 });
+listingSchema.index({ 'promo.topUntil': 1, status: 1 });
 listingSchema.index({ 'location.address.countryCode': 1, 'location.address.state': 1, 'location.address.district': 1 });
 
 export const Listing = mongoose.model('Listing', listingSchema);

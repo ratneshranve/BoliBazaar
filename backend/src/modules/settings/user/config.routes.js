@@ -47,6 +47,7 @@ router.get(
       location: s.location.value,
       marketplace: s.marketplace.value,
       auctions: s.auctions.value,
+      monetization: s.monetization.value,
       legal: await legalVersions(),
       languages: {
         default: s.languages.value.default,

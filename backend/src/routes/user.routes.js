@@ -14,6 +14,7 @@ import chatRoutes from '../modules/chat/user/chat.routes.js';
 import notificationsRoutes from '../modules/notifications/user/notifications.routes.js';
 import leadsRoutes from '../modules/leads/user/leads.routes.js';
 import auctionsRoutes from '../modules/auctions/user/auctions.routes.js';
+import paymentsRoutes from '../modules/payments/user/payments.routes.js';
 
 /** User-app API, mounted at /api/v1 */
 const router = Router();
@@ -34,5 +35,6 @@ router.use('/notifications', notificationsRoutes);
 router.use('/chats', chatRoutes);
 router.use('/leads', leadsRoutes);
 router.use('/auctions', auctionsRoutes);
+router.use('/payments', paymentsRoutes);
 
 export default router;

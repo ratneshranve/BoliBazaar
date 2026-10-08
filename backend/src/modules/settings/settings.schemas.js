@@ -211,6 +211,65 @@ export const settingGroups = {
     },
   },
 
+  /**
+   * What the platform charges for. Amounts are major units (rupees). Lists start empty: the admin adds
+   * the promotion packages and plans that are actually sold.
+   */
+  monetization: {
+    public: true,
+    schema: z.object({
+      taxPercent: z.number().min(0).max(50),
+      taxLabel: z.string().trim().min(1).max(20),
+      listingFee: z.object({
+        enabled: z.boolean(),
+        freeAdsPer30Days: z.number().int().min(0).max(10000),
+        fee: z.number().min(0).max(10_000_000),
+        categoryOverrides: z
+          .array(z.object({ categoryId: z.string().regex(/^[a-f0-9]{24}$/), freeAdsPer30Days: z.number().int().min(0).max(10000), fee: z.number().min(0).max(10_000_000) }))
+          .max(200),
+      }),
+      promotions: z
+        .array(
+          z.object({
+            code: z.string().regex(/^[a-z0-9_-]{2,40}$/, 'Use lowercase letters, numbers, - or _'),
+            type: z.enum(['featured', 'top', 'urgent', 'bump']),
+            name: z.string().trim().min(2).max(60),
+            days: z.number().int().min(0).max(365),
+            price: z.number().positive().max(10_000_000),
+          })
+        )
+        .max(50),
+      plans: z
+        .array(
+          z.object({
+            code: z.string().regex(/^[a-z0-9_-]{2,40}$/, 'Use lowercase letters, numbers, - or _'),
+            name: z.string().trim().min(2).max(60),
+            description: z.string().trim().max(300).nullable(),
+            price: z.number().positive().max(10_000_000),
+            days: z.number().int().min(1).max(3650),
+            extraFreeAds: z.number().int().min(0).max(100000),
+          })
+        )
+        .max(20),
+      auctionCommission: z.object({
+        enabled: z.boolean(),
+        percent: z.number().min(0).max(50),
+        minFee: z.number().min(0),
+        maxFee: z.number().min(0), // 0 = no cap
+        dueDays: z.number().int().min(1).max(90),
+        blockWhenOverdue: z.boolean(),
+      }),
+    }),
+    initial: {
+      taxPercent: 18,
+      taxLabel: 'GST',
+      listingFee: { enabled: false, freeAdsPer30Days: 5, fee: 0, categoryOverrides: [] },
+      promotions: [],
+      plans: [],
+      auctionCommission: { enabled: false, percent: 2, minFee: 0, maxFee: 0, dueDays: 7, blockWhenOverdue: true },
+    },
+  },
+
   features: {
     public: true,
     schema: z.record(z.string().regex(/^[a-zA-Z][a-zA-Z0-9_]*$/), z.boolean()),

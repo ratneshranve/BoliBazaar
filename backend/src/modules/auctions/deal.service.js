@@ -6,6 +6,7 @@ import { getSettingValue } from '../settings/settings.service.js';
 import { notify } from '../notifications/notification.service.js';
 import { ApiError } from '../../core/utils/ApiError.js';
 import { oid, formatMoney, HOUR_MS } from './auction.util.js';
+import { raiseCommission } from '../payments/payment.service.js';
 
 /* ───── strikes ───── */
 
@@ -117,6 +118,7 @@ export const completeDeal = async (userId, dealId) => {
     await Promise.all([deal.buyerId, deal.sellerId].map((u) => notify(u, 'deal.update', { title, status: 'completed' }, { route: `/deals/${deal._id}` })));
   }
   await deal.save();
+  if (deal.status === 'completed') await raiseCommission(deal);
   return deal;
 };
 

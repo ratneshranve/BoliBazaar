@@ -13,7 +13,7 @@ export const PERMISSIONS = {
   reports: ['view', 'action'],
   cases: ['view', 'action'],
   support: ['view', 'reply'],
-  finance: ['view', 'refund', 'export'],
+  finance: ['view', 'refund', 'export', 'waive'],
   monetization: ['view', 'edit'],
   ads: ['view', 'edit'],
   cms: ['view', 'edit'],

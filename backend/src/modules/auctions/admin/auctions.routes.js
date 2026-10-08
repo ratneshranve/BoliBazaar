@@ -8,6 +8,7 @@ import { AUCTION_STATUSES, DEAL_STATUSES, Deal, Strike } from '../auction.model.
 import { adminList, adminDetail, reviewAuction, controlAuction } from '../auction.service.js';
 import { voidBid } from '../bidding.service.js';
 import { addStrike } from '../deal.service.js';
+import { raiseCommission } from '../../payments/payment.service.js';
 import { Listing } from '../../listings/listing.model.js';
 import { User } from '../../users/user.model.js';
 import { notify } from '../../notifications/notification.service.js';
@@ -68,6 +69,7 @@ router.post(
     deal.resolution = { by: req.admin.id, note: req.body.note, at: new Date() };
     deal.timeline.push({ at: new Date(), event: `resolved_${req.body.outcome}`, by: 'admin' });
     await deal.save();
+    if (deal.status === 'completed') await raiseCommission(deal);
     if (req.body.strike) await addStrike(req.body.strike === 'buyer' ? deal.buyerId : deal.sellerId, req.body.strike, deal._id, `Decided by our team: ${req.body.note}`);
     const title = (await Listing.findById(deal.listingId).select('title').lean())?.title;
     for (const u of [deal.buyerId, deal.sellerId]) await notify(u, 'deal.update', { title, status: req.body.outcome }, { route: `/deals/${deal._id}` });

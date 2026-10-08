@@ -9,6 +9,7 @@ import { globalLimiter } from './core/middleware/rateLimit.js';
 import { PUBLIC_UPLOAD_DIR } from './core/services/storage.js';
 import userRoutes from './routes/user.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import { handleWebhook } from './modules/payments/payment.service.js';
 
 export const createApp = () => {
   const app = express();
@@ -25,7 +26,8 @@ export const createApp = () => {
     })
   );
   app.use(compression());
-  app.use(express.json({ limit: '1mb' }));
+  // keep the raw bytes too: payment webhooks are signed over the exact body
+  app.use(express.json({ limit: '1mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
   app.use(express.urlencoded({ extended: false, limit: '1mb' }));
   app.use(requestContext);
   app.use(morgan(env.isDev ? 'dev' : 'combined'));
@@ -36,6 +38,12 @@ export const createApp = () => {
   app.get('/health', (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
 
   app.use('/api', globalLimiter);
+  // Razorpay webhook: no login, verified by its signature; works even in maintenance mode
+  app.post('/api/v1/payments/webhook', (req, res, next) =>
+    handleWebhook(req.rawBody || Buffer.from(''), req.get('X-Razorpay-Signature'))
+      .then((r) => res.json({ success: true, data: r }))
+      .catch(next)
+  );
   app.use('/api/v1/admin', adminRoutes);
   app.use('/api/v1', userRoutes);
 

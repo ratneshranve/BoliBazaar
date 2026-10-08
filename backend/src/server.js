@@ -10,6 +10,7 @@ import { initRealtime } from './realtime/index.js';
 import { registerChatSocket } from './modules/chat/chat.socket.js';
 import { registerAuctionSocket } from './modules/auctions/auction.socket.js';
 import { startAuctionScheduler } from './modules/auctions/auction.scheduler.js';
+import { startPaymentScheduler } from './modules/payments/payment.scheduler.js';
 
 const start = async () => {
   await connectMongo();
@@ -24,6 +25,7 @@ const start = async () => {
     },
   });
   startAuctionScheduler();
+  startPaymentScheduler();
   server.listen(env.PORT, () => logger.info(`API listening on :${env.PORT} (${env.NODE_ENV})`));
 
   const shutdown = async (signal) => {

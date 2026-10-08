@@ -52,6 +52,16 @@ const validateBusinessRules = (key, value) => {
     if (t.some((x, i) => i > 0 && x.from <= t[i - 1].from)) throw ApiError.badRequest('VALIDATION_FAILED', 'Price bands must go up', { fields: { incrementTiers: 'Each band must start above the previous one' } });
     if (value.strikes.banAt <= value.strikes.blockAt) throw ApiError.badRequest('VALIDATION_FAILED', 'The ban must come after the temporary block', { fields: { 'strikes.banAt': 'Use a number above the block count' } });
   }
+  if (key === 'monetization') {
+    const dup = (list) => list.map((x) => x.code).find((c, i, all) => all.indexOf(c) !== i);
+    if (dup(value.promotions)) throw ApiError.badRequest('VALIDATION_FAILED', `Two promotion packages use the code "${dup(value.promotions)}"`);
+    if (dup(value.plans)) throw ApiError.badRequest('VALIDATION_FAILED', `Two plans use the code "${dup(value.plans)}"`);
+    const bad = value.promotions.find((p) => p.type !== 'bump' && p.days < 1);
+    if (bad) throw ApiError.badRequest('VALIDATION_FAILED', `"${bad.name}" needs at least 1 day`);
+    if (value.auctionCommission.maxFee && value.auctionCommission.maxFee < value.auctionCommission.minFee) {
+      throw ApiError.badRequest('VALIDATION_FAILED', 'Maximum commission must be at least the minimum');
+    }
+  }
   if (key === 'languages') {
     const bad = value.enabled.filter((c) => !catalogueCodes.includes(c));
     if (bad.length) throw ApiError.badRequest('LANGUAGE_UNKNOWN', `Unknown language: ${bad.join(', ')}`);
