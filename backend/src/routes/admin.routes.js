@@ -12,6 +12,7 @@ import categoriesRoutes from '../modules/categories/admin/categories.routes.js';
 import placesRoutes from '../modules/places/admin/places.routes.js';
 import bannersRoutes from '../modules/banners/admin/banners.routes.js';
 import listingsRoutes from '../modules/listings/admin/listings.routes.js';
+import notificationsRoutes from '../modules/notifications/admin/notifications.routes.js';
 
 /** Admin-panel API, mounted at /api/v1/admin */
 const router = Router();
@@ -30,5 +31,6 @@ router.use('/categories', categoriesRoutes);
 router.use('/places', placesRoutes);
 router.use('/cms/banners', bannersRoutes);
 router.use('/listings', listingsRoutes);
+router.use('/notifications', notificationsRoutes);
 
 export default router;

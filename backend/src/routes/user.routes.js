@@ -10,6 +10,8 @@ import categoriesRoutes from '../modules/categories/user/categories.routes.js';
 import placesRoutes from '../modules/places/user/places.routes.js';
 import homeRoutes from '../modules/home/user/home.routes.js';
 import listingsRoutes from '../modules/listings/user/listings.routes.js';
+import chatRoutes from '../modules/chat/user/chat.routes.js';
+import notificationsRoutes from '../modules/notifications/user/notifications.routes.js';
 
 /** User-app API, mounted at /api/v1 */
 const router = Router();
@@ -26,5 +28,7 @@ router.use('/categories', categoriesRoutes);
 router.use('/places', placesRoutes);
 router.use('/home', homeRoutes);
 router.use('/listings', listingsRoutes);
+router.use('/notifications', notificationsRoutes);
+router.use('/chats', chatRoutes);
 
 export default router;

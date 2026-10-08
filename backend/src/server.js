@@ -6,6 +6,8 @@ import { connectMongo, disconnectMongo } from './core/db/mongo.js';
 import { connectRedis, redis } from './core/db/redis.js';
 import { UPLOAD_ROOT } from './core/services/storage.js';
 import { createApp } from './app.js';
+import { initRealtime } from './realtime/index.js';
+import { registerChatSocket } from './modules/chat/chat.socket.js';
 
 const start = async () => {
   await connectMongo();
@@ -13,6 +15,7 @@ const start = async () => {
   await fs.mkdir(UPLOAD_ROOT, { recursive: true });
 
   const server = http.createServer(createApp());
+  await initRealtime(server, { onConnection: registerChatSocket });
   server.listen(env.PORT, () => logger.info(`API listening on :${env.PORT} (${env.NODE_ENV})`));
 
   const shutdown = async (signal) => {

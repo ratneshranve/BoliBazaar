@@ -8,6 +8,7 @@ import { Listing, LISTING_STATUSES } from '../listing.model.js';
 import { Category } from '../../categories/category.model.js';
 import { User } from '../../users/user.model.js';
 import { auditAdmin } from '../../audit/audit.service.js';
+import { notify } from '../../notifications/notification.service.js';
 
 const router = Router();
 const idParam = z.object({ id: z.string().regex(/^[a-f0-9]{24}$/) });
@@ -109,6 +110,8 @@ router.post(
     l.moderation = { reviewedBy: req.admin.id, reviewedAt: new Date(), reason };
     await l.save();
     await auditAdmin(req, { action: `listing.${action}`, entityType: 'Listing', entityId: l._id, before, after: { status: l.status }, reason });
+    const event = { approve: 'listing.approved', reject: 'listing.rejected', remove: 'listing.removed' }[action];
+    await notify(l.ownerId, event, { title: l.title, reason }, { route: `/listing/${l._id}` });
     ok(res, { id: String(l._id), status: l.status });
   })
 );
