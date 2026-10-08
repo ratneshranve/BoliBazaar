@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { LayoutDashboard, Users, UserPlus, Activity, ShieldAlert, ListChecks, Clock, Store } from 'lucide-react';
+import { LayoutDashboard, Users, UserPlus, Activity, ShieldAlert, ListChecks, Clock, Store, Gavel, Hourglass, AlertTriangle } from 'lucide-react';
 import { call, http, errorMessage } from '@core/api';
 import { Card, ErrorBox, PageHeader, Spinner } from '@components/ui';
 
@@ -11,6 +11,9 @@ const KPIS = [
   { key: 'liveListings', label: 'Live ads', icon: Store },
   { key: 'pendingListings', label: 'Ads awaiting review', icon: Clock },
   { key: 'totalListings', label: 'Total ads', icon: ListChecks },
+  { key: 'liveAuctions', label: 'Live auctions', icon: Gavel },
+  { key: 'pendingAuctions', label: 'Auctions awaiting review', icon: Hourglass },
+  { key: 'openDisputes', label: 'Open deal disputes', icon: AlertTriangle },
 ];
 
 function Dashboard() {

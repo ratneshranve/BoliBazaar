@@ -3,6 +3,7 @@ import { requirePermission } from '../../../core/middleware/auth.js';
 import { asyncHandler, ok } from '../../../core/utils/http.js';
 import { User } from '../../users/user.model.js';
 import { Listing } from '../../listings/listing.model.js';
+import { Auction, Deal } from '../../auctions/auction.model.js';
 
 const router = Router();
 
@@ -13,7 +14,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const since1 = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const [totalUsers, activeUsers30d, newUsers24h, suspended, liveListings, pendingListings, totalListings] = await Promise.all([
+    const [totalUsers, activeUsers30d, newUsers24h, suspended, liveListings, pendingListings, totalListings, liveAuctions, pendingAuctions, openDisputes] = await Promise.all([
       User.countDocuments({ status: { $ne: 'deleted' } }),
       User.countDocuments({ lastActiveAt: { $gte: since30 } }),
       User.countDocuments({ createdAt: { $gte: since1 } }),
@@ -21,6 +22,9 @@ router.get(
       Listing.countDocuments({ status: 'published', expiresAt: { $gt: new Date() } }),
       Listing.countDocuments({ status: 'pending_review' }),
       Listing.countDocuments({ status: { $ne: 'deleted' } }),
+      Auction.countDocuments({ status: 'live' }),
+      Auction.countDocuments({ status: 'pending_review' }),
+      Deal.countDocuments({ status: 'disputed' }),
     ]);
 
     const signups = await User.aggregate([
@@ -30,7 +34,7 @@ router.get(
     ]);
 
     ok(res, {
-      kpis: { totalUsers, activeUsers30d, newUsers24h, suspended, liveListings, pendingListings, totalListings },
+      kpis: { totalUsers, activeUsers30d, newUsers24h, suspended, liveListings, pendingListings, totalListings, liveAuctions, pendingAuctions, openDisputes },
       charts: { signups: signups.map((s) => ({ date: s._id, count: s.count })) },
     });
   })
