@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, BadgeCheck, FileX, ImageOff, MapPin, Share2 } from 'lucide-react';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, TextInput, View } from '../components/primitives';
@@ -133,6 +133,7 @@ export const ListingDetailScreen = () => {
     );
   }
 
+  if (ad?.auction?.id) return <Navigate to={`/auctions/${ad.auction.id}`} replace />;
   const photos = ad.media;
   const onScroll = (e) => {
     const el = e.target;

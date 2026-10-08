@@ -77,6 +77,25 @@ export const notificationsApi = {
   setPrefs: (groups) => api('/notifications/preferences', { method: 'PATCH', body: { groups } }),
 };
 
+/** Auctions: browse, bid, sell, and the deal after a win. */
+export const auctionsApi = {
+  browse: (params) => api('/auctions', { auth: false, query: params }),
+  detail: (id) => api(`/auctions/${id}`),
+  bids: (id) => api(`/auctions/${id}/bids`),
+  forEdit: (id) => api(`/auctions/${id}/edit`),
+  create: (body) => api('/auctions', { method: 'POST', body }),
+  update: (id, body) => api(`/auctions/${id}`, { method: 'PUT', body }),
+  cancel: (id) => api(`/auctions/${id}`, { method: 'DELETE' }),
+  note: (id, text) => api(`/auctions/${id}/notes`, { method: 'POST', body: { text } }),
+  offer: (id) => api(`/auctions/${id}/offer`, { method: 'POST' }),
+  bid: (id, body) => api(`/auctions/${id}/bids`, { method: 'POST', body }),
+  buyNow: (id) => api(`/auctions/${id}/buy-now`, { method: 'POST' }),
+  mine: (role) => api('/auctions/mine', { query: { role } }),
+  deals: (role) => api('/auctions/deals', { query: { role } }),
+  deal: (id) => api(`/auctions/deals/${id}`),
+  dealAction: (id, action, reason) => api(`/auctions/deals/${id}/${action}`, { method: 'POST', body: reason ? { reason } : {} }), // confirm | complete | cancel | dispute
+};
+
 /** Job applications and service enquiries. */
 export const leadsApi = {
   send: (listingId, message) => api('/leads', { method: 'POST', body: { listingId, message } }),

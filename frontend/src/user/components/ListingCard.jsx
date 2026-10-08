@@ -6,6 +6,7 @@ import { Image, Pressable, StyleSheet, View } from './primitives';
 import { AppText } from './ui';
 import { listingsApi } from '../api/endpoints';
 import { formatPrice } from '../utils/listing';
+import { formatMinor } from '../utils/auction';
 import { formatDistance } from '../utils/distance';
 import { useAppSelector } from '../store';
 import { colors, radius, spacing, shadow } from '@theme/tokens';
@@ -41,7 +42,7 @@ export const ListingCard = ({ listing, width, onFavouriteChange }) => {
   const typeTag = listing.listingType !== 'sell' ? t(`listing.type_${listing.listingType}`) : null;
 
   return (
-    <Pressable accessibilityLabel={listing.title} onPress={() => navigate(`/listing/${listing.id}`)} style={[styles.card, width ? { width } : { flex: 1 }]}>
+    <Pressable accessibilityLabel={listing.title} onPress={() => navigate(listing.auction ? `/auctions/${listing.auction.id}` : `/listing/${listing.id}`)} style={[styles.card, width ? { width } : { flex: 1 }]}>
       <View style={styles.imgWrap}>
         {listing.cover ? (
           <Image source={{ uri: listing.cover }} style={styles.img} resizeMode="cover" />
@@ -68,7 +69,14 @@ export const ListingCard = ({ listing, width, onFavouriteChange }) => {
             {listing.distanceKm != null ? ` · ${formatDistance(listing.distanceKm, unit)}` : ''}
           </AppText>
         </View>
-        <AppText variant="h3" color={colors.primary}>{formatPrice(listing.price, t, i18n.language)}</AppText>
+        {listing.auction ? (
+          <AppText variant="h3" color={colors.auction}>
+            {formatMinor(listing.auction.currentMinor ?? listing.auction.startingMinor, listing.price.currency, listing.price.factor, i18n.language)}
+            <AppText variant="small" color={colors.textMuted}> {listing.auction.currentMinor != null ? t('auction.currentBid') : t('auction.startingBid')}</AppText>
+          </AppText>
+        ) : (
+          <AppText variant="h3" color={colors.primary}>{formatPrice(listing.price, t, i18n.language)}</AppText>
+        )}
         {listing.highlights.length > 0 && (
           <AppText variant="small" color={colors.textMuted} numberOfLines={1}>{listing.highlights.join(' · ')}</AppText>
         )}

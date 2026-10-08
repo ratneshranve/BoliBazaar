@@ -6,7 +6,7 @@ import { asyncHandler, ok } from '../../../core/utils/http.js';
 import { getSettingValue } from '../../settings/settings.service.js';
 import { minorFactor } from '../../listings/listing.service.js';
 import { auctionInput, bidInput } from '../auction.schema.js';
-import { createAuction, updateAuction, cancelBySeller, addNote, auctionDetail, bidHistory, browseAuctions, myAuctions } from '../auction.service.js';
+import { auctionForEdit, createAuction, updateAuction, cancelBySeller, addNote, auctionDetail, bidHistory, browseAuctions, myAuctions } from '../auction.service.js';
 import { placeBid, buyNow } from '../bidding.service.js';
 import { confirmDeal, cancelDeal, completeDeal, disputeDeal, offerToBidder, getDeal, myDeals } from '../deal.service.js';
 import { Auction } from '../auction.model.js';
@@ -63,6 +63,8 @@ router.post('/:id/offer', requireUser, requireActiveUser, validate({ params: idP
   const deal = await offerToBidder(req.user.id, req.params.id);
   ok(res, await getDeal(req.user.id, deal._id));
 }));
+
+router.get('/:id/edit', requireUser, validate({ params: idParam }), asyncHandler(async (req, res) => ok(res, await auctionForEdit(req.user.id, req.params.id))));
 
 /* view & bid */
 router.get('/:id', optionalUser, validate({ params: idParam }), asyncHandler(async (req, res) => ok(res, await auctionDetail(req.params.id, req.user?.id))));

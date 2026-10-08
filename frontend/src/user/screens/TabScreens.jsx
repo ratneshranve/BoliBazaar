@@ -17,16 +17,6 @@ const PhaseScreen = ({ children }) => (
   </View>
 );
 
-const Soon = () => {
-  const { t } = useTranslation();
-  return (
-    <PhaseScreen>
-      <EmptyState title={t('common.comingSoon')} />
-    </PhaseScreen>
-  );
-};
-
-export const AuctionsScreen = Soon;
 
 const Row = ({ item, last }) => (
   <Pressable onPress={item.onPress} style={[styles.menuRow, !last && styles.menuDivider]}>
@@ -60,8 +50,8 @@ export const ProfileScreen = () => {
 
   const tiles = [
     { icon: <Package size={26} color={colors.primary} />, bg: colors.primarySoft, title: t('profile.myListings'), sub: t('profile.myListingsSub'), go: () => navigate('/my-listings') },
-    { icon: <Gavel size={26} color={colors.sell} />, bg: colors.sellSoft, title: t('profile.myAuctions'), sub: t('profile.myAuctionsSub') },
-    { icon: <ShoppingBag size={26} color={colors.auctionBlue} />, bg: colors.auctionSoft, title: t('profile.myPurchases'), sub: t('profile.myPurchasesSub') },
+    { icon: <Gavel size={26} color={colors.sell} />, bg: colors.sellSoft, title: t('profile.myAuctions'), sub: t('profile.myAuctionsSub'), go: () => navigate('/my-auctions') },
+    { icon: <ShoppingBag size={26} color={colors.auctionBlue} />, bg: colors.auctionSoft, title: t('profile.myPurchases'), sub: t('profile.myPurchasesSub'), go: () => navigate('/deals') },
     { icon: <Heart size={26} color={colors.warm} />, bg: colors.warmSoft, title: t('profile.favourites'), sub: t('profile.favouritesSub'), go: () => navigate('/favourites') },
   ];
 

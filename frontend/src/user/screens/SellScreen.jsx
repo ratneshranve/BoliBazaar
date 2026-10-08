@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, CheckCircle2, ChevronRight, ImagePlus, MapPin, X } from 'lucide-react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
@@ -8,13 +8,23 @@ import { DynamicFields } from '../components/DynamicFields';
 import { PlacePicker } from '../components/PlacePicker';
 import { Sheet } from '../components/Sheet';
 import { colors, radius, spacing } from '@theme/tokens';
-import { categoriesApi, listingsApi, uploadsApi } from '../api/endpoints';
+import { auctionsApi, categoriesApi, listingsApi, uploadsApi } from '../api/endpoints';
 import { ApiError } from '../api/client';
 import { useAppSelector } from '../store';
 import { errorText } from '../i18n';
 
 const PRICE_TYPES = ['fixed', 'negotiable', 'on_request', 'free'];
 const CONDITIONS = ['new', 'used', 'refurbished'];
+/** Duration presets in hours (1, 3, 5, 7 and 10 days). */
+const DURATIONS = [24, 72, 120, 168, 240];
+const EMPTY_AUCTION = { startingBid: '', reservePrice: '', buyNowPrice: '', increment: '', startAt: '', durationHours: 72 };
+
+/** Date → value for <input type="datetime-local"> in the viewer's own time zone. */
+const toLocalInput = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+};
 
 const Chip = ({ label, active, onPress }) => (
   <Pressable onPress={onPress} style={[styles.chip, active && styles.chipOn]}>
@@ -55,12 +65,17 @@ function CategorySheet({ tree, onPick, onClose }) {
   );
 }
 
-/** Post an ad (/sell) or edit one (/sell/:id). Form fields come from the chosen category. */
+/**
+ * Post an ad (/sell) or edit one (/sell/:id). Form fields come from the chosen category.
+ * Choosing the "Auction" type swaps the price for auction settings (/sell?type=auction, edit at /auctions/:auctionId/edit).
+ */
 export const SellScreen = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { id } = useParams();
-  const editing = Boolean(id);
+  const { id, auctionId } = useParams();
+  const [query] = useSearchParams();
+  const editing = Boolean(id || auctionId);
+  const auctionsOn = useAppSelector((s) => s.app.bootstrap?.auctions?.enabled);
   const current = useAppSelector((s) => s.location.current);
   const settings = useAppSelector((s) => s.app.bootstrap?.location);
 
@@ -69,7 +84,9 @@ export const SellScreen = () => {
   const [loading, setLoading] = useState(editing);
   const [sheet, setSheet] = useState(null); // 'category' | 'place'
   const [photos, setPhotos] = useState([]); // { key, url, mediaId, uploading, error }
-  const [form, setForm] = useState({ listingType: '', title: '', description: '', condition: '', priceType: 'fixed', amount: '', attributes: {} });
+  const [form, setForm] = useState({ listingType: query.get('type') === 'auction' ? 'auction' : '', title: '', description: '', condition: '', priceType: 'fixed', amount: '', attributes: {} });
+  const [auction, setAuction] = useState(EMPTY_AUCTION);
+  const setA = (patch) => setAuction((a) => ({ ...a, ...patch }));
   const [place, setPlace] = useState(current ? { ...current, scope: undefined } : null);
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
@@ -88,7 +105,7 @@ export const SellScreen = () => {
     setSheet(null);
     const { data } = await categoriesApi.detail(c.id);
     setCategory(data);
-    const types = data.listingTypes.filter((x) => x !== 'auction');
+    const types = data.listingTypes.filter((x) => x !== 'auction' || auctionsOn);
     set({ listingType: types.includes(form.listingType) ? form.listingType : types[0] ?? 'sell', attributes: {} });
   };
 
@@ -97,7 +114,13 @@ export const SellScreen = () => {
     if (!editing) return;
     (async () => {
       try {
-        const { data } = await listingsApi.forEdit(id);
+        const auctionData = auctionId ? (await auctionsApi.forEdit(auctionId)).data : null;
+        const { data } = await listingsApi.forEdit(auctionData ? auctionData.listingId : id);
+        if (auctionData) {
+          const a = auctionData.auction;
+          const str = (v) => (v == null ? '' : String(v));
+          setAuction({ startingBid: str(a.startingBid), reservePrice: str(a.reservePrice), buyNowPrice: str(a.buyNowPrice), increment: str(a.increment), startAt: toLocalInput(a.startAt), durationHours: a.durationHours });
+        }
         const cat = (await categoriesApi.detail(data.categoryId)).data;
         setCategory(cat);
         setForm({
@@ -117,7 +140,7 @@ export const SellScreen = () => {
         setLoading(false);
       }
     })();
-  }, [id, editing]);
+  }, [id, auctionId, editing]);
 
   const maxPhotos = category?.rules.maxPhotos ?? 10;
 
@@ -144,6 +167,8 @@ export const SellScreen = () => {
     if (!place) local.location = t('sell.chooseLocation');
     if (Object.keys(local).length) return setErrors(local);
 
+    const isAuction = form.listingType === 'auction';
+    const num = (v) => (v === '' || v == null ? null : Number(v));
     const body = {
       categoryId: category.id,
       listingType: form.listingType,
@@ -155,11 +180,28 @@ export const SellScreen = () => {
       mediaIds: photos.filter((p) => p.mediaId).map((p) => p.mediaId),
       location: { label: place.label, name: place.name, placeId: place.placeId, lat: place.lat, lng: place.lng, address: place.address ?? {} },
     };
+    if (isAuction) {
+      delete body.listingType;
+      delete body.price;
+      body.auction = {
+        startingBid: num(auction.startingBid),
+        reservePrice: num(auction.reservePrice),
+        buyNowPrice: num(auction.buyNowPrice),
+        increment: num(auction.increment),
+        startAt: auction.startAt ? new Date(auction.startAt).toISOString() : null,
+        durationHours: Number(auction.durationHours),
+      };
+    }
 
     setSaving(true);
     try {
-      const { data } = editing ? await listingsApi.update(id, body) : await listingsApi.create(body);
-      setDone(data);
+      if (isAuction) {
+        const { data } = auctionId ? await auctionsApi.update(auctionId, body) : await auctionsApi.create(body);
+        setDone({ id: data.id, status: data.status, auction: true });
+      } else {
+        const { data } = editing ? await listingsApi.update(id, body) : await listingsApi.create(body);
+        setDone(data);
+      }
     } catch (e) {
       if (e instanceof ApiError && e.details?.fields) {
         const fe = {};
@@ -177,9 +219,9 @@ export const SellScreen = () => {
     return (
       <View style={[styles.fill, { alignItems: 'center', justifyContent: 'center', padding: spacing.xl, gap: spacing.md }]}>
         <CheckCircle2 size={64} color={colors.sell} />
-        <AppText variant="h2" style={{ textAlign: 'center' }}>{done.status === 'published' ? t('sell.success_published') : t('sell.success_review')}</AppText>
+        <AppText variant="h2" style={{ textAlign: 'center' }}>{done.auction ? t('sell.success_auction') : done.status === 'published' ? t('sell.success_published') : t('sell.success_review')}</AppText>
         <View style={{ alignSelf: 'stretch', gap: spacing.sm, marginTop: spacing.lg }}>
-          <Button title={t('sell.viewAd')} onPress={() => navigate(`/listing/${done.id}`, { replace: true })} />
+          <Button title={done.auction ? t('auction.view') : t('sell.viewAd')} onPress={() => navigate(done.auction ? `/auctions/${done.id}` : `/listing/${done.id}`, { replace: true })} />
           {!editing && <Button variant="outline" title={t('sell.postAnother')} onPress={() => window.location.assign('/sell')} />}
         </View>
       </View>
@@ -188,14 +230,16 @@ export const SellScreen = () => {
 
   if (loading) return <View style={[styles.fill, { alignItems: 'center', justifyContent: 'center' }]}><ActivityIndicator color={colors.primary} /></View>;
 
-  const types = category?.listingTypes.filter((x) => x !== 'auction') ?? [];
+  const types = (category?.listingTypes.filter((x) => x !== 'auction' || auctionsOn) ?? []).filter((x) => !editing || (x === 'auction') === Boolean(auctionId));
+  const isAuction = form.listingType === 'auction';
+  const aErr = (k) => errors[`auction.${k}`];
   const needsAmount = ['fixed', 'negotiable'].includes(form.priceType);
 
   return (
     <View style={styles.fill}>
       <View style={styles.header}>
         <Pressable accessibilityLabel={t('common.back')} onPress={() => navigate(-1)}><ArrowLeft size={24} color={colors.text} /></Pressable>
-        <AppText variant="h3">{editing ? t('sell.editTitle') : t('sell.title')}</AppText>
+        <AppText variant="h3">{auctionId ? t('auction.editTitle') : editing ? t('sell.editTitle') : isAuction ? t('auction.createTitle') : t('sell.title')}</AppText>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.xl, paddingBottom: spacing.xxxl }}>
@@ -251,13 +295,34 @@ export const SellScreen = () => {
               <Field value={form.description} onChangeText={(v) => set({ description: v })} maxLength={2000} multiline style={{ minHeight: 110 }} error={errors.description ? ' ' : undefined} />
             </Section>
 
+            {/* auction settings */}
+            {isAuction && (
+              <Section title={t('auction.settings')}>
+                <AppText variant="caption" color={colors.textMuted}>{t('auction.settingsHint')}</AppText>
+                <Field value={auction.startingBid} onChangeText={(v) => setA({ startingBid: v.replace(/\D/g, '') })} placeholder={t('auction.startingBid')} keyboardType="number-pad" error={aErr('startingBid')} />
+                <Field value={auction.reservePrice} onChangeText={(v) => setA({ reservePrice: v.replace(/\D/g, '') })} placeholder={t('auction.reserveOptional')} keyboardType="number-pad" error={aErr('reservePrice')} />
+                <Field value={auction.buyNowPrice} onChangeText={(v) => setA({ buyNowPrice: v.replace(/\D/g, '') })} placeholder={t('auction.buyNowOptional')} keyboardType="number-pad" error={aErr('buyNowPrice')} />
+                <Field value={auction.increment} onChangeText={(v) => setA({ increment: v.replace(/\D/g, '') })} placeholder={t('auction.stepOptional')} keyboardType="number-pad" error={aErr('increment')} />
+                <AppText variant="bodyStrong" style={{ marginTop: spacing.sm }}>{t('auction.duration')}</AppText>
+                <View style={styles.chips}>
+                  {DURATIONS.map((h) => <Chip key={h} label={t('auction.days', { count: h / 24 })} active={Number(auction.durationHours) === h} onPress={() => setA({ durationHours: h })} />)}
+                </View>
+                {!!aErr('durationHours') && <AppText variant="caption" color={colors.danger}>{aErr('durationHours')}</AppText>}
+                <AppText variant="bodyStrong" style={{ marginTop: spacing.sm }}>{t('auction.startAt')}</AppText>
+                <input type="datetime-local" value={auction.startAt} onChange={(e) => setA({ startAt: e.target.value })} style={{ height: 48, border: `1px solid ${aErr('startAt') ? colors.danger : colors.border}`, borderRadius: 10, padding: '0 12px', fontSize: 16 }} />
+                <AppText variant="caption" color={aErr('startAt') ? colors.danger : colors.textMuted}>{aErr('startAt') || t('auction.startAtHint')}</AppText>
+              </Section>
+            )}
+
             {/* price */}
+            {!isAuction && (
             <Section title={t('sell.price')} error={errors['price.amount']}>
               <View style={styles.chips}>
                 {PRICE_TYPES.map((p) => <Chip key={p} label={t(`sell.priceType_${p}`)} active={form.priceType === p} onPress={() => set({ priceType: p })} />)}
               </View>
               {needsAmount && <Field value={form.amount} onChangeText={(v) => set({ amount: v.replace(/[^\d.]/g, '') })} placeholder={t('sell.amount')} keyboardType="number-pad" />}
             </Section>
+            )}
 
             {/* condition */}
             <Section title={t('sell.condition')}>
@@ -288,7 +353,7 @@ export const SellScreen = () => {
             </Section>
 
             {!!formError && <AppText color={colors.danger}>{formError}</AppText>}
-            <Button title={editing ? t('sell.saveChanges') : t('sell.publish')} loading={saving} disabled={photos.some((p) => p.uploading)} onPress={submit} />
+            <Button title={editing ? t('sell.saveChanges') : isAuction ? t('auction.submit') : t('sell.publish')} loading={saving} disabled={photos.some((p) => p.uploading)} onPress={submit} />
           </>
         )}
       </ScrollView>

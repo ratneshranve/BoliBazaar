@@ -369,3 +369,23 @@ export const adminDetail = async (id) => {
 };
 
 export { syncListingEnd };
+
+/** The seller's own numbers, in major units, for the edit form. */
+export const auctionForEdit = async (sellerId, id) => {
+  const a = await mine(sellerId, id);
+  const f = minorFactor(a.currency);
+  const major = (n) => (n == null ? null : n / f);
+  return {
+    id: oid(a._id),
+    listingId: oid(a.listingId),
+    status: a.status,
+    auction: {
+      startingBid: major(a.startingMinor),
+      reservePrice: major(a.reserveMinor),
+      buyNowPrice: major(a.buyNowMinor),
+      increment: major(a.incrementMinor),
+      startAt: a.status === 'pending_review' || a.status === 'rejected' ? a.startAt : null,
+      durationHours: a.durationMs / HOUR_MS,
+    },
+  };
+};

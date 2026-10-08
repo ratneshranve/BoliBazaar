@@ -9,7 +9,8 @@ import { setClientHooks } from './api/client';
 import i18n, { savedLanguage, setLanguage, ensureLanguage } from './i18n';
 import { ConfigErrorScreen, LanguageScreen, MaintenanceScreen, OfflineScreen, UpdateScreen } from './screens/GateScreens';
 import { LoginScreen, OtpScreen, ProfileSetupScreen } from './screens/AuthScreens';
-import { AuctionsScreen, ProfileScreen } from './screens/TabScreens';
+import { ProfileScreen } from './screens/TabScreens';
+import { AuctionsScreen, AuctionDetailScreen, MyAuctionsScreen, DealsScreen, DealScreen } from './screens/AuctionScreens';
 import { SellScreen } from './screens/SellScreen';
 import { SearchScreen } from './screens/SearchScreen';
 import { ListingDetailScreen } from './screens/ListingDetailScreen';
@@ -89,6 +90,11 @@ const Navigation = () => (
       <Route path="/notifications" element={<NotificationsScreen />} />
       <Route path="/chats" element={<ChatsScreen />} />
       <Route path="/chat/:id" element={<ChatScreen />} />
+      <Route path="/auctions/:id" element={<AuctionDetailScreen />} />
+      <Route path="/auctions/:auctionId/edit" element={<SellScreen />} />
+      <Route path="/my-auctions" element={<MyAuctionsScreen />} />
+      <Route path="/deals" element={<DealsScreen />} />
+      <Route path="/deals/:id" element={<DealScreen />} />
       <Route path="/leads/received" element={<LeadsScreen initial="received" />} />
       <Route path="/leads/sent" element={<LeadsScreen initial="sent" />} />
     </Routes>

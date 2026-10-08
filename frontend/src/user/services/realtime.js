@@ -25,6 +25,7 @@ export const connectRealtime = () => {
     reconnectionDelayMax: 10_000,
   });
   attach(socket);
+  socket.on('connect', () => rejoin());
   socket.on('connect_error', async (err) => {
     // the 15-minute access token ran out: get a fresh one and let socket.io retry
     if (err.message === 'TOKEN_EXPIRED' && !(await refreshAccessToken())) disconnectRealtime();
@@ -49,3 +50,15 @@ export const onRealtime = (event, fn) => {
 };
 
 export const emitRealtime = (event, payload) => socket?.emit(event, payload);
+
+/** Auction pages being watched; rejoined automatically after a reconnect. */
+const watched = new Set();
+export const watchAuction = (auctionId) => {
+  watched.add(auctionId);
+  socket?.emit('auction:watch', { auctionId });
+  return () => {
+    watched.delete(auctionId);
+    socket?.emit('auction:unwatch', { auctionId });
+  };
+};
+const rejoin = () => watched.forEach((auctionId) => socket?.emit('auction:watch', { auctionId }));
