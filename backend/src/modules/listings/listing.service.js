@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import mongoose from 'mongoose';
+import { auctionSummaries } from '../auctions/auction.summary.js';
 import { Listing, Favourite } from './listing.model.js';
 import { buildAttributesSchema } from './listing.schema.js';
 import { Category } from '../categories/category.model.js';
@@ -20,7 +21,7 @@ const EARTH_KM = 6378.137;
 
 const newListingNo = () => `L${crypto.randomBytes(5).toString('base64url').replace(/[-_]/g, 'x').slice(0, 7).toUpperCase()}`;
 
-const minorFactor = (currency) => {
+export const minorFactor = (currency) => {
   const digits = new Intl.NumberFormat('en', { style: 'currency', currency }).resolvedOptions().maximumFractionDigits;
   return 10 ** digits;
 };
@@ -72,11 +73,11 @@ const effectiveStatus = (l) => (l.status === 'published' && l.expiresAt && l.exp
 /* ───────── create / edit ───────── */
 
 /** Validate an input against the category rules and build the stored fields (shared by create and edit). */
-const prepare = async (input, ownerId, listingId) => {
+const prepare = async (input, ownerId, listingId, { auction = false } = {}) => {
   const category = await Category.findOne({ _id: input.categoryId, status: 'active' }).lean();
   if (!category) throw ApiError.badRequest('CATEGORY_NOT_AVAILABLE', 'This category is not available');
   if (await Category.exists({ parentId: category._id })) throw ApiError.badRequest('CATEGORY_NOT_LEAF', 'Choose the most specific category');
-  if (input.listingType === 'auction') throw ApiError.badRequest('AUCTIONS_NOT_AVAILABLE', 'Auctions are not available yet');
+  if (input.listingType === 'auction' && !auction) throw ApiError.badRequest('USE_AUCTION_FLOW', 'Create auctions from the auctions screen');
   if (category.listingTypes.length && !category.listingTypes.includes(input.listingType)) {
     throw ApiError.badRequest('LISTING_TYPE_NOT_ALLOWED', 'This category does not allow that type of ad');
   }
@@ -144,9 +145,26 @@ export const createListing = async (ownerId, input) => {
   });
 };
 
+/** The item behind an auction. Always reviewed; the auction fixes its own start and end, so there is no expiry here. */
+export const createAuctionItem = async (ownerId, input) => {
+  const _id = new ObjectId();
+  const { fields } = await prepare({ ...input, listingType: 'auction' }, ownerId, String(_id), { auction: true });
+  return Listing.create({ _id, listingNo: newListingNo(), ownerId, ...fields, status: 'pending_review' });
+};
+
+/** Rewrite the item of an auction that is still being reviewed. */
+export const updateAuctionItem = async (doc, ownerId, input) => {
+  const { fields } = await prepare({ ...input, listingType: 'auction' }, ownerId, String(doc._id), { auction: true });
+  Object.assign(doc, fields);
+  doc.markModified('attributes');
+  await doc.save();
+  return doc;
+};
+
 export const updateListing = async (ownerId, id, input) => {
   const doc = await Listing.findOne({ _id: id, ownerId });
   if (!doc || ['deleted', 'removed'].includes(doc.status)) throw ApiError.notFound('LISTING_NOT_FOUND');
+  if (doc.listingType === 'auction') throw ApiError.badRequest('USE_AUCTION_FLOW', 'Manage auctions from the auctions screen');
   if (doc.status === 'sold') throw ApiError.badRequest('LISTING_SOLD', 'A sold ad cannot be edited');
   if (String(doc.categoryId) !== input.categoryId) throw ApiError.badRequest('CATEGORY_LOCKED', 'Post a new ad to change the category');
 
@@ -170,6 +188,7 @@ export const updateListing = async (ownerId, id, input) => {
 const ownerListing = async (ownerId, id) => {
   const doc = await Listing.findOne({ _id: id, ownerId });
   if (!doc || doc.status === 'deleted') throw ApiError.notFound('LISTING_NOT_FOUND');
+  if (doc.listingType === 'auction') throw ApiError.badRequest('USE_AUCTION_FLOW', 'Manage auctions from the auctions screen');
   return doc;
 };
 
@@ -230,7 +249,7 @@ const shortPlace = (loc) => {
 const priceDto = (p) => ({ type: p.type, amountMinor: p.amountMinor ?? null, currency: p.currency, factor: minorFactor(p.currency) });
 
 /** Cards in lists. `ctx` carries categories, favourites and the viewer's point. */
-const cardDtos = async (docs, { lang, viewerPoint, favourites = new Set(), withStatus = false } = {}) => {
+export const cardDtos = async (docs, { lang, viewerPoint, favourites = new Set(), withStatus = false } = {}) => {
   const categoryIds = [...new Set(docs.map((d) => String(d.categoryId)))];
   const cats = new Map((await Category.find({ _id: { $in: categoryIds } }).select('attributes').lean()).map((c) => [String(c._id), c]));
 
@@ -246,6 +265,7 @@ const cardDtos = async (docs, { lang, viewerPoint, favourites = new Set(), withS
   const flat = raw.flat();
   const translated = await translateForReader(flat, lang);
   let i = 0;
+  const auctions = await auctionSummaries(docs.filter((d) => d.listingType === 'auction').map((d) => d._id));
 
   return docs.map((d, idx) => {
     const highlights = raw[idx].map(() => translated[i++]);
@@ -265,6 +285,7 @@ const cardDtos = async (docs, { lang, viewerPoint, favourites = new Set(), withS
       highlights,
       publishedAt: d.publishedAt || null,
       isFavourite: favourites.has(String(d._id)),
+      ...(d.listingType === 'auction' ? { auction: auctions.get(String(d._id)) || null } : {}),
       ...(withStatus
         ? { status: effectiveStatus(d), rejectReason: d.status === 'rejected' ? d.moderation?.reason || null : null, expiresAt: d.expiresAt || null, stats: d.stats }
         : {}),
@@ -382,7 +403,8 @@ export const listingDetail = async (id, { viewerId, lang, viewerPoint } = {}) =>
   const isOwner = viewerId && String(d.ownerId) === String(viewerId);
   const status = effectiveStatus(d);
   // others only see live and sold ads
-  if (!isOwner && !['published', 'sold'].includes(status)) throw ApiError.notFound('LISTING_NOT_FOUND', 'This ad is no longer available');
+  const wasLiveAuction = d.listingType === 'auction' && d.publishedAt && ['published', 'sold', 'expired'].includes(d.status);
+  if (!isOwner && !wasLiveAuction && !['published', 'sold'].includes(status)) throw ApiError.notFound('LISTING_NOT_FOUND', 'This ad is no longer available');
 
   const [category, owner, favs] = await Promise.all([
     Category.findById(d.categoryId).lean(),

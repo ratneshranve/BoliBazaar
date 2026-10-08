@@ -56,6 +56,11 @@ export const emitToUser = (userId, event, payload) => {
   io?.to(`user:${userId}`).emit(event, payload);
 };
 
+/** Send an event to everyone watching a room (e.g. an auction page). */
+export const emitToRoom = (room, event, payload) => {
+  io?.to(room).emit(event, payload);
+};
+
 /** True when the user has at least one live connection (used to decide whether a push is needed). */
 export const isOnline = async (userId) => {
   if (!io) return false;

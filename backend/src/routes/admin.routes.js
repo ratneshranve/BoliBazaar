@@ -14,6 +14,7 @@ import bannersRoutes from '../modules/banners/admin/banners.routes.js';
 import listingsRoutes from '../modules/listings/admin/listings.routes.js';
 import notificationsRoutes from '../modules/notifications/admin/notifications.routes.js';
 import leadsRoutes from '../modules/leads/admin/leads.routes.js';
+import auctionsRoutes from '../modules/auctions/admin/auctions.routes.js';
 
 /** Admin-panel API, mounted at /api/v1/admin */
 const router = Router();
@@ -34,5 +35,6 @@ router.use('/cms/banners', bannersRoutes);
 router.use('/listings', listingsRoutes);
 router.use('/notifications', notificationsRoutes);
 router.use('/leads', leadsRoutes);
+router.use('/auctions', auctionsRoutes);
 
 export default router;

@@ -8,6 +8,8 @@ import { UPLOAD_ROOT } from './core/services/storage.js';
 import { createApp } from './app.js';
 import { initRealtime } from './realtime/index.js';
 import { registerChatSocket } from './modules/chat/chat.socket.js';
+import { registerAuctionSocket } from './modules/auctions/auction.socket.js';
+import { startAuctionScheduler } from './modules/auctions/auction.scheduler.js';
 
 const start = async () => {
   await connectMongo();
@@ -15,7 +17,13 @@ const start = async () => {
   await fs.mkdir(UPLOAD_ROOT, { recursive: true });
 
   const server = http.createServer(createApp());
-  await initRealtime(server, { onConnection: registerChatSocket });
+  await initRealtime(server, {
+    onConnection: (socket) => {
+      registerChatSocket(socket);
+      registerAuctionSocket(socket);
+    },
+  });
+  startAuctionScheduler();
   server.listen(env.PORT, () => logger.info(`API listening on :${env.PORT} (${env.NODE_ENV})`));
 
   const shutdown = async (signal) => {

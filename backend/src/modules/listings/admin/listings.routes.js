@@ -90,6 +90,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const l = await Listing.findById(req.params.id);
     if (!l || l.status === 'deleted') throw ApiError.notFound('LISTING_NOT_FOUND');
+    if (l.listingType === 'auction') throw ApiError.badRequest('USE_AUCTION_FLOW', 'Auctions are reviewed under Auctions');
     const before = { status: l.status };
     const { action, reason } = req.body;
 
