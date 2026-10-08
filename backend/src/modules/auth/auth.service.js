@@ -41,7 +41,8 @@ export const sendLoginOtp = async ({ phone, countryCode, ip, deviceId }) => {
     throw ApiError.tooMany('OTP_LIMIT_REACHED', 'Too many OTP requests. Try again later.');
   }
 
-  const code = randomDigits(sec.otpLength);
+  // DEFAULT_OTP_ENABLED=true (testing): fixed code, no SMS
+  const code = env.defaultOtp || randomDigits(sec.otpLength);
   await OtpRequest.create({
     target: e164,
     purpose: 'login',
@@ -51,10 +52,12 @@ export const sendLoginOtp = async ({ phone, countryCode, ip, deviceId }) => {
     deviceId,
   });
 
-  const branding = await getSettingValue('branding');
-  await sendOtpSms({ phone: e164, code, appName: branding.appName });
+  if (!env.defaultOtp) {
+    const branding = await getSettingValue('branding');
+    await sendOtpSms({ phone: e164, code, appName: branding.appName });
+  }
 
-  return { phone: e164, length: sec.otpLength, expiresInSec: sec.otpExpirySec, resendInSec: sec.otpResendSec };
+  return { phone: e164, length: code.length, expiresInSec: sec.otpExpirySec, resendInSec: sec.otpResendSec };
 };
 
 const consumeOtp = async ({ e164, code, purpose }) => {

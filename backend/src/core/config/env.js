@@ -46,7 +46,10 @@ const schema = z
     UPLOAD_DIR: required('UPLOAD_DIR'),
     MAX_UPLOAD_MB: z.coerce.number().positive(),
 
-    SMS_PROVIDER: z.enum(['msg91', 'twilio', 'console']),
+    SMS_PROVIDER: z.preprocess((v) => (v === '' ? undefined : v), z.enum(['msg91', 'twilio', 'console']).optional()),
+    // Testing switch: when true every login OTP is DEFAULT_OTP and no SMS is sent. Keep false for real users.
+    DEFAULT_OTP_ENABLED: z.enum(['true', 'false']),
+    DEFAULT_OTP: optional,
     MSG91_AUTH_KEY: optional,
     MSG91_OTP_TEMPLATE_ID: optional,
     TWILIO_ACCOUNT_SID: optional,
@@ -78,6 +81,12 @@ const schema = z
     if (env.REDIS_ENABLED === 'true') need(['REDIS_URL'], 'when REDIS_ENABLED=true');
     if (env.BULLMQ_ENABLED === 'true' && env.REDIS_ENABLED !== 'true') {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['BULLMQ_ENABLED'], message: 'BULLMQ_ENABLED=true requires REDIS_ENABLED=true (BullMQ runs on Redis)' });
+    }
+    if (env.DEFAULT_OTP_ENABLED === 'true' && !/^\d{4,8}$/.test(env.DEFAULT_OTP || '')) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['DEFAULT_OTP'], message: 'DEFAULT_OTP must be 4-8 digits when DEFAULT_OTP_ENABLED=true' });
+    }
+    if (env.DEFAULT_OTP_ENABLED !== 'true' && !env.SMS_PROVIDER) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['SMS_PROVIDER'], message: 'Set SMS_PROVIDER (msg91 | twilio | console), or DEFAULT_OTP_ENABLED=true for testing' });
     }
     if (env.SMS_PROVIDER === 'msg91') need(['MSG91_AUTH_KEY', 'MSG91_OTP_TEMPLATE_ID'], 'when SMS_PROVIDER=msg91');
     if (env.SMS_PROVIDER === 'twilio') need(['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_FROM_NUMBER'], 'when SMS_PROVIDER=twilio');
@@ -114,6 +123,7 @@ export const env = Object.freeze({
   isProd: e.NODE_ENV === 'production',
   redisEnabled: e.REDIS_ENABLED === 'true',
   bullmqEnabled: e.BULLMQ_ENABLED === 'true',
+  defaultOtp: e.DEFAULT_OTP_ENABLED === 'true' ? e.DEFAULT_OTP : null,
   corsOrigins: e.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean),
   firebaseServiceAccount: e.FIREBASE_SERVICE_ACCOUNT ? parseServiceAccount(e.FIREBASE_SERVICE_ACCOUNT) : undefined,
 });
