@@ -7,6 +7,7 @@ import { Bid } from '../auctions/auction.model.js';
 import { Conversation } from '../chat/chat.model.js';
 import { Category } from '../categories/category.model.js';
 import { notify } from '../notifications/notification.service.js';
+import { getSettingValue } from '../settings/settings.service.js';
 import { ApiError } from '../../core/utils/ApiError.js';
 import { escapeRegex } from '../../core/utils/http.js';
 import { logger } from '../../core/utils/logger.js';
@@ -154,8 +155,10 @@ export const analytics = async (days) => {
   for (let d = new Date(since); d <= new Date(); d = new Date(d.getTime() + DAY_MS)) keys.push(d.toISOString().slice(0, 10));
   const pick = (rows) => new Map(rows.map((r) => [r._id, r.n]));
   const [s, l, b, c, r] = [signups, listings, bids, chats, revenue].map(pick);
+  const { currency } = await getSettingValue('marketplace');
   return {
     days,
+    currency,
     totals: { signups: totals[0], listings: totals[1], bids: totals[2], chats: totals[3], sold: totals[4], revenueMinor: revenue.reduce((a, x) => a + x.n, 0) },
     series: keys.map((k) => ({ date: k, signups: s.get(k) || 0, listings: l.get(k) || 0, bids: b.get(k) || 0, chats: c.get(k) || 0, revenueMinor: r.get(k) || 0 })),
     topCategories: topCats.map((x) => ({ id: oid(x._id), name: names.get(oid(x._id)) || '—', listings: x.n })),
