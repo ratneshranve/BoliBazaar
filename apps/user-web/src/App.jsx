@@ -61,8 +61,11 @@ const Gate = () => {
   }, [dispatch]);
 
   useEffect(() => {
-    const name = bootstrap?.branding?.appName;
-    document.title = name || 'App';
+    const b = bootstrap?.branding;
+    document.title = b?.appName || 'App';
+    // Tab icon comes from Admin › Settings › Branding (icon, else logo)
+    const icon = b?.icon?.url || b?.logo?.url;
+    if (icon) document.querySelector('link[rel="icon"]')?.setAttribute('href', icon);
   }, [bootstrap]);
 
   if (status === 'booting' || session === 'unknown') {
