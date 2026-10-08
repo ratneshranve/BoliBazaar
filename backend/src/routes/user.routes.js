@@ -16,6 +16,7 @@ import leadsRoutes from '../modules/leads/user/leads.routes.js';
 import auctionsRoutes from '../modules/auctions/user/auctions.routes.js';
 import paymentsRoutes from '../modules/payments/user/payments.routes.js';
 import trustRoutes from '../modules/trust/user/trust.routes.js';
+import { userGrowthRoutes } from '../modules/growth/routes.js';
 
 /** User-app API, mounted at /api/v1 */
 const router = Router();
@@ -37,6 +38,7 @@ router.use('/chats', chatRoutes);
 router.use('/leads', leadsRoutes);
 router.use('/auctions', auctionsRoutes);
 router.use('/payments', paymentsRoutes);
+router.use('/', userGrowthRoutes); // /saved-searches, /sellers/:publicId
 router.use('/', trustRoutes); // /reports, /cases, /verification, /account/*
 
 export default router;

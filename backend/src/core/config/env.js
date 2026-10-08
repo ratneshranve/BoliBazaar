@@ -30,6 +30,8 @@ const schema = z
     PORT: z.coerce.number().int().positive(),
     CORS_ORIGINS: required('CORS_ORIGINS'),
     PUBLIC_BASE_URL: z.string().url(),
+    // the user website's address, used in sitemap.xml and robots.txt (search engines)
+    PUBLIC_WEB_URL: z.preprocess((v) => (v === '' ? undefined : v), z.string().url().optional()),
 
     MONGODB_URI: required('MONGODB_URI'),
     REDIS_ENABLED: z.enum(['true', 'false'], { errorMap: () => ({ message: 'REDIS_ENABLED must be "true" or "false"' }) }),

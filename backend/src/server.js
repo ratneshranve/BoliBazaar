@@ -12,6 +12,7 @@ import { registerAuctionSocket } from './modules/auctions/auction.socket.js';
 import { startAuctionScheduler } from './modules/auctions/auction.scheduler.js';
 import { startPaymentScheduler } from './modules/payments/payment.scheduler.js';
 import { startTrustScheduler } from './modules/trust/trust.scheduler.js';
+import { startGrowthScheduler } from './modules/growth/growth.scheduler.js';
 
 const start = async () => {
   await connectMongo();
@@ -28,6 +29,7 @@ const start = async () => {
   startAuctionScheduler();
   startPaymentScheduler();
   startTrustScheduler();
+  startGrowthScheduler();
   server.listen(env.PORT, () => logger.info(`API listening on :${env.PORT} (${env.NODE_ENV})`));
 
   const shutdown = async (signal) => {

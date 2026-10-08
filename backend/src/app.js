@@ -10,6 +10,7 @@ import { PUBLIC_UPLOAD_DIR } from './core/services/storage.js';
 import userRoutes from './routes/user.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import { handleWebhook } from './modules/payments/payment.service.js';
+import { sitemapXml } from './modules/growth/growth.service.js';
 
 export const createApp = () => {
   const app = express();
@@ -38,6 +39,18 @@ export const createApp = () => {
   app.get('/health', (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
 
   app.use('/api', globalLimiter);
+  // search engines (served by the API; point the website's /sitemap.xml and /robots.txt here)
+  app.get('/sitemap.xml', (req, res, next) => {
+    if (!env.PUBLIC_WEB_URL) return res.status(404).type('text/plain').send('Set PUBLIC_WEB_URL in backend .env');
+    sitemapXml(env.PUBLIC_WEB_URL.replace(/\/$/, ''))
+      .then((xml) => res.type('application/xml').set('Cache-Control', 'public, max-age=3600').send(xml))
+      .catch(next);
+  });
+  app.get('/robots.txt', (req, res) => {
+    const web = env.PUBLIC_WEB_URL?.replace(/\/$/, '');
+    res.type('text/plain').send(['User-agent: *', 'Disallow: /admin', 'Disallow: /api/', web ? `Sitemap: ${web}/sitemap.xml` : ''].filter(Boolean).join('\n'));
+  });
+
   // Razorpay webhook: no login, verified by its signature; works even in maintenance mode
   app.post('/api/v1/payments/webhook', (req, res, next) =>
     handleWebhook(req.rawBody || Buffer.from(''), req.get('X-Razorpay-Signature'))

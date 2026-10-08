@@ -29,6 +29,8 @@ export const EVENTS = {
   'case.status': { group: 'system', vars: ['subject', 'status'], title: 'Support case update', body: '"{{subject}}" is now {{status}}.' },
   'verification.approved': { group: 'system', vars: ['badge'], title: 'You are verified', body: 'Your "{{badge}}" badge is now on your profile.' },
   'verification.rejected': { group: 'system', vars: ['badge', 'reason'], title: 'Verification not approved', body: 'We could not approve "{{badge}}": {{reason}}' },
+  'search.match': { group: 'listings', vars: ['name', 'count'], title: 'New ads for "{{name}}"', body: '{{count}} new ad(s) match your saved search.' },
+  'broadcast': { group: 'system', vars: ['title', 'body'], title: '{{title}}', body: '{{body}}' },
   'job.application_received': { group: 'jobs', vars: ['name', 'title'], title: 'New application', body: '{{name}} applied for "{{title}}".' },
   'job.application_status': { group: 'jobs', vars: ['title', 'status'], title: 'Application update', body: 'Your application for "{{title}}" is now {{status}}.' },
   'enquiry.received': { group: 'jobs', vars: ['name', 'title'], title: 'New enquiry', body: '{{name}} sent an enquiry about "{{title}}".' },
