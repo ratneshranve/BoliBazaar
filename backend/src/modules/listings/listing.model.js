@@ -47,7 +47,7 @@ const listingSchema = new Schema(
     soldAt: Date,
 
     // paid boosts (see payments/Promotion); each is active while its date is in the future
-    promo: { featuredUntil: Date, topUntil: Date, urgentUntil: Date },
+    promo: { featuredUntil: Date, topUntil: Date, homepageUntil: Date, categoryUntil: Date, locationUntil: Date },
     paidListing: Boolean, // posted by paying the ad fee (does not use up the free quota)
 
     stats: { views: { type: Number, default: 0 }, favourites: { type: Number, default: 0 } },
@@ -62,6 +62,9 @@ listingSchema.index({ categoryPath: 1, status: 1, publishedAt: -1 });
 listingSchema.index({ publicGeo: '2dsphere' });
 listingSchema.index({ status: 1, createdAt: 1 }); // moderation queue
 listingSchema.index({ 'promo.featuredUntil': 1, status: 1 });
+listingSchema.index({ 'promo.homepageUntil': 1, status: 1 });
+listingSchema.index({ 'promo.categoryUntil': 1, status: 1 });
+listingSchema.index({ 'promo.locationUntil': 1, status: 1 });
 listingSchema.index({ 'promo.topUntil': 1, status: 1 });
 listingSchema.index({ 'location.address.countryCode': 1, 'location.address.state': 1, 'location.address.district': 1 });
 

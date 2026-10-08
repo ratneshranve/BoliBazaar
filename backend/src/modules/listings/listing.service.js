@@ -70,6 +70,12 @@ const displayValue = (attr, value) => {
 const searchTextOf = (title, description, category, attributes) =>
   [title, description, category.name, ...category.attributes.map((a) => displayValue(a, attributes?.[a.key]))].filter(Boolean).join(' ').toLowerCase();
 
+/** Labels for paid placements that are running: Top and Featured are shown on cards; the others are placements only. */
+const promoBadges = (promo) => {
+  const on = (k) => promo?.[`${k}Until`] && new Date(promo[`${k}Until`]) > new Date();
+  return [on('top') && 'top', (on('featured') || on('homepage') || on('category')) && 'featured', on('location') && 'promoted'].filter(Boolean);
+};
+
 const effectiveStatus = (l) => (l.status === 'published' && l.expiresAt && l.expiresAt < new Date() ? 'expired' : l.status);
 
 /* ───────── create / edit ───────── */
@@ -297,7 +303,7 @@ export const cardDtos = async (docs, { lang, viewerPoint, favourites = new Set()
       publishedAt: d.publishedAt || null,
       isFavourite: favourites.has(String(d._id)),
       categoryName: cats.get(String(d.categoryId))?.name || null,
-      badges: ['top', 'featured', 'urgent'].filter((k) => d.promo?.[`${k}Until`] && new Date(d.promo[`${k}Until`]) > new Date()),
+      badges: promoBadges(d.promo),
       ...(d.listingType === 'auction' ? { auction: auctions.get(String(d._id)) || null } : {}),
       ...(withStatus
         ? { status: effectiveStatus(d), rejectReason: d.status === 'rejected' ? d.moderation?.reason || null : null, expiresAt: d.expiresAt || null, stats: d.stats }
@@ -342,10 +348,10 @@ const attributeFilters = async (categoryId, raw) => {
   return out;
 };
 
-export const searchListings = async (query, { viewerId, lang, featuredOnly = false } = {}) => {
+export const searchListings = async (query, { viewerId, lang, homepageOnly = false } = {}) => {
   const now = new Date();
   const match = { status: 'published', expiresAt: { $gt: now } };
-  if (featuredOnly) match['promo.featuredUntil'] = { $gt: now };
+  if (homepageOnly) match['promo.homepageUntil'] = { $gt: now }; // SOP 15.2 Homepage Promotion
 
   for (const token of (query.q || '').toLowerCase().split(/\s+/).filter(Boolean).slice(0, 6)) {
     (match.$and ||= []).push({ searchText: new RegExp(escapeRegex(token)) });
@@ -398,13 +404,21 @@ export const searchListings = async (query, { viewerId, lang, featuredOnly = fal
       { $limit: take },
     ]);
   } else {
-    if (radiusScope) match.publicGeo = { $geoWithin: { $centerSphere: [[query.lng, query.lat], query.radiusKm / EARTH_KM] } };
+    if (radiusScope) {
+      const near = { publicGeo: { $geoWithin: { $centerSphere: [[query.lng, query.lat], query.radiusKm / EARTH_KM] } } };
+      // SOP 15.2 Location-Based Promotion: the ad also reaches buyers anywhere in its state
+      match.$or = query.state ? [near, { 'promo.locationUntil': { $gt: now }, 'location.address.state': ci(query.state) }] : [near];
+    }
     const sort = query.sort === 'price_asc' ? { 'price.amountMinor': 1, _id: 1 } : query.sort === 'price_desc' ? { 'price.amountMinor': -1, _id: 1 } : { publishedAt: -1, _id: -1 };
     docs = await Listing.find(match).sort(sort).skip(skip).limit(take).lean();
-    if (query.page === 1 && query.sort === 'newest' && !featuredOnly) {
-      const tops = await Listing.aggregate([{ $match: { ...match, 'promo.topUntil': { $gt: now } } }, { $sample: { size: 2 } }]); // rotate among top advertisers
-      const topIds = new Set(tops.map((t) => String(t._id)));
-      docs = [...tops, ...docs.filter((d) => !topIds.has(String(d._id)))];
+    if (query.page === 1 && query.sort === 'newest' && !homepageOnly) {
+      // SOP 15.2 paid placements lead the first page, each rotating among its buyers:
+      // Category Promotion (when browsing that category), Top Placement, then Featured Listing
+      const pick = (field, size) => Listing.aggregate([{ $match: { ...match, [`promo.${field}`]: { $gt: now } } }, { $sample: { size } }]);
+      const lead = [...(query.categoryId ? await pick('categoryUntil', 2) : []), ...(await pick('topUntil', 2)), ...(await pick('featuredUntil', 3))];
+      const seen = new Set();
+      const unique = lead.filter((d) => !seen.has(String(d._id)) && seen.add(String(d._id)));
+      docs = [...unique, ...docs.filter((d) => !seen.has(String(d._id)))];
     }
   }
 
@@ -544,7 +558,7 @@ export const homeListings = async (query, { viewerId, lang }) => {
   const [latest, nearby, featured] = await Promise.all([
     searchListings({ ...base, sort: 'newest' }, { viewerId, lang }),
     hasPoint ? searchListings({ ...base, sort: 'nearest' }, { viewerId, lang }) : Promise.resolve(null),
-    searchListings({ ...base, sort: 'newest' }, { viewerId, lang, featuredOnly: true }),
+    searchListings({ ...base, sort: 'newest' }, { viewerId, lang, homepageOnly: true }),
   ]);
   return { latest: latest.items, nearby: nearby?.items ?? [], featured: featured.items };
 };

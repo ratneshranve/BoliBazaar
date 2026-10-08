@@ -17,7 +17,7 @@ export const deletionBlockers = async (userId) => {
     Auction.countDocuments({ sellerId: userId, status: { $in: ['scheduled', 'live', 'suspended'] } }),
     Auction.countDocuments({ 'state.highestBidderId': userId, status: { $in: ['live', 'suspended'] } }),
     Deal.countDocuments({ $or: [{ buyerId: userId }, { sellerId: userId }], status: { $in: ['awaiting_confirmation', 'in_progress', 'disputed'] } }),
-    Commission.countDocuments({ sellerId: userId, status: 'due' }),
+    Commission.countDocuments({ userId, status: 'due' }),
   ]);
   const out = [];
   if (selling) out.push(`${selling} running auction(s) you are selling`);

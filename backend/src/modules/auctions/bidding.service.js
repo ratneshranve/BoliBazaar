@@ -3,6 +3,7 @@ import { Auction, Bid } from './auction.model.js';
 import { nextMinimum, resolveBid, extendedEnd, recomputeState } from './auction.rules.js';
 import { buyNowOpen } from './auction.summary.js';
 import { createDeal, restriction } from './deal.service.js';
+import { assertNoOverdueCommission } from '../payments/pricing.service.js';
 import { Listing } from '../listings/listing.model.js';
 import { notify } from '../notifications/notification.service.js';
 import { emitToRoom } from '../../realtime/index.js';
@@ -53,6 +54,7 @@ export const placeBid = async (bidderId, auctionId, { amountMinor, maxMinor, con
   const cfg = await getSettingValue('auctions');
   if (!cfg.enabled) throw ApiError.forbidden('AUCTIONS_DISABLED', 'Auctions are switched off right now');
   if ((await restriction(bidderId, 'buyer')).restricted) throw ApiError.forbidden('ACCOUNT_RESTRICTED', 'You cannot bid right now');
+  await assertNoOverdueCommission(bidderId);
 
   if (cfg.bidIntervalSec > 0 && !(await redis.set(`bidrate:${auctionId}:${bidderId}`, '1', 'EX', Math.max(1, Math.ceil(cfg.bidIntervalSec)), 'NX'))) {
     throw ApiError.tooMany('RATE_LIMITED', 'Slow down — wait a moment before bidding again');

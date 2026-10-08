@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import { searchAds } from '../../ads/ad.service.js';
+import { Category } from '../../categories/category.model.js';
 import { z } from 'zod';
 import { validate } from '../../../core/middleware/common.js';
 import { limiter } from '../../../core/middleware/rateLimit.js';
@@ -18,7 +20,12 @@ const paging = z.object({ page: z.coerce.number().int().min(1).max(500).default(
 /* ───── browse & search (public) ───── */
 
 router.get('/', optionalUser, validate({ query: searchQuery }), asyncHandler(async (req, res) => {
-  ok(res, await searchListings(req.query, { viewerId: req.user?.id, lang: req.ctx.lang }));
+  const result = await searchListings(req.query, { viewerId: req.user?.id, lang: req.ctx.lang });
+  if (req.query.page !== 1) return ok(res, result);
+  // SOP 15.5: Sponsored Listings and Category Sponsorship, clearly labelled
+  const cat = req.query.categoryId ? await Category.findById(req.query.categoryId).select('ancestors').lean() : null;
+  const ads = await searchAds({ categoryPath: cat ? [...cat.ancestors, cat._id] : [], lang: req.ctx.lang, viewerPoint: req.query.lat !== undefined ? { lat: req.query.lat, lng: req.query.lng } : null });
+  ok(res, { ...result, ...ads });
 }));
 
 /* ───── my account (must come before /:id) ───── */

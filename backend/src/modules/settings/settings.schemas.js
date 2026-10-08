@@ -9,6 +9,11 @@ const mediaRef = z.object({ url: z.string().url(), mediaId: z.string().optional(
 const semver = z.string().regex(/^\d+\.\d+\.\d+$/, 'Use format 1.2.3').nullable();
 const nullableText = (max) => z.string().trim().max(max).nullable();
 
+/** The five paid placements of SOP 15.2. */
+export const PROMOTION_TYPES = ['featured', 'top', 'homepage', 'category', 'location'];
+/** A commission: a percentage of the sale or a fixed amount, kept between a minimum and maximum (0 = no cap). */
+const commissionRule = { type: z.enum(['percent', 'fixed']), value: z.number().min(0).max(10_000_000), minFee: z.number().min(0), maxFee: z.number().min(0) };
+
 const platformControl = z.object({
   minVersion: semver,
   latestVersion: semver,
@@ -222,6 +227,7 @@ export const settingGroups = {
     schema: z.object({
       taxPercent: z.number().min(0).max(50),
       taxLabel: z.string().trim().min(1).max(20),
+      // SOP 15.1 — basic listing free or paid, rules per category. The free allowance is the "Free Seller Plan" (15.3).
       listingFee: z.object({
         enabled: z.boolean(),
         freeAdsPer30Days: z.number().int().min(0).max(10000),
@@ -230,17 +236,20 @@ export const settingGroups = {
           .array(z.object({ categoryId: z.string().regex(/^[a-f0-9]{24}$/), freeAdsPer30Days: z.number().int().min(0).max(10000), fee: z.number().min(0).max(10_000_000) }))
           .max(200),
       }),
+      freePlanName: z.string().trim().min(2).max(60),
+      // SOP 15.2 — Featured Listing, Top Placement, Homepage, Category and Location-Based Promotion
       promotions: z
         .array(
           z.object({
             code: z.string().regex(/^[a-z0-9_-]{2,40}$/, 'Use lowercase letters, numbers, - or _'),
-            type: z.enum(['featured', 'top', 'urgent', 'bump']),
+            type: z.enum(PROMOTION_TYPES),
             name: z.string().trim().min(2).max(60),
-            days: z.number().int().min(0).max(365),
+            days: z.number().int().min(1).max(365),
             price: z.number().positive().max(10_000_000),
           })
         )
         .max(50),
+      // SOP 15.3 — Monthly / Annual / Business plans: listing limit, included promotions, fee
       plans: z
         .array(
           z.object({
@@ -250,25 +259,28 @@ export const settingGroups = {
             price: z.number().positive().max(10_000_000),
             days: z.number().int().min(1).max(3650),
             extraFreeAds: z.number().int().min(0).max(100000),
+            includedPromotions: z.array(z.object({ type: z.enum(PROMOTION_TYPES), count: z.number().int().min(1).max(1000) })).max(5),
           })
         )
         .max(20),
+      // SOP 15.4 — who pays, fixed or percentage, per category, minimum / maximum
       auctionCommission: z.object({
         enabled: z.boolean(),
-        percent: z.number().min(0).max(50),
-        minFee: z.number().min(0),
-        maxFee: z.number().min(0), // 0 = no cap
+        payer: z.enum(['seller', 'buyer', 'both']),
+        ...commissionRule,
         dueDays: z.number().int().min(1).max(90),
         blockWhenOverdue: z.boolean(),
+        categoryOverrides: z.array(z.object({ categoryId: z.string().regex(/^[a-f0-9]{24}$/), ...commissionRule })).max(200),
       }),
     }),
     initial: {
       taxPercent: 18,
       taxLabel: 'GST',
       listingFee: { enabled: false, freeAdsPer30Days: 5, fee: 0, categoryOverrides: [] },
+      freePlanName: 'Free Seller Plan',
       promotions: [],
       plans: [],
-      auctionCommission: { enabled: false, percent: 2, minFee: 0, maxFee: 0, dueDays: 7, blockWhenOverdue: true },
+      auctionCommission: { enabled: false, payer: 'seller', type: 'percent', value: 2, minFee: 0, maxFee: 0, dueDays: 7, blockWhenOverdue: true, categoryOverrides: [] },
     },
   },
 

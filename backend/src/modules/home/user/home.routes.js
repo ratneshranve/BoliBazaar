@@ -8,6 +8,7 @@ import { topCategories } from '../../categories/category.service.js';
 import { homeListings } from '../../listings/listing.service.js';
 import { searchQuery } from '../../listings/listing.schema.js';
 import { browseAuctions } from '../../auctions/auction.service.js';
+import { homeAds } from '../../ads/ad.service.js';
 
 const router = Router();
 
@@ -22,13 +23,14 @@ router.get(
   asyncHandler(async (req, res) => {
     const lang = req.ctx.lang;
     const radius = req.query.scope === 'radius' && req.query.radiusKm ? { lat: req.query.lat, lng: req.query.lng, radiusKm: req.query.radiusKm } : {};
-    const [banners, categories, listings, auctions] = await Promise.all([
+    const [banners, categories, listings, auctions, ads] = await Promise.all([
       liveBanners(lang),
       topCategories(lang),
       homeListings(req.query, { viewerId: req.user?.id, lang }),
       browseAuctions({ status: 'live', page: 1, limit: 10, ...radius }, { lang }),
+      homeAds(),
     ]);
-    ok(res, { banners, categories, featured: listings.featured, auctions: auctions.items, nearby: listings.nearby, latest: listings.latest });
+    ok(res, { banners, ...ads, categories, featured: listings.featured, auctions: auctions.items, nearby: listings.nearby, latest: listings.latest });
   })
 );
 

@@ -42,11 +42,13 @@ export const createLead = async (senderId, listingId, message) => {
     throw ApiError.forbidden('CHAT_BLOCKED', 'You cannot contact this person');
   }
 
+  const already = () => ApiError.conflict('ALREADY_SENT', type === 'application' ? 'You already applied to this ad' : 'You already sent an enquiry for this ad');
+  if (await Lead.exists({ listingId, senderId })) throw already();
   let lead;
   try {
     lead = await Lead.create({ type, listingId, ownerId: listing.ownerId, senderId, message });
   } catch (err) {
-    if (err.code === 11000) throw ApiError.conflict('ALREADY_SENT', type === 'application' ? 'You already applied to this ad' : 'You already sent an enquiry for this ad');
+    if (err.code === 11000) throw already(); // two taps at the same moment
     throw err;
   }
   const sender = await User.findById(senderId).select('name').lean();

@@ -22,7 +22,6 @@ const paymentSchema = new Schema(
     taxMinor: { type: Number, default: 0 },
     taxPercent: { type: Number, default: 0 },
     totalMinor: { type: Number, required: true },
-    couponCode: String,
     status: { type: String, enum: PAYMENT_STATUSES, default: 'created' },
     gateway: { type: String, enum: ['razorpay', 'none'], required: true },
     gatewayOrderId: { type: String, index: true, sparse: true },
@@ -43,34 +42,15 @@ paymentSchema.index({ purpose: 1, status: 1, paidAt: -1 });
 
 export const Payment = mongoose.model('Payment', paymentSchema);
 
-const couponSchema = new Schema(
-  {
-    code: { type: String, required: true, unique: true, uppercase: true, trim: true },
-    description: String,
-    type: { type: String, enum: ['percent', 'fixed'], required: true },
-    value: { type: Number, required: true }, // percent, or major units for fixed
-    maxDiscount: Number, // major units, for percent coupons
-    purposes: [{ type: String, enum: PURPOSES }], // empty = all
-    validFrom: Date,
-    validTo: Date,
-    totalLimit: Number,
-    perUserLimit: { type: Number, default: 1 },
-    firstPurchaseOnly: { type: Boolean, default: false },
-    active: { type: Boolean, default: true },
-    usedCount: { type: Number, default: 0 },
-  },
-  { timestamps: true }
-);
 
-export const Coupon = mongoose.model('Coupon', couponSchema);
-
-/** A paid boost on an ad: featured, top of results, urgent ribbon, or a one-off bump. */
+/** A paid placement for an ad (SOP 15.2): featured, top placement, homepage, category or location-based. */
 const promotionSchema = new Schema(
   {
     listingId: { type: Schema.Types.ObjectId, ref: 'Listing', required: true },
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     paymentId: { type: Schema.Types.ObjectId, ref: 'Payment' },
-    type: { type: String, enum: ['featured', 'top', 'urgent', 'bump'], required: true },
+    type: { type: String, enum: ['featured', 'top', 'homepage', 'category', 'location'], required: true },
+    includedInPlan: Boolean, // used one of the plan's included promotions instead of paying
     productCode: String,
     startAt: { type: Date, required: true },
     endAt: { type: Date, required: true },
@@ -90,6 +70,7 @@ const subscriptionSchema = new Schema(
     planCode: { type: String, required: true },
     planName: String,
     extraFreeAds: { type: Number, default: 0 },
+    credits: { type: Schema.Types.Mixed, default: {} }, // promotions included in the plan and not yet used: { featured: 2, ... }
     startAt: { type: Date, required: true },
     endAt: { type: Date, required: true },
   },
@@ -99,15 +80,16 @@ subscriptionSchema.index({ userId: 1, endAt: -1 });
 
 export const Subscription = mongoose.model('Subscription', subscriptionSchema);
 
-/** The platform's fee on a completed auction sale, owed by the seller. */
+/** The platform's fee on a completed auction sale (SOP 15.4), owed by the seller, the buyer, or each of them. */
 const commissionSchema = new Schema(
   {
-    sellerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    dealId: { type: Schema.Types.ObjectId, ref: 'Deal', required: true, unique: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true }, // who owes it
+    role: { type: String, enum: ['seller', 'buyer'], required: true },
+    dealId: { type: Schema.Types.ObjectId, ref: 'Deal', required: true },
     auctionId: { type: Schema.Types.ObjectId, ref: 'Auction' },
     listingId: { type: Schema.Types.ObjectId, ref: 'Listing' },
     saleMinor: Number,
-    percent: Number,
+    rule: { type: { type: String }, value: Number, minFee: Number, maxFee: Number }, // the rule that produced it
     amountMinor: { type: Number, required: true },
     currency: String,
     status: { type: String, enum: ['due', 'paid', 'waived'], default: 'due' },
@@ -118,7 +100,8 @@ const commissionSchema = new Schema(
   },
   { timestamps: true }
 );
-commissionSchema.index({ sellerId: 1, status: 1, dueAt: 1 });
+commissionSchema.index({ userId: 1, status: 1, dueAt: 1 });
+commissionSchema.index({ dealId: 1, role: 1 }, { unique: true });
 
 export const Commission = mongoose.model('Commission', commissionSchema);
 

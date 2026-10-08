@@ -56,11 +56,12 @@ const validateBusinessRules = (key, value) => {
     const dup = (list) => list.map((x) => x.code).find((c, i, all) => all.indexOf(c) !== i);
     if (dup(value.promotions)) throw ApiError.badRequest('VALIDATION_FAILED', `Two promotion packages use the code "${dup(value.promotions)}"`);
     if (dup(value.plans)) throw ApiError.badRequest('VALIDATION_FAILED', `Two plans use the code "${dup(value.plans)}"`);
-    const bad = value.promotions.find((p) => p.type !== 'bump' && p.days < 1);
-    if (bad) throw ApiError.badRequest('VALIDATION_FAILED', `"${bad.name}" needs at least 1 day`);
-    if (value.auctionCommission.maxFee && value.auctionCommission.maxFee < value.auctionCommission.minFee) {
-      throw ApiError.badRequest('VALIDATION_FAILED', 'Maximum commission must be at least the minimum');
+    const ac = value.auctionCommission;
+    for (const r of [ac, ...ac.categoryOverrides]) {
+      if (r.maxFee && r.maxFee < r.minFee) throw ApiError.badRequest('VALIDATION_FAILED', 'Maximum commission must be at least the minimum');
+      if (r.type === 'percent' && r.value > 50) throw ApiError.badRequest('VALIDATION_FAILED', 'A commission percentage cannot be above 50');
     }
+    if (new Set(ac.categoryOverrides.map((o) => o.categoryId)).size !== ac.categoryOverrides.length) throw ApiError.badRequest('VALIDATION_FAILED', 'Each category can have only one commission rule');
   }
   if (key === 'languages') {
     const bad = value.enabled.filter((c) => !catalogueCodes.includes(c));

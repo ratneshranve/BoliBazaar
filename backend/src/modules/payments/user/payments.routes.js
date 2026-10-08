@@ -7,7 +7,7 @@ import { integrations } from '../../../core/config/env.js';
 import { getSettingValue } from '../../settings/settings.service.js';
 import { Listing } from '../../listings/listing.model.js';
 import { PURPOSES } from '../payment.model.js';
-import { quote, listingQuota, activePlan, factorOf } from '../pricing.service.js';
+import { quote, listingQuota, activePlan, factorOf, commissionRuleFor, commissionText } from '../pricing.service.js';
 import { createOrder, verifyCheckout, markFailed, myPayments, getPayment, myCommissions, invoiceHtml } from '../payment.service.js';
 import { ApiError } from '../../../core/utils/ApiError.js';
 
@@ -19,7 +19,6 @@ const orderInput = z.object({
   purpose: z.enum(PURPOSES),
   refId: id.optional(),
   productCode: z.string().max(40).optional(),
-  couponCode: z.string().trim().max(40).optional(),
 });
 
 /** What can be bought: promotion packages, plans, tax, and whether online payment is available. */
@@ -34,7 +33,9 @@ router.get(
       taxLabel: m.taxLabel,
       promotions: m.promotions,
       plans: m.plans,
-      myPlan: plan ? { code: plan.planCode, name: plan.planName, endAt: plan.endAt, extraFreeAds: plan.extraFreeAds } : null,
+      freePlan: { name: m.freePlanName, freeAdsPer30Days: m.listingFee.freeAdsPer30Days, listingFeeOn: m.listingFee.enabled },
+      myPlan: plan ? { code: plan.planCode, name: plan.planName, endAt: plan.endAt, extraFreeAds: plan.extraFreeAds, credits: plan.credits || {} } : null,
+      auctionCommission: commissionText(await commissionRuleFor([]), currency),
       paymentsAvailable: integrations.razorpay.configured,
     });
   })

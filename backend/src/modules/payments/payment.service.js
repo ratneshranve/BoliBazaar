@@ -1,5 +1,5 @@
-import { Payment, Coupon, Promotion, Subscription, Commission, nextNumber } from './payment.model.js';
-import { quote, factorOf } from './pricing.service.js';
+import { Payment, Promotion, Subscription, Commission, nextNumber } from './payment.model.js';
+import { quote, factorOf, commissionRuleFor, commissionShares } from './pricing.service.js';
 import { razorpay } from './razorpay.js';
 import { Listing } from '../listings/listing.model.js';
 import { Category } from '../categories/category.model.js';
@@ -44,18 +44,18 @@ const fulfilPromotion = async (p) => {
   const l = await Listing.findById(p.refId);
   if (!pkg || !l) throw new Error('Promotion package or listing missing');
   const now = new Date();
-  if (pkg.type === 'bump') {
-    // back to the top of "newest" once
-    l.publishedAt = now;
-    await Promotion.create({ listingId: l._id, userId: p.userId, paymentId: p._id, type: 'bump', productCode: pkg.code, startAt: now, endAt: now });
-  } else {
-    const field = `${pkg.type}Until`;
-    const from = l.promo?.[field] && l.promo[field] > now ? l.promo[field] : now; // buying again extends
-    const until = new Date(from.getTime() + pkg.days * DAY_MS);
-    l.set(`promo.${field}`, until);
-    if (l.expiresAt && l.expiresAt < until) l.expiresAt = until; // the ad stays up while it is promoted
-    await Promotion.create({ listingId: l._id, userId: p.userId, paymentId: p._id, type: pkg.type, productCode: pkg.code, startAt: from, endAt: until });
+  // nothing to pay means one of the plan's included promotions was used
+  const includedInPlan = p.totalMinor === 0;
+  if (includedInPlan) {
+    const used = await Subscription.updateOne({ userId: p.userId, startAt: { $lte: now }, endAt: { $gt: now }, [`credits.${pkg.type}`]: { $gt: 0 } }, { $inc: { [`credits.${pkg.type}`]: -1 } });
+    if (!used.modifiedCount) throw new Error('No plan credit left for this promotion');
   }
+  const field = `${pkg.type}Until`;
+  const from = l.promo?.[field] && l.promo[field] > now ? l.promo[field] : now; // buying again extends
+  const until = new Date(from.getTime() + pkg.days * DAY_MS);
+  l.set(`promo.${field}`, until);
+  if (l.expiresAt && l.expiresAt < until) l.expiresAt = until; // the ad stays up while it is promoted
+  await Promotion.create({ listingId: l._id, userId: p.userId, paymentId: p._id, type: pkg.type, productCode: pkg.code, startAt: from, endAt: until, includedInPlan });
   await l.save();
 };
 
@@ -66,7 +66,8 @@ const fulfilPlan = async (p) => {
   const now = new Date();
   const current = await Subscription.findOne({ userId: p.userId, endAt: { $gt: now } }).sort({ endAt: -1 }).lean();
   const startAt = current ? current.endAt : now; // a second purchase starts when the first ends
-  await Subscription.create({ userId: p.userId, paymentId: p._id, planCode: plan.code, planName: plan.name, extraFreeAds: plan.extraFreeAds, startAt, endAt: new Date(startAt.getTime() + plan.days * DAY_MS) });
+  const credits = Object.fromEntries((plan.includedPromotions || []).map((x) => [x.type, x.count]));
+  await Subscription.create({ userId: p.userId, paymentId: p._id, planCode: plan.code, planName: plan.name, extraFreeAds: plan.extraFreeAds, credits, startAt, endAt: new Date(startAt.getTime() + plan.days * DAY_MS) });
 };
 
 const fulfilCommission = (p) => Commission.updateOne({ _id: p.refId, status: 'due' }, { $set: { status: 'paid', paidAt: new Date(), paymentId: p._id } });
@@ -81,7 +82,6 @@ const markPaid = async (paymentDocId, gatewayPaymentId) => {
     { new: true }
   );
   if (!p) return Payment.findById(paymentDocId);
-  if (p.couponCode) await Coupon.updateOne({ code: p.couponCode }, { $inc: { usedCount: 1 } });
   try {
     await FULFIL[p.purpose](p);
     await Payment.updateOne({ _id: p._id }, { $set: { fulfilledAt: new Date() } });
@@ -106,11 +106,9 @@ export const createOrder = async (userId, input) => {
     description: q.description,
     currency: q.currency,
     baseMinor: q.baseMinor,
-    discountMinor: q.discountMinor,
     taxMinor: q.taxMinor,
     taxPercent: q.taxPercent,
     totalMinor: q.totalMinor,
-    couponCode: q.couponCode || undefined,
     gateway: q.totalMinor > 0 ? 'razorpay' : 'none',
     expiresAt: new Date(Date.now() + ORDER_TTL_MS),
   });
@@ -205,22 +203,26 @@ export const refundPayment = async (paymentId, { amount, reason }, adminId) => {
 
 /* ───── commissions on auction sales ───── */
 
-/** Called when an auction deal completes: work out what the seller owes. Nothing happens if commission is switched off. */
+/**
+ * Called when an auction deal completes: work out what is owed under the rule for the item's category
+ * (SOP 15.4 — seller, buyer or both; fixed or percentage; minimum / maximum). Nothing if commission is off.
+ */
 export const raiseCommission = async (deal) => {
-  const { auctionCommission: c } = await getSettingValue('monetization');
-  if (!c.enabled || !(c.percent > 0 || c.minFee > 0)) return null;
-  const f = factorOf(deal.currency);
-  let amountMinor = Math.round((deal.amountMinor * c.percent) / 100);
-  amountMinor = Math.max(amountMinor, Math.round(c.minFee * f));
-  if (c.maxFee > 0) amountMinor = Math.min(amountMinor, Math.round(c.maxFee * f));
-  if (!(amountMinor > 0)) return null;
-  const doc = await Commission.findOneAndUpdate(
-    { dealId: deal._id },
-    { $setOnInsert: { sellerId: deal.sellerId, dealId: deal._id, auctionId: deal.auctionId, listingId: deal.listingId, saleMinor: deal.amountMinor, percent: c.percent, amountMinor, currency: deal.currency, dueAt: new Date(Date.now() + c.dueDays * DAY_MS) } },
-    { upsert: true, new: true }
-  );
-  await notify(deal.sellerId, 'commission.due', { amount: money(amountMinor, deal.currency), days: c.dueDays }, { route: '/payments' });
-  return doc;
+  const listing = await Listing.findById(deal.listingId).select('categoryPath').lean();
+  const rule = await commissionRuleFor(listing?.categoryPath);
+  const shares = commissionShares(rule, deal.amountMinor, deal.currency);
+  const out = [];
+  for (const sh of shares) {
+    const userId = sh.role === 'seller' ? deal.sellerId : deal.buyerId;
+    const doc = await Commission.findOneAndUpdate(
+      { dealId: deal._id, role: sh.role },
+      { $setOnInsert: { userId, role: sh.role, dealId: deal._id, auctionId: deal.auctionId, listingId: deal.listingId, saleMinor: deal.amountMinor, rule: { type: rule.type, value: rule.value, minFee: rule.minFee, maxFee: rule.maxFee }, amountMinor: sh.amountMinor, currency: deal.currency, dueAt: new Date(Date.now() + rule.dueDays * DAY_MS) } },
+      { upsert: true, new: true }
+    );
+    await notify(userId, 'commission.due', { amount: money(sh.amountMinor, deal.currency), days: rule.dueDays }, { route: '/payments' });
+    out.push(doc);
+  }
+  return out;
 };
 
 /* ───── views ───── */
@@ -234,12 +236,10 @@ export const paymentDto = (p) => ({
   currency: p.currency,
   factor: factorOf(p.currency),
   baseMinor: p.baseMinor,
-  discountMinor: p.discountMinor,
   taxMinor: p.taxMinor,
   taxPercent: p.taxPercent,
   totalMinor: p.totalMinor,
   refundedMinor: p.refundedMinor || 0,
-  couponCode: p.couponCode || null,
   status: p.status,
   failureReason: p.failureReason || null,
   invoiceNo: p.invoiceNo || null,
@@ -259,9 +259,9 @@ export const getPayment = async (userId, id) => {
 };
 
 export const myCommissions = async (userId) => {
-  const docs = await Commission.find({ sellerId: userId }).sort({ createdAt: -1 }).limit(100).lean();
+  const docs = await Commission.find({ userId }).sort({ createdAt: -1 }).limit(100).lean();
   const titles = new Map((await Listing.find({ _id: { $in: docs.map((d) => d.listingId) } }).select('title').lean()).map((l) => [oid(l._id), l.title]));
-  return docs.map((c) => ({ id: oid(c._id), title: titles.get(oid(c.listingId)) || null, saleMinor: c.saleMinor, percent: c.percent, amountMinor: c.amountMinor, currency: c.currency, factor: factorOf(c.currency), status: c.status, dueAt: c.dueAt, overdue: c.status === 'due' && c.dueAt < new Date(), paidAt: c.paidAt || null }));
+  return docs.map((c) => ({ id: oid(c._id), title: titles.get(oid(c.listingId)) || null, saleMinor: c.saleMinor, role: c.role, rule: c.rule, amountMinor: c.amountMinor, currency: c.currency, factor: factorOf(c.currency), status: c.status, dueAt: c.dueAt, overdue: c.status === 'due' && c.dueAt < new Date(), paidAt: c.paidAt || null }));
 };
 
 /** A printable tax invoice (HTML). The seller details come from Admin › Branding. */
@@ -277,7 +277,7 @@ ${branding.logo?.url ? `<img src="${esc(branding.logo.url)}" alt="" style="heigh
 <h1>Tax invoice</h1>
 <p class="muted">${esc(branding.appName || '')}${branding.supportEmail ? ` · ${esc(branding.supportEmail)}` : ''}${branding.supportPhone ? ` · ${esc(branding.supportPhone)}` : ''}</p>
 <p><b>Invoice no:</b> ${esc(p.invoiceNo)}<br><b>Date:</b> ${esc(new Date(p.paidAt).toLocaleDateString('en-IN'))}<br><b>Billed to:</b> ${esc(user?.name || '')} ${esc(user?.phone?.e164 || '')} ${esc(user?.email?.address || '')}</p>
-<table>${row(p.description, p.baseMinor)}${p.discountMinor ? row(`Discount${p.couponCode ? ` (${p.couponCode})` : ''}`, -p.discountMinor) : ''}${row(`${m.taxLabel} ${p.taxPercent}%`, p.taxMinor)}${row('Total paid', p.totalMinor, true)}${(p.refunds || []).map((r) => row(`Refunded (${r.creditNoteNo})`, -r.amountMinor)).join('')}</table>
+<table>${row(p.description, p.baseMinor)}${row(`${m.taxLabel} ${p.taxPercent}%`, p.taxMinor)}${row('Total paid', p.totalMinor, true)}${(p.refunds || []).map((r) => row(`Refunded (${r.creditNoteNo})`, -r.amountMinor)).join('')}</table>
 <p class="muted">Payment reference: ${esc(p.gatewayPaymentId || '—')}</p>
 <button onclick="window.print()">Print / Save as PDF</button>
 </body></html>`;

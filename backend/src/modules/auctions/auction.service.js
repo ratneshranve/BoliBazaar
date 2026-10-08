@@ -3,7 +3,7 @@ import { Auction, Bid, Deal } from './auction.model.js';
 import { incrementFor, nextMinimum } from './auction.rules.js';
 import { summaryOf, buyNowOpen } from './auction.summary.js';
 import { restriction } from './deal.service.js';
-import { assertNoOverdueCommission } from '../payments/pricing.service.js';
+import { assertNoOverdueCommission, commissionRuleFor, commissionText } from '../payments/pricing.service.js';
 import { checkContent } from '../trust/moderation.service.js';
 import { publicState } from './bidding.service.js';
 import { oid, snapshotRules, formatMoney, HOUR_MS } from './auction.util.js';
@@ -158,6 +158,8 @@ export const auctionDetail = async (id, viewerId) => {
     ? await Deal.findOne({ auctionId: a._id, $or: [{ buyerId: viewerId }, { sellerId: viewerId }] }).sort({ createdAt: -1 }).select('_id status').lean()
     : null;
   const activeDeal = await Deal.exists({ auctionId: a._id, status: { $in: ['awaiting_confirmation', 'in_progress', 'completed', 'disputed'] } });
+  const item = await Listing.findById(a.listingId).select('categoryPath').lean();
+  const commission = commissionText(await commissionRuleFor(item?.categoryPath), a.currency);
 
   return {
     ...summaryOf(a),
@@ -169,6 +171,7 @@ export const auctionDetail = async (id, viewerId) => {
     stepMinor: incrementFor(a.state.bidCount ? a.state.currentMinor : a.startingMinor, tiers, a.incrementMinor),
     rules: { proxyBidding: Boolean(a.rules.proxyBidding), antiSniping: a.rules.antiSniping, paymentWindowHours: a.rules.paymentWindowHours },
     notes: a.notes,
+    commission,
     finalMinor: a.finalMinor ?? null,
     isSeller: Boolean(isSeller),
     ...(isSeller ? { reserveMinor: a.reserveMinor ?? null, rejectReason: a.status === 'rejected' ? a.moderation?.reason || null : null } : {}),
