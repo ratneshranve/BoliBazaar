@@ -8,6 +8,9 @@ import usersRoutes from '../modules/users/admin/users.routes.js';
 import dashboardRoutes from '../modules/dashboard/admin/dashboard.routes.js';
 import uploadRoutes from '../modules/uploads/admin/uploads.routes.js';
 import pagesRoutes from '../modules/cms/admin/pages.routes.js';
+import categoriesRoutes from '../modules/categories/admin/categories.routes.js';
+import locationsRoutes from '../modules/locations/admin/locations.routes.js';
+import bannersRoutes from '../modules/banners/admin/banners.routes.js';
 
 /** Admin-panel API, mounted at /api/v1/admin */
 const router = Router();
@@ -22,5 +25,8 @@ router.use('/audit-logs', auditRoutes);
 router.use('/users', usersRoutes);
 router.use('/uploads', uploadRoutes);
 router.use('/cms/pages', pagesRoutes);
+router.use('/categories', categoriesRoutes);
+router.use('/locations', locationsRoutes);
+router.use('/cms/banners', bannersRoutes);
 
 export default router;

@@ -59,8 +59,10 @@ export const errorHandler = (err, req, res, next) => {
   const isApi = err instanceof ApiError;
   const status = isApi ? err.status : 500;
 
-  if (status >= 500) {
+  if (status >= 500 && !isApi) {
     logger.error('Unhandled error', { requestId: req.id, path: req.originalUrl, err: err?.message, stack: err?.stack });
+  } else if (status >= 500) {
+    logger.warn('Service unavailable', { requestId: req.id, path: req.originalUrl, code: err.code });
   }
 
   res.status(status).json({

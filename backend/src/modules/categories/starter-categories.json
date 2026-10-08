@@ -1,0 +1,83 @@
+[
+  {
+    "name": "Property",
+    "listingTypes": ["sell", "rent", "wanted", "business", "auction"],
+    "children": [
+      "Houses & Villas", "Flats & Apartments", "Builder Floors", "Plots & Residential Land", "Agricultural Land & Farms",
+      "Farmhouses", "Commercial Land", "Shops & Showrooms", "Offices & Commercial Space", "Godowns & Warehouses",
+      "Industrial Land & Buildings", "Hostel & PG", "New Projects"
+    ]
+  },
+  {
+    "name": "Vehicles",
+    "listingTypes": ["sell", "rent", "wanted", "business", "auction"],
+    "children": [
+      "Cars", "Motorcycles", "Scooters", "Electric Vehicles", "Bicycles", "Trucks & Trailers", "Buses & Passenger Vehicles",
+      "Commercial Vehicles", "Tractors & Farm Vehicles", "Auto & E-rickshaw", "Construction Vehicles", "Spare Parts & Accessories"
+    ]
+  },
+  {
+    "name": "Electronics",
+    "listingTypes": ["sell", "rent", "wanted", "business", "auction"],
+    "children": [
+      "Mobile Phones", "Laptops & Computers", "Tablets", "TVs", "Cameras & Lenses", "Printers & Scanners",
+      "Computer Accessories", "Audio & Speakers", "Networking Equipment", "Gaming & Wearables", "Other Electronics"
+    ]
+  },
+  {
+    "name": "Home & Furniture",
+    "listingTypes": ["sell", "rent", "wanted", "business", "auction"],
+    "children": [
+      "Sofas & Furniture", "Beds & Wardrobes", "Tables & Chairs", "Fridges", "Washing Machines", "ACs & Coolers", "Fans",
+      "Kitchen Appliances", "Home Décor", "Inverters & Batteries", "Other Household Items"
+    ]
+  },
+  {
+    "name": "Agriculture",
+    "listingTypes": ["sell", "rent", "wanted", "service", "business", "auction"],
+    "children": [
+      "Tractors & Farm Machinery", "Harvesters", "Pumps & Irrigation", "Farm Tools", "Seeds & Farm Inputs", "Animal Husbandry Equipment",
+      "Agricultural Land", "Agricultural Produce", "Warehousing & Agri Services"
+    ]
+  },
+  {
+    "name": "Industrial",
+    "listingTypes": ["sell", "rent", "wanted", "business", "auction"],
+    "children": [
+      "Factory Machinery", "Packaging Machines", "Food Processing Machines", "Printing Machines", "Welding Equipment",
+      "Construction Equipment", "Shop Equipment & Fixtures", "Hotel & Restaurant Equipment", "Office Equipment", "Business Stock & Inventory"
+    ]
+  },
+  {
+    "name": "Fashion",
+    "listingTypes": ["sell", "rent", "wanted", "business", "auction"],
+    "children": ["Clothes", "Footwear", "Bags", "Watches", "Accessories & Jewellery", "Other Personal Items"]
+  },
+  {
+    "name": "Kids & Hobby",
+    "listingTypes": ["sell", "rent", "wanted", "business", "auction"],
+    "children": ["Toys", "Baby Furniture & Gear", "Sports Equipment", "Fitness Equipment", "Musical Instruments", "Books", "Collectibles & Hobbies"]
+  },
+  {
+    "name": "Business",
+    "listingTypes": ["sell", "rent", "wanted", "business", "auction"],
+    "children": ["Shop & Business for Sale", "Franchise Opportunities", "Wholesale & Bulk Sale", "Business Equipment & Machinery"]
+  },
+  {
+    "name": "Jobs",
+    "listingTypes": ["job", "wanted"],
+    "children": [
+      "Driver", "Delivery", "Sales & Marketing", "Office & Data Entry", "Teacher & Tutor", "Cook & Chef", "Security Guard",
+      "Electrician & Technician", "Construction & Labour", "Factory & Production", "Accountant", "IT & Software", "Healthcare & Nursing",
+      "Beautician & Salon", "Retail & Shop Staff", "Hotel & Restaurant Staff", "Housekeeping & Domestic Help", "Farm Worker", "Other Jobs"
+    ]
+  },
+  {
+    "name": "Services",
+    "listingTypes": ["service", "wanted", "business"],
+    "children": [
+      "Electrician", "Plumber", "Carpenter", "Mechanic", "Painter", "Computer Services", "Repair Services", "Cleaning Services",
+      "Packers & Movers", "Tutors & Classes", "Beauty & Wellness", "Events & Catering", "Construction & Renovation", "Local Business Services"
+    ]
+  }
+]

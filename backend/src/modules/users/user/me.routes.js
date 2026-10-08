@@ -10,6 +10,7 @@ import { Session } from '../../auth/auth.models.js';
 import { revokeSession } from '../../auth/auth.service.js';
 import { meDto } from '../user.dto.js';
 import { legalVersions } from '../../cms/page.service.js';
+import { getLocation } from '../../locations/location.service.js';
 
 const router = Router();
 router.use(requireUser);
@@ -29,11 +30,28 @@ const profileBody = z.object({
   countryCode: z.string().length(2).toUpperCase().optional(),
   timezone: z.string().max(60).optional(),
   avatarMediaId: z.string().regex(/^[a-f0-9]{24}$/).nullable().optional(),
+  homeLocationId: z.string().regex(/^[a-f0-9]{24}$/).nullable().optional(),
 });
 
 const applyProfile = async (user, body, userId) => {
-  const { avatarMediaId, ...rest } = body;
+  const { avatarMediaId, homeLocationId, ...rest } = body;
   Object.assign(user, rest);
+  if (homeLocationId !== undefined) {
+    if (homeLocationId === null) {
+      user.homeLocation = undefined;
+    } else {
+      const loc = await getLocation(homeLocationId);
+      user.homeLocation = {
+        countryCode: loc.countryCode,
+        leafId: loc._id,
+        leafType: loc.type,
+        ancestorIds: loc.ancestors,
+        displayName: loc.path,
+        pinCode: loc.pinCodes?.[0],
+        geo: loc.geo?.coordinates ? loc.geo : undefined,
+      };
+    }
+  }
   if (avatarMediaId !== undefined) {
     if (avatarMediaId === null) {
       user.avatar = undefined;
