@@ -77,7 +77,7 @@ export const ExploreScreen = () => {
       {failed && <EmptyState title={t('common.somethingWrong')} />}
 
       {tree && (
-        <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxxl }}>
+        <ScrollView contentContainerStyle={styles.scroll}>
           {id && current && (
             <Pressable onPress={() => navigate(`/search?categoryId=${id}`)} style={styles.all}>
               <AppText variant="bodyStrong" color={colors.primary}>{t('search.title')} {t('search.inCategory', { name: current.name })} ›</AppText>
@@ -88,7 +88,13 @@ export const ExploreScreen = () => {
           ) : (
             <View style={styles.grid}>
               {items.map((c) => (
-                <CategoryTile key={c.id} category={c} size={72} onPress={() => navigate(c.children.length ? `/explore/${c.id}` : `/search?categoryId=${c.id}`)} />
+                <CategoryTile
+                  key={c.id}
+                  category={c}
+                  size={76}
+                  style={styles.gridTile}
+                  onPress={() => navigate(c.children.length ? `/explore/${c.id}` : `/search?categoryId=${c.id}`)}
+                />
               ))}
             </View>
           )}
@@ -101,6 +107,19 @@ export const ExploreScreen = () => {
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: colors.white },
   crumb: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.lg, justifyContent: 'flex-start' },
+  scroll: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.xxxl },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    rowGap: 20,
+    columnGap: 6,
+    width: '100%',
+    alignItems: 'start',
+    justifyItems: 'center',
+  },
+  gridTile: {
+    width: '100%',
+    maxWidth: '100%',
+  },
   all: { padding: spacing.md, borderRadius: 12, backgroundColor: colors.primarySoft, marginBottom: spacing.lg },
 });

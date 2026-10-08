@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ArrowRight, ChevronDown } from 'lucide-react';
+import { ArrowRight, ChevronDown, ChevronLeft } from 'lucide-react';
 import { getCountryCallingCode } from 'libphonenumber-js';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, TextInput, View } from '../components/primitives';
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from '../components/primitives';
 import { PageSheet } from './PageScreen';
 import { AppText, Button, Checkbox, Field } from '../components/ui';
 import { AuthHero, HelpFooter, authStyles } from '../components/AuthChrome';
@@ -15,7 +15,7 @@ import { env } from '../config/env';
 import { useAppDispatch, useAppSelector, signedIn, meUpdated } from '../store';
 
 /** Country flag picture (flag emoji do not show on Windows). */
-const Flag = ({ cc }) => <Image source={{ uri: `https://flagcdn.com/w40/${cc.toLowerCase()}.png` }} style={{ width: 28, height: 20, borderRadius: 3 }} resizeMode="cover" />;
+const Flag = ({ cc }) => <Image source={{ uri: `https://flagcdn.com/w40/${cc.toLowerCase()}.png` }} style={{ width: 24, height: 16, borderRadius: 2 }} resizeMode="cover" />;
 const dialOf = (cc) => {
   try {
     return `+${getCountryCallingCode(cc)}`;
@@ -25,13 +25,30 @@ const dialOf = (cc) => {
 };
 
 const CtaButton = ({ title, onPress, loading, disabled }) => (
-  <Button title={title} onPress={onPress} loading={loading} disabled={disabled} icon={null} style={authStyles.cta} iconRight={<ArrowRight size={22} color={colors.white} />} />
+  <Pressable
+    accessibilityRole="button"
+    onPress={disabled || loading ? undefined : onPress}
+    disabled={disabled || loading}
+    style={({ pressed }) => [
+      authStyles.cta,
+      disabled ? { backgroundColor: '#A61B36', opacity: 0.88 } : { backgroundColor: '#A61B36' },
+      pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] },
+    ]}
+  >
+    {loading ? (
+      <ActivityIndicator color="#FFFFFF" />
+    ) : (
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+        <AppText style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>{title}</AppText>
+        <ArrowRight size={18} color="#FFFFFF" style={{ marginLeft: 8 }} />
+      </View>
+    )}
+  </Pressable>
 );
 
 export const LoginScreen = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const appName = useAppSelector((s) => s.app.bootstrap?.branding?.appName);
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -53,40 +70,37 @@ export const LoginScreen = () => {
 
   return (
     <View style={authStyles.page}>
-      <ScrollView contentContainerStyle={{ paddingBottom: spacing.lg }}>
-        <AuthHero />
-        <View style={authStyles.card}>
-          <AppText style={styles.cardTitle}>
-            {appName ? <>{t('auth.loginTo')} <AppText style={styles.cardTitle} color={colors.primary}>{appName}</AppText></> : t('auth.login')}
-          </AppText>
-          <AppText color={colors.textMuted} style={{ fontSize: 17, marginTop: spacing.xs, marginBottom: spacing.xl }}>{t('auth.enterMobile')}</AppText>
+      <AuthHero />
+      <View style={authStyles.card}>
+        <Text style={styles.cardTitle}>
+          Login to <Text style={styles.titleBoli}>Boli</Text><Text style={styles.titleBazaar}>bazaar</Text>
+        </Text>
+        <AppText style={styles.cardSubtitle}>{t('auth.enterMobile') || 'Enter your mobile number to continue'}</AppText>
 
-          <View style={[styles.phoneBox, !!error && { borderColor: colors.danger }]}>
-            <Flag cc={cc} />
-            <ChevronDown size={16} color={colors.textMuted} />
-            <AppText variant="bodyStrong" style={{ fontSize: 18, marginLeft: spacing.sm }}>{dialOf(cc)}</AppText>
-            <View style={styles.sep} />
-            <TextInput
-              value={phone}
-              onChangeText={(v) => setPhone(v.replace(/[^\d\s]/g, ''))}
-              placeholder={t('auth.phonePlaceholder')}
-              placeholderTextColor={colors.textSubtle}
-              keyboardType="phone-pad"
-              maxLength={15}
-              autoFocus
-              onSubmitEditing={submit}
-              style={styles.phoneInput}
-            />
-          </View>
-          {!!error && <AppText variant="caption" color={colors.danger} style={{ marginTop: spacing.xs }}>{error}</AppText>}
-
-          <View style={{ marginTop: spacing.xl }}>
-            <CtaButton title={t('auth.next')} onPress={submit} loading={loading} disabled={phone.trim().length < 6} />
-          </View>
-          <Button title={t('auth.browseGuest')} variant="ghost" onPress={() => navigate('/')} style={{ marginTop: spacing.sm }} />
+        <View style={[styles.phoneBox, !!error && { borderColor: '#ef4444' }]}>
+          <Flag cc={cc} />
+          <ChevronDown size={14} color="#64748B" style={{ marginLeft: 6 }} />
+          <Text style={styles.dialCode}>{dialOf(cc)}</Text>
+          <View style={styles.sep} />
+          <TextInput
+            value={phone}
+            onChangeText={(v) => setPhone(v.replace(/[^\d\s]/g, ''))}
+            placeholder={t('auth.phonePlaceholder') || 'Enter mobile number'}
+            placeholderTextColor="#94A3B8"
+            keyboardType="phone-pad"
+            maxLength={15}
+            autoFocus
+            onSubmitEditing={submit}
+            style={styles.phoneInput}
+          />
         </View>
-        <HelpFooter />
-      </ScrollView>
+        {!!error && <AppText variant="caption" color={colors.danger} style={{ marginTop: 4 }}>{error}</AppText>}
+
+        <View style={{ marginTop: 18 }}>
+          <CtaButton title={t('auth.next') || 'Next'} onPress={submit} loading={loading} disabled={phone.trim().length < 6} />
+        </View>
+      </View>
+      <HelpFooter />
     </View>
   );
 };
@@ -111,9 +125,10 @@ export const OtpScreen = () => {
 
   if (!state) return <Navigate to="/login" replace />;
   const { phone, e164, length } = state;
+  const otpLength = length || 4;
 
   const verify = async (value) => {
-    if (value.length !== length || loading) return;
+    if (value.length !== otpLength || loading) return;
     setError('');
     setLoading(true);
     try {
@@ -153,60 +168,67 @@ export const OtpScreen = () => {
 
   return (
     <View style={authStyles.page}>
-      <ScrollView contentContainerStyle={{ paddingBottom: spacing.lg }}>
-        <Pressable accessibilityLabel={t('common.back')} onPress={() => navigate(-1)} style={{ position: 'absolute', top: spacing.lg, left: spacing.lg, zIndex: 3, padding: spacing.xs }}>
-          <ArrowLeft size={26} color={colors.text} />
+      <Pressable accessibilityLabel={t('common.back')} onPress={() => navigate(-1)} style={styles.backBtn}>
+        <ChevronLeft size={24} color="#0F172A" strokeWidth={2.2} />
+      </Pressable>
+      <AuthHero />
+      <View style={authStyles.card}>
+        <AppText style={styles.otpTitle}>Verify Your Number</AppText>
+        <AppText style={styles.otpSubtitle}>We have sent a {otpLength}-digit OTP to</AppText>
+        <AppText style={styles.otpPhone}>{pretty}</AppText>
+
+        <Pressable onPress={() => input.current?.focus()} style={styles.boxes} accessibilityRole="none">
+          {Array.from({ length: otpLength }, (_, i) => {
+            const isFocusedBox = focused && i === Math.min(code.length, otpLength - 1);
+            const hasChar = Boolean(code[i]);
+            return (
+              <View
+                key={i}
+                style={[
+                  styles.box,
+                  isFocusedBox && styles.boxActive,
+                  !!error && { borderColor: '#ef4444' },
+                ]}
+              >
+                <AppText style={styles.boxText}>{code[i] ?? ''}</AppText>
+                {isFocusedBox && !hasChar && <View style={styles.cursor} />}
+              </View>
+            );
+          })}
+          <TextInput
+            ref={input}
+            value={code}
+            onChangeText={(v) => {
+              const digits = v.replace(/\D/g, '').slice(0, otpLength);
+              setCode(digits);
+              if (digits.length === otpLength) verify(digits);
+            }}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            keyboardType="number-pad"
+            autoComplete="one-time-code"
+            textContentType="oneTimeCode"
+            maxLength={otpLength}
+            autoFocus
+            style={styles.hiddenInput}
+          />
         </Pressable>
-        <AuthHero compact />
-        <View style={[authStyles.card, { alignItems: 'center' }]}>
-          <AppText style={[styles.cardTitle, { textAlign: 'center' }]}>{t('auth.verifyTitle')}</AppText>
-          <AppText color={colors.textMuted} style={{ fontSize: 17, marginTop: spacing.sm, textAlign: 'center' }}>{t('auth.sentTo', { count: length })}</AppText>
-          <AppText variant="bodyStrong" style={{ fontSize: 18, marginTop: 2 }}>{pretty}</AppText>
+        {!!error && <AppText variant="caption" color={colors.danger} style={{ marginTop: 6, textAlign: 'center' }}>{error}</AppText>}
 
-          <Pressable onPress={() => input.current?.focus()} style={styles.boxes} accessibilityRole="none">
-            {Array.from({ length }, (_, i) => {
-              const active = focused && i === Math.min(code.length, length - 1);
-              return (
-                <View key={i} style={[styles.box, active && styles.boxActive, !!error && { borderColor: colors.danger }]}>
-                  <AppText style={{ fontSize: 28, fontWeight: '600' }}>{code[i] ?? ''}</AppText>
-                </View>
-              );
-            })}
-            <TextInput
-              ref={input}
-              value={code}
-              onChangeText={(v) => {
-                const digits = v.replace(/\D/g, '').slice(0, length);
-                setCode(digits);
-                if (digits.length === length) verify(digits);
-              }}
-              onFocus={() => setFocused(true)}
-              onBlur={() => setFocused(false)}
-              keyboardType="number-pad"
-              autoComplete="one-time-code"
-              textContentType="oneTimeCode"
-              maxLength={length}
-              autoFocus
-              style={styles.hiddenInput}
-            />
+        <View style={styles.resendRow}>
+          <AppText style={styles.resendText}>Didn’t receive OTP? </AppText>
+          <Pressable onPress={wait > 0 ? undefined : resend} disabled={wait > 0}>
+            <AppText style={styles.resendLink}>
+              Resend OTP{wait > 0 ? ` (${mmss})` : ''}
+            </AppText>
           </Pressable>
-          {!!error && <AppText variant="caption" color={colors.danger} style={{ marginTop: spacing.sm, textAlign: 'center' }}>{error}</AppText>}
-
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.lg, flexWrap: 'wrap', justifyContent: 'center' }}>
-            <AppText color={colors.textMuted}>{t('auth.didntReceive')}</AppText>
-            <Pressable onPress={wait > 0 ? undefined : resend} disabled={wait > 0}>
-              <AppText variant="bodyStrong" color={colors.primary} style={{ textDecorationLine: 'underline', opacity: wait > 0 ? 0.85 : 1 }}>
-                {t('auth.resendOtp')}{wait > 0 ? ` (${mmss})` : ''}
-              </AppText>
-            </Pressable>
-          </View>
-
-          <View style={{ marginTop: spacing.xl, alignSelf: 'stretch' }}>
-            <CtaButton title={t('auth.verify')} onPress={() => verify(code)} loading={loading} disabled={code.length !== length} />
-          </View>
         </View>
-        <HelpFooter />
-      </ScrollView>
+
+        <View style={{ marginTop: 16 }}>
+          <CtaButton title={t('auth.verify') || 'Verify'} onPress={() => verify(code)} loading={loading} disabled={code.length !== otpLength} />
+        </View>
+      </View>
+      <HelpFooter />
     </View>
   );
 };
@@ -280,14 +302,61 @@ export const ProfileSetupScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  cardTitle: { fontSize: 30, lineHeight: 38, fontWeight: '800', color: colors.text },
-  phoneBox: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, height: 64, paddingHorizontal: spacing.lg, borderRadius: 20, borderWidth: 1, borderColor: colors.divider, backgroundColor: colors.white, boxShadow: '0 4px 16px rgba(20,24,60,0.05)' },
-  sep: { width: 1, height: 32, backgroundColor: colors.divider, marginHorizontal: spacing.md },
-  phoneInput: { flex: 1, fontSize: 18, height: '100%', outline: 'none' },
-  boxes: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.xl, position: 'relative', justifyContent: 'center' },
-  box: { width: 64, height: 72, borderRadius: 14, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white },
-  boxActive: { borderColor: colors.primary, borderWidth: 1.5 },
+  cardTitle: { fontSize: 26, lineHeight: 32, fontWeight: '700', color: '#0F172A' },
+  titleBoli: { fontSize: 26, lineHeight: 32, fontWeight: '700', color: '#A61B36', display: 'inline' },
+  titleBazaar: { fontSize: 26, lineHeight: 32, fontWeight: '700', color: '#1E3A8A', display: 'inline' },
+  cardSubtitle: { fontSize: 14, color: '#64748B', marginTop: 4, marginBottom: 18 },
+
+  phoneBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 52,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+  },
+  dialCode: { fontSize: 15, fontWeight: '600', color: '#0F172A', marginLeft: 8 },
+  sep: { width: 1, height: 22, backgroundColor: '#E2E8F0', marginHorizontal: 10 },
+  phoneInput: { flex: 1, fontSize: 15, height: '100%', outline: 'none', color: '#0F172A' },
+
+  backBtn: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    zIndex: 10,
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  otpTitle: { fontSize: 24, lineHeight: 30, fontWeight: '700', color: '#0F172A', textAlign: 'center' },
+  otpSubtitle: { fontSize: 14, color: '#64748B', marginTop: 4, textAlign: 'center' },
+  otpPhone: { fontSize: 16, fontWeight: '700', color: '#0F172A', marginTop: 2, textAlign: 'center' },
+
+  boxes: { flexDirection: 'row', gap: 12, marginTop: 18, position: 'relative', justifyContent: 'center' },
+  box: {
+    width: 52,
+    height: 56,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    position: 'relative',
+  },
+  boxActive: { borderColor: '#A61B36', borderWidth: 1.5 },
+  boxText: { fontSize: 22, fontWeight: '700', color: '#0F172A' },
+  cursor: { width: 1.5, height: 22, backgroundColor: '#0F172A', position: 'absolute' },
   hiddenInput: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, fontSize: 16 },
+
+  resendRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 16 },
+  resendText: { fontSize: 13, color: '#64748B' },
+  resendLink: { fontSize: 13, fontWeight: '600', color: '#A61B36', textDecorationLine: 'underline' },
+
   fill: { flex: 1, backgroundColor: colors.white },
   pad: { padding: spacing.xl, paddingTop: spacing.xxxl },
   row: { flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.xl },
