@@ -29,6 +29,7 @@ export const clearTokens = async () => {
   await secureTokens.clear();
 };
 export const hasSession = () => Boolean(tokens?.refreshToken);
+export const getAccessToken = () => tokens?.accessToken ?? null;
 
 export const newIdempotencyKey = () => crypto.randomUUID();
 
@@ -44,7 +45,7 @@ const baseHeaders = async () => {
 };
 
 let refreshing = null;
-const refreshAccessToken = () => {
+export const refreshAccessToken = () => {
   if (!refreshing) {
     refreshing = (async () => {
       if (!tokens?.refreshToken) return false;

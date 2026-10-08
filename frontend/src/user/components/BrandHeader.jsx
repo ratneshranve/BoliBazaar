@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { Bell, Settings as SettingsIcon } from 'lucide-react';
 import { Image, Pressable, StyleSheet, View } from './primitives';
 import { AppText } from './ui';
@@ -5,8 +6,11 @@ import { useAppSelector } from '../store';
 import { colors, spacing } from '@theme/tokens';
 
 /** Logo, name and tagline come from Admin › Settings › Branding. Unset fields render nothing. */
-export const BrandHeader = ({ right = 'bell', onBell, onSettings, hasUnread, children }) => {
+export const BrandHeader = ({ right = 'bell', onBell, onSettings, children }) => {
+  const navigate = useNavigate();
   const branding = useAppSelector((s) => s.app.bootstrap?.branding);
+  const authed = useAppSelector((s) => s.session.status === 'authenticated');
+  const hasUnread = useAppSelector((s) => s.inbox.notifications > 0);
   return (
     <View style={styles.row}>
       <View style={styles.brand}>
@@ -29,7 +33,7 @@ export const BrandHeader = ({ right = 'bell', onBell, onSettings, hasUnread, chi
       <View style={styles.right}>
         {children}
         {right !== 'none' && (
-          <Pressable accessibilityLabel="Notifications" onPress={onBell} style={styles.iconBtn}>
+          <Pressable accessibilityLabel="Notifications" onPress={onBell ?? (() => navigate(authed ? '/notifications' : '/login'))} style={styles.iconBtn}>
             <Bell size={24} color={colors.text} />
             {hasUnread && <View style={styles.dot} />}
           </Pressable>

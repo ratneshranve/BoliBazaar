@@ -1,6 +1,6 @@
 import { configureStore, createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { useDispatch, useSelector } from 'react-redux';
-import { configApi, meApi, authApi } from '../api/endpoints';
+import { configApi, meApi, authApi, notificationsApi, chatApi } from '../api/endpoints';
 import { loadTokens, clearTokens, hasSession } from '../api/client';
 import { kvGetJSON, kvSetJSON, KV, kv } from '../services/storage';
 
@@ -89,6 +89,36 @@ const sessionSlice = createSlice({
   },
 });
 
+/* ───── inbox: unread counters for the bell and Messages ───── */
+export const fetchUnread = createAsyncThunk('inbox/fetch', async () => {
+  const [n, c] = await Promise.all([notificationsApi.unread(), chatApi.unread()]);
+  return { notifications: n.data.count, chats: c.data.count };
+});
+
+const inboxSlice = createSlice({
+  name: 'inbox',
+  initialState: { notifications: 0, chats: 0 },
+  reducers: {
+    notificationArrived(state) {
+      state.notifications += 1;
+    },
+    notificationsRead(state, a) {
+      state.notifications = a.payload;
+    },
+    chatUnreadChanged(state, a) {
+      state.chats = Math.max(0, state.chats + a.payload);
+    },
+    chatUnreadSet(state, a) {
+      state.chats = a.payload;
+    },
+  },
+  extraReducers: (b) => {
+    b.addCase(fetchUnread.fulfilled, (state, a) => Object.assign(state, a.payload));
+    b.addCase(logoutThunk.fulfilled, (state) => Object.assign(state, { notifications: 0, chats: 0 }));
+    b.addCase(sessionSlice.actions.sessionExpired, (state) => Object.assign(state, { notifications: 0, chats: 0 }));
+  },
+});
+
 /* ───── location: the place the user is browsing from ───── */
 const LOCATION_KEY = 'loc.current';
 
@@ -127,8 +157,9 @@ export const chooseLocation = (place) => async (dispatch, getState) => {
 
 export const { maintenanceDetected, dismissUpdate } = appSlice.actions;
 export const { signedIn, meUpdated, sessionExpired } = sessionSlice.actions;
+export const { notificationArrived, notificationsRead, chatUnreadChanged, chatUnreadSet } = inboxSlice.actions;
 
-export const store = configureStore({ reducer: { app: appSlice.reducer, session: sessionSlice.reducer, location: locationSlice.reducer } });
+export const store = configureStore({ reducer: { app: appSlice.reducer, session: sessionSlice.reducer, location: locationSlice.reducer, inbox: inboxSlice.reducer } });
 
 export const useAppDispatch = () => useDispatch();
 export const useAppSelector = useSelector;

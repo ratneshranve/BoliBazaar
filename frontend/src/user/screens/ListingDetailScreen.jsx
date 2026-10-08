@@ -6,7 +6,7 @@ import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Vie
 import { AppText, Button, Card, EmptyState } from '../components/ui';
 import { FavouriteButton } from '../components/ListingCard';
 import { colors, radius, spacing } from '@theme/tokens';
-import { listingsApi } from '../api/endpoints';
+import { listingsApi, chatApi } from '../api/endpoints';
 import { useAppSelector } from '../store';
 import { formatPrice, formatDate } from '../utils/listing';
 import { formatDistance } from '../utils/distance';
@@ -42,6 +42,21 @@ export const ListingDetailScreen = () => {
     load();
     listingsApi.view(id).catch(() => {});
   }, [id, i18n.language]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const status = useAppSelector((s) => s.session.status);
+  const [opening, setOpening] = useState(false);
+  const startChat = async () => {
+    if (status !== 'authenticated') return navigate('/login');
+    setOpening(true);
+    try {
+      const { data } = await chatApi.start(ad.id);
+      navigate(`/chat/${data.id}`);
+    } catch (e) {
+      Alert.alert(errorText(e));
+    } finally {
+      setOpening(false);
+    }
+  };
 
   const share = async () => {
     const url = window.location.href;
@@ -184,6 +199,8 @@ export const ListingDetailScreen = () => {
               </Card>
             </View>
           )}
+
+          {!ad.isOwner && ad.status === 'published' && <Button title={t('chat.chatWithSeller')} loading={opening} onPress={startChat} />}
 
           {ad.isOwner && (
             <Card style={{ gap: spacing.sm }}>

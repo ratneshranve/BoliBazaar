@@ -3,7 +3,8 @@ import { BrowserRouter, Outlet, Route, Routes, useNavigate } from 'react-router-
 import { Provider } from 'react-redux';
 import { ActivityIndicator, View } from './components/primitives';
 import { missingEnv } from './config/env';
-import { store, useAppDispatch, useAppSelector, fetchBootstrap, restoreSession, maintenanceDetected, sessionExpired, setLocation } from './store';
+import { store, useAppDispatch, useAppSelector, fetchBootstrap, restoreSession, maintenanceDetected, sessionExpired, setLocation, fetchUnread, notificationArrived } from './store';
+import { connectRealtime, disconnectRealtime, onRealtime } from './services/realtime';
 import { setClientHooks } from './api/client';
 import i18n, { savedLanguage, setLanguage, ensureLanguage } from './i18n';
 import { ConfigErrorScreen, LanguageScreen, MaintenanceScreen, OfflineScreen, UpdateScreen } from './screens/GateScreens';
@@ -18,6 +19,8 @@ import { ExploreScreen } from './screens/ExploreScreen';
 import { LocationScreen } from './screens/LocationScreen';
 import { SecurityScreen } from './screens/SecurityScreen';
 import { PageScreen } from './screens/PageScreen';
+import { NotificationsScreen } from './screens/NotificationsScreen';
+import { ChatsScreen, ChatScreen } from './screens/ChatScreens';
 import { TabBar } from './components/TabBar';
 import { colors } from '@theme/tokens';
 
@@ -37,8 +40,30 @@ const MainTabs = () => (
   </View>
 );
 
+/** Keeps the live connection and the unread counters in step with the login state. */
+const RealtimeBridge = () => {
+  const dispatch = useAppDispatch();
+  const authed = useAppSelector((s) => s.session.status === 'authenticated');
+  useEffect(() => {
+    if (!authed) {
+      disconnectRealtime();
+      return undefined;
+    }
+    connectRealtime();
+    dispatch(fetchUnread());
+    const off = [
+      onRealtime('notification:new', () => dispatch(notificationArrived())),
+      onRealtime('chat:message', () => dispatch(fetchUnread())),
+      onRealtime('chat:read', () => dispatch(fetchUnread())),
+    ];
+    return () => off.forEach((f) => f());
+  }, [authed, dispatch]);
+  return null;
+};
+
 const Navigation = () => (
   <BrowserRouter>
+    <RealtimeBridge />
     <Routes>
       <Route element={<MainTabs />}>
         <Route path="/" element={<HomeScreen />} />
@@ -60,6 +85,9 @@ const Navigation = () => (
       <Route path="/listing/:id" element={<ListingDetailScreen />} />
       <Route path="/my-listings" element={<MyListingsScreen />} />
       <Route path="/favourites" element={<FavouritesScreen />} />
+      <Route path="/notifications" element={<NotificationsScreen />} />
+      <Route path="/chats" element={<ChatsScreen />} />
+      <Route path="/chat/:id" element={<ChatScreen />} />
     </Routes>
   </BrowserRouter>
 );

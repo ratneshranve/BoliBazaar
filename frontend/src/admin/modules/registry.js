@@ -12,8 +12,9 @@ import cms from './cms';
 import settings from './settings';
 import staff from './staff';
 import audit from './audit';
+import notifications from './notifications';
 
-export const modules = [dashboard, users, listings, categories, banners, cms, settings, staff, audit];
+export const modules = [dashboard, users, listings, categories, banners, cms, notifications, settings, staff, audit];
 
 /** Sections shown in the sidebar, in order. */
 export const sections = ['Overview', 'Management', 'Configuration', 'System'];

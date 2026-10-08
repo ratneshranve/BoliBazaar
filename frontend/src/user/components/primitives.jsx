@@ -167,6 +167,21 @@ export function Image({ source, style, resizeMode = 'cover', ...rest }) {
   return <img src={source?.uri} alt="" draggable={false} style={{ display: 'block', objectFit: fit, ...toCss(style) }} {...pick(rest)} />;
 }
 
+/** On/off switch (RN Switch). */
+export function Switch({ value, onValueChange, disabled, activeColor, inactiveColor = '#C9C9C9' }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={!!value}
+      disabled={disabled}
+      onClick={() => onValueChange?.(!value)}
+      style={{ width: 46, height: 26, borderRadius: 13, border: 'none', padding: 3, background: value ? activeColor : inactiveColor, cursor: 'pointer', display: 'flex', justifyContent: value ? 'flex-end' : 'flex-start', opacity: disabled ? 0.5 : 1 }}>
+      <span style={{ width: 20, height: 20, borderRadius: 10, background: '#fff' }} />
+    </button>
+  );
+}
+
 export const SafeAreaView = View;
 export const StatusBar = () => null;
 export const Alert = { alert: (title, message) => window.alert([title, message].filter(Boolean).join('\n')) };

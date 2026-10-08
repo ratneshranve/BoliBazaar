@@ -24,3 +24,11 @@ export const locationQuery = (current) =>
     : {};
 
 export const formatDate = (iso, lang) => new Date(iso).toLocaleDateString(lang, { day: 'numeric', month: 'short', year: 'numeric' });
+
+/** "14:05" for today, otherwise "12 Mar". */
+export const formatChatTime = (iso, lang) => {
+  const d = new Date(iso);
+  return d.toDateString() === new Date().toDateString()
+    ? d.toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' })
+    : d.toLocaleDateString(lang, { day: 'numeric', month: 'short' });
+};

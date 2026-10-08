@@ -67,3 +67,25 @@ export const meApi = {
   revokeSession: (id) => api(`/me/sessions/${id}`, { method: 'DELETE' }),
   revokeOtherSessions: () => api('/me/sessions', { method: 'DELETE' }),
 };
+
+/** In-app notifications + push preferences. */
+export const notificationsApi = {
+  list: (params) => api('/notifications', { query: params }),
+  unread: () => api('/notifications/unread-count'),
+  read: (ids) => api('/notifications/read', { method: 'POST', body: ids ? { ids } : {}, idempotencyKey: false }),
+  prefs: () => api('/notifications/preferences'),
+  setPrefs: (groups) => api('/notifications/preferences', { method: 'PATCH', body: { groups } }),
+};
+
+/** Buyer ↔ seller chat, one conversation per ad. */
+export const chatApi = {
+  list: () => api('/chats'),
+  unread: () => api('/chats/unread-count'),
+  start: (listingId) => api('/chats/start', { method: 'POST', body: { listingId } }),
+  detail: (id) => api(`/chats/${id}`),
+  messages: (id, params) => api(`/chats/${id}/messages`, { query: params }),
+  send: (id, text) => api(`/chats/${id}/messages`, { method: 'POST', body: { text } }),
+  read: (id) => api(`/chats/${id}/read`, { method: 'POST', idempotencyKey: false }),
+  block: (userId) => api(`/chats/blocked/${userId}`, { method: 'PUT' }),
+  unblock: (userId) => api(`/chats/blocked/${userId}`, { method: 'DELETE' }),
+};
