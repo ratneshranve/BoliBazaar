@@ -78,12 +78,17 @@ export const ExploreScreen = () => {
 
       {tree && (
         <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxxl }}>
+          {id && current && (
+            <Pressable onPress={() => navigate(`/search?categoryId=${id}`)} style={styles.all}>
+              <AppText variant="bodyStrong" color={colors.primary}>{t('search.title')} {t('search.inCategory', { name: current.name })} ›</AppText>
+            </Pressable>
+          )}
           {items.length === 0 ? (
             <EmptyState icon={<PackageOpen size={44} color={colors.textMuted} />} title={id ? t('explore.noListings') : t('explore.noCategories')} />
           ) : (
             <View style={styles.grid}>
               {items.map((c) => (
-                <CategoryTile key={c.id} category={c} size={72} onPress={() => navigate(`/explore/${c.id}`)} />
+                <CategoryTile key={c.id} category={c} size={72} onPress={() => navigate(c.children.length ? `/explore/${c.id}` : `/search?categoryId=${c.id}`)} />
               ))}
             </View>
           )}
@@ -97,4 +102,5 @@ const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: colors.white },
   crumb: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.lg, justifyContent: 'flex-start' },
+  all: { padding: spacing.md, borderRadius: 12, backgroundColor: colors.primarySoft, marginBottom: spacing.lg },
 });

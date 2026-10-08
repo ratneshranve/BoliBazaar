@@ -4,9 +4,37 @@ export const configApi = {
   bootstrap: () => api('/config/bootstrap', { auth: false }),
 };
 
-export const homeApi = { get: () => api('/home', { auth: false }) };
+export const homeApi = { get: (params) => api('/home', { auth: false, query: params }) };
 
-export const categoriesApi = { tree: () => api('/categories/tree', { auth: false }) };
+export const categoriesApi = {
+  tree: () => api('/categories/tree', { auth: false }),
+  detail: (id) => api(`/categories/${id}`, { auth: false }),
+};
+
+/** Ads: browse/search (public), detail, post/edit, my ads, favourites. */
+export const listingsApi = {
+  search: (params) => api('/listings', { query: params }),
+  detail: (id, point) => api(`/listings/${id}`, { query: point }),
+  forEdit: (id) => api(`/listings/${id}/edit`),
+  create: (body) => api('/listings', { method: 'POST', body }),
+  update: (id, body) => api(`/listings/${id}`, { method: 'PUT', body }),
+  action: (id, name) => api(`/listings/${id}/${name}`, { method: 'POST' }), // pause | resume | sold | renew
+  remove: (id) => api(`/listings/${id}`, { method: 'DELETE' }),
+  mine: (params) => api('/listings/mine', { query: params }),
+  favourites: (params) => api('/listings/favourites', { query: params }),
+  favourite: (id, on) => api(`/listings/${id}/favourite`, { method: on ? 'POST' : 'DELETE' }),
+  view: (id) => api(`/listings/${id}/view`, { method: 'POST', idempotencyKey: false }),
+};
+
+/** Photo upload (stored where the admin chose: Cloudinary or the server). */
+export const uploadsApi = {
+  image: (file, purpose = 'listing') => {
+    const form = new FormData();
+    form.append('purpose', purpose);
+    form.append('file', file);
+    return api('/uploads/image', { method: 'POST', form, idempotencyKey: false });
+  },
+};
 
 /** Places come from Google via our server: search a name/PIN, or turn a GPS point / map pin into an address. */
 export const placesApi = {

@@ -26,7 +26,6 @@ const Soon = () => {
   );
 };
 
-export const SellScreen = Soon;
 export const AuctionsScreen = Soon;
 
 const Row = ({ item, last }) => (
@@ -60,10 +59,10 @@ export const ProfileScreen = () => {
   const currentLang = (bootstrapLanguages ?? []).find((l) => l.code === i18n.language);
 
   const tiles = [
-    { icon: <Package size={26} color={colors.primary} />, bg: colors.primarySoft, title: t('profile.myListings'), sub: t('profile.myListingsSub') },
+    { icon: <Package size={26} color={colors.primary} />, bg: colors.primarySoft, title: t('profile.myListings'), sub: t('profile.myListingsSub'), go: () => navigate('/my-listings') },
     { icon: <Gavel size={26} color={colors.sell} />, bg: colors.sellSoft, title: t('profile.myAuctions'), sub: t('profile.myAuctionsSub') },
     { icon: <ShoppingBag size={26} color={colors.auctionBlue} />, bg: colors.auctionSoft, title: t('profile.myPurchases'), sub: t('profile.myPurchasesSub') },
-    { icon: <Heart size={26} color={colors.warm} />, bg: colors.warmSoft, title: t('profile.favourites'), sub: t('profile.favouritesSub') },
+    { icon: <Heart size={26} color={colors.warm} />, bg: colors.warmSoft, title: t('profile.favourites'), sub: t('profile.favouritesSub'), go: () => navigate('/favourites') },
   ];
 
   const menu = [
@@ -108,7 +107,7 @@ export const ProfileScreen = () => {
 
         <View style={styles.tiles}>
           {tiles.map((tile) => (
-            <Pressable key={tile.title} style={[styles.tile, { backgroundColor: tile.bg }]}>
+            <Pressable key={tile.title} onPress={tile.go} style={[styles.tile, { backgroundColor: tile.bg }]}>
               {tile.icon}
               <AppText variant="bodyStrong" style={{ marginTop: spacing.sm }}>
                 {tile.title}

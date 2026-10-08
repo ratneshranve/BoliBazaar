@@ -8,7 +8,11 @@ import { setClientHooks } from './api/client';
 import i18n, { savedLanguage, setLanguage, ensureLanguage } from './i18n';
 import { ConfigErrorScreen, LanguageScreen, MaintenanceScreen, OfflineScreen, UpdateScreen } from './screens/GateScreens';
 import { LoginScreen, OtpScreen, ProfileSetupScreen } from './screens/AuthScreens';
-import { SellScreen, AuctionsScreen, ProfileScreen } from './screens/TabScreens';
+import { AuctionsScreen, ProfileScreen } from './screens/TabScreens';
+import { SellScreen } from './screens/SellScreen';
+import { SearchScreen } from './screens/SearchScreen';
+import { ListingDetailScreen } from './screens/ListingDetailScreen';
+import { MyListingsScreen, FavouritesScreen } from './screens/MyListingsScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { ExploreScreen } from './screens/ExploreScreen';
 import { LocationScreen } from './screens/LocationScreen';
@@ -41,6 +45,7 @@ const Navigation = () => (
         <Route path="/explore" element={<ExploreScreen />} />
         <Route path="/explore/:id" element={<ExploreScreen />} />
         <Route path="/sell" element={<SellScreen />} />
+        <Route path="/sell/:id" element={<SellScreen />} />
         <Route path="/auctions" element={<AuctionsScreen />} />
         <Route path="/profile" element={<ProfileScreen />} />
       </Route>
@@ -51,6 +56,10 @@ const Navigation = () => (
       <Route path="/page/:slug" element={<PageScreen />} />
       <Route path="/language" element={<LanguageRoute />} />
       <Route path="/location" element={<LocationScreen />} />
+      <Route path="/search" element={<SearchScreen />} />
+      <Route path="/listing/:id" element={<ListingDetailScreen />} />
+      <Route path="/my-listings" element={<MyListingsScreen />} />
+      <Route path="/favourites" element={<FavouritesScreen />} />
     </Routes>
   </BrowserRouter>
 );

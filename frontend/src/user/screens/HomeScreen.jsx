@@ -8,6 +8,8 @@ import { BrandHeader } from '../components/BrandHeader';
 import { LocationChip } from '../components/LocationChip';
 import { LanguageChip } from '../components/LanguageChip';
 import { CategoryTile } from '../components/CategoryTile';
+import { ListingCard } from '../components/ListingCard';
+import { locationQuery } from '../utils/listing';
 import { colors, radius, spacing, shadow } from '@theme/tokens';
 import { homeApi } from '../api/endpoints';
 import { useAppSelector } from '../store';
@@ -19,19 +21,23 @@ export const HomeScreen = () => {
   const [home, setHome] = useState(null);
   const [failed, setFailed] = useState(false);
 
+  const current = useAppSelector((s) => s.location.current);
+  const placeKey = current ? `${current.lat},${current.lng},${current.scope?.type},${current.scope?.km}` : '';
+
   useEffect(() => {
     let live = true;
     setFailed(false);
     homeApi
-      .get()
+      .get(locationQuery(current))
       .then(({ data }) => live && setHome(data))
       .catch(() => live && setFailed(true));
     return () => {
       live = false;
     };
-  }, [i18n.language]);
+    // reload when the language or the chosen place/distance changes
+  }, [i18n.language, placeKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const openBanner = (b) => b.action.type === 'category' && navigate(`/explore/${b.action.categoryId}`);
+  const openBanner = (b) => b.action.type === 'category' && navigate(`/search?categoryId=${b.action.categoryId}`);
 
   const cards = [
     { key: 'buy', icon: ShoppingCart, tint: colors.primary, bg: colors.primarySoft, title: t('home.buy'), sub: t('home.buySub'), go: () => navigate('/explore') },
@@ -48,7 +54,7 @@ export const HomeScreen = () => {
 
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxxl }}>
         {/* search (opens Explore until listing search ships) */}
-        <Pressable accessibilityLabel={t('home.searchPlaceholder')} onPress={() => navigate('/explore')} style={styles.search}>
+        <Pressable accessibilityLabel={t('home.searchPlaceholder')} onPress={() => navigate('/search')} style={styles.search}>
           <Search size={20} color={colors.textMuted} />
           <AppText color={colors.textSubtle} numberOfLines={1} style={{ flex: 1 }}>
             {t('home.searchPlaceholder')}
@@ -88,6 +94,25 @@ export const HomeScreen = () => {
           ))}
         </View>
 
+        {[['nearby', home?.nearby], ['latest', home?.latest]].map(
+          ([key, list]) =>
+            list?.length > 0 && (
+              <View key={key} style={{ marginTop: spacing.lg }}>
+                <View style={styles.sectionHead}>
+                  <AppText variant="h2">{t(`homeRails.${key}`)}</AppText>
+                  <AppText variant="bodyStrong" color={colors.primary} onPress={() => navigate(`/search${key === 'nearby' ? '?sort=nearest' : ''}`)}>
+                    {t('common.seeAll')} ›
+                  </AppText>
+                </View>
+                <ScrollView horizontal contentContainerStyle={{ gap: spacing.md, paddingHorizontal: spacing.lg, paddingBottom: spacing.sm }}>
+                  {list.map((l) => (
+                    <ListingCard key={l.id} listing={l} width={170} />
+                  ))}
+                </ScrollView>
+              </View>
+            )
+        )}
+
         {home?.categories.length > 0 && (
           <View style={{ marginTop: spacing.lg }}>
             <View style={styles.sectionHead}>
@@ -98,7 +123,7 @@ export const HomeScreen = () => {
             </View>
             <ScrollView horizontal contentContainerStyle={{ gap: spacing.sm, paddingHorizontal: spacing.lg }}>
               {home.categories.map((c) => (
-                <CategoryTile key={c.id} category={c} onPress={() => navigate(`/explore/${c.id}`)} />
+                <CategoryTile key={c.id} category={c} onPress={() => navigate(c.hasChildren ? `/explore/${c.id}` : `/search?categoryId=${c.id}`)} />
               ))}
             </ScrollView>
           </View>
