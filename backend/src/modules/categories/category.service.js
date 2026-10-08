@@ -1,4 +1,7 @@
+import mongoose from 'mongoose';
 import { z } from 'zod';
+import { Listing } from '../listings/listing.model.js';
+import { escapeRegex } from '../../core/utils/http.js';
 import { Category, LISTING_TYPES, ATTRIBUTE_TYPES } from './category.model.js';
 import { ApiError } from '../../core/utils/ApiError.js';
 import { logger } from '../../core/utils/logger.js';
@@ -208,6 +211,73 @@ export const adminTree = async () => {
     attributes: c.attributes,
     rules: c.rules,
   }));
+};
+
+const adminDto = (c) => ({
+  id: String(c._id),
+  parentId: c.parentId ? String(c.parentId) : null,
+  name: c.name,
+  slug: c.slug,
+  icon: c.icon?.url ? { url: c.icon.url, mediaId: c.icon.mediaId ? String(c.icon.mediaId) : undefined } : null,
+  image: c.image?.url ? { url: c.image.url, mediaId: c.image.mediaId ? String(c.image.mediaId) : undefined } : null,
+  order: c.order,
+  status: c.status,
+  depth: c.depth,
+  listingTypes: c.listingTypes,
+  attributes: c.attributes,
+  rules: c.rules,
+});
+
+/**
+ * One page of categories for the admin tables, with count cards.
+ * level "top" = main categories, level "sub" = every category below them (optionally under one parent).
+ */
+export const adminCategoryPage = async ({ level, parentId, q, status, page, limit }) => {
+  const levelFilter = level === 'top' ? { parentId: null } : { parentId: { $ne: null } };
+  const f = { ...levelFilter };
+  if (parentId) f.ancestors = new mongoose.Types.ObjectId(parentId);
+  if (status) f.status = status;
+  if (q) f.name = new RegExp(escapeRegex(q), 'i');
+
+  const [docs, total] = await Promise.all([
+    Category.find(f).sort(level === 'top' ? { order: 1, name: 1 } : { ancestors: 1, depth: 1, order: 1, name: 1 }).skip((page - 1) * limit).limit(limit).lean(),
+    Category.countDocuments(f),
+  ]);
+  const ids = docs.map((d) => d._id);
+
+  // direct subcategories, live ads (counted in every ancestor), and the parent path for display
+  const [kids, ads, parents] = await Promise.all([
+    Category.aggregate([{ $match: { parentId: { $in: ids } } }, { $group: { _id: '$parentId', n: { $sum: 1 } } }]),
+    Listing.aggregate([{ $match: { status: 'published', expiresAt: { $gt: new Date() }, categoryPath: { $in: ids } } }, { $unwind: '$categoryPath' }, { $match: { categoryPath: { $in: ids } } }, { $group: { _id: '$categoryPath', n: { $sum: 1 } } }]),
+    Category.find({ _id: { $in: [...new Set(docs.flatMap((d) => d.ancestors.map(String)))] } }).select('name').lean(),
+  ]);
+  const kidN = new Map(kids.map((k) => [String(k._id), k.n]));
+  const adN = new Map(ads.map((a) => [String(a._id), a.n]));
+  const names = new Map(parents.map((p) => [String(p._id), p.name]));
+
+  // count cards for the whole level (not just this page)
+  const [all, active, hidden, withFields, subTotal, liveAds] = await Promise.all([
+    Category.countDocuments(levelFilter),
+    Category.countDocuments({ ...levelFilter, status: 'active' }),
+    Category.countDocuments({ ...levelFilter, status: 'hidden' }),
+    Category.countDocuments({ ...levelFilter, 'attributes.0': { $exists: true } }),
+    level === 'top' ? Category.countDocuments({ parentId: { $ne: null } }) : Category.countDocuments({ parentId: { $ne: null }, depth: { $gte: 2 } }),
+    Listing.countDocuments({ status: 'published', expiresAt: { $gt: new Date() } }),
+  ]);
+  const emptyLeaves = await Category.countDocuments({ ...levelFilter, _id: { $nin: await Category.distinct('parentId', { parentId: { $ne: null } }) } });
+
+  return {
+    rows: docs.map((d) => ({
+      ...adminDto(d),
+      path: d.ancestors.map((a) => names.get(String(a))).filter(Boolean),
+      subcategoryCount: kidN.get(String(d._id)) || 0,
+      liveAds: adN.get(String(d._id)) || 0,
+    })),
+    total,
+    stats: level === 'top'
+      ? { total: all, active, hidden, subcategories: subTotal, withFields, withoutSubcategories: emptyLeaves, liveAds }
+      : { total: all, active, hidden, withFields, deeper: subTotal, liveAds },
+  };
 };
 
 /** Translate a list of English strings for a reader; falls back to English if translation is unavailable. */

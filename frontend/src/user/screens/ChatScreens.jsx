@@ -10,6 +10,7 @@ import { useAppDispatch, useAppSelector, fetchUnread } from '../store';
 import { emitRealtime, onRealtime } from '../services/realtime';
 import { ReportSheet } from '../components/ReportSheet';
 import { formatPrice, formatChatTime } from '../utils/listing';
+import { useGoBack } from '../utils/goBack';
 import { errorText } from '../i18n';
 
 const useRequireLogin = () => {
@@ -84,6 +85,7 @@ export const ChatsScreen = () => {
 export const ChatScreen = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const goBack = useGoBack('/chats');
   const dispatch = useAppDispatch();
   const { id } = useParams();
   const authed = useRequireLogin();
@@ -182,7 +184,7 @@ export const ChatScreen = () => {
   return (
     <View style={styles.fill}>
       <View style={styles.header}>
-        <Pressable accessibilityLabel={t('common.back')} onPress={() => navigate('/chats')}><ArrowLeft size={24} color={colors.text} /></Pressable>
+        <Pressable accessibilityLabel={t('common.back')} onPress={goBack}><ArrowLeft size={24} color={colors.text} /></Pressable>
         {info && <Avatar peer={info.peer} size={36} />}
         <View style={{ flex: 1 }}>
           <AppText variant="bodyStrong" numberOfLines={1}>{info?.peer.name ?? ''}</AppText>

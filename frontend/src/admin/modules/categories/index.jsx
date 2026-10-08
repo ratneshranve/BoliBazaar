@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, FolderTree, Pencil, Plus, Trash2 } from 'lucide-react';
+import { FolderOpen, FolderTree, Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
 import { call, http, errorMessage } from '@core/api';
 import { useAuth } from '@core/AuthContext';
 import ImageUpload from '@components/ImageUpload';
-import { Badge, Button, Card, ErrorBox, Field, Input, Modal, PageHeader, Select, Spinner, Switch, Textarea } from '@components/ui';
+import { Badge, Button, Card, DataTable, ErrorBox, Field, Input, Modal, PageHeader, Pagination, Select, Spinner, Switch, Textarea } from '@components/ui';
 
 const slugValue = (s) => s.trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_+|_+$/g, '');
 
@@ -224,67 +225,112 @@ function CategoryForm({ node, parentId, tree, meta, canEdit, onClose, onSaved })
   );
 }
 
-/* ───────── page ───────── */
+/* ───────── pages ───────── */
 
-function TreeRow({ node, depth, open, toggle, canEdit, onAdd, onEdit, onDelete }) {
-  const hasKids = node.children.length > 0;
+/** A count card on top of the table. */
+const StatCard = ({ label, value, tone = 'neutral', hint }) => (
+  <Card className="py-3">
+    <div className="text-xs uppercase text-neutral-500">{label}</div>
+    <div className={`text-2xl font-bold ${tone === 'green' ? 'text-emerald-600' : tone === 'amber' ? 'text-amber-600' : tone === 'blue' ? 'text-blue-600' : 'text-neutral-900'}`}>{(value ?? 0).toLocaleString('en-IN')}</div>
+    {hint && <div className="text-xs text-neutral-500">{hint}</div>}
+  </Card>
+);
+
+/** Shared loader for both pages: the paged rows from the server, plus the tree + meta the edit form needs. */
+function useCategoryTable(level) {
+  const [q, setQ] = useState('');
+  const [status, setStatus] = useState('');
+  const [parentId, setParentId] = useState(() => new URLSearchParams(window.location.search).get('parentId') || '');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [rows, setRows] = useState(null);
+  const [meta, setMeta] = useState(null);
+  const [tree, setTree] = useState(null);
+  const [fieldMeta, setFieldMeta] = useState(null);
+  const [error, setError] = useState('');
+
+  const loadRows = useCallback(() => {
+    setError('');
+    call(http.get('/categories/list', { params: { level, q: q || undefined, status: status || undefined, parentId: parentId || undefined, page, limit } }))
+      .then((r) => {
+        setRows(r.data);
+        setMeta(r.meta);
+      })
+      .catch((e) => setError(errorMessage(e)));
+  }, [level, q, status, parentId, page, limit]);
+
+  const loadTree = useCallback(() => {
+    Promise.all([call(http.get('/categories')), call(http.get('/categories/meta'))])
+      .then(([t, m]) => {
+        setTree(t.data);
+        setFieldMeta(m.data);
+      })
+      .catch((e) => setError(errorMessage(e)));
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(loadRows, q ? 300 : 0);
+    return () => clearTimeout(t);
+  }, [loadRows, q]);
+  useEffect(() => {
+    loadTree();
+  }, [loadTree]);
+
+  const reload = () => {
+    loadRows();
+    loadTree();
+  };
+  const filter = (fn) => (v) => {
+    fn(v);
+    setPage(1);
+  };
+  return { q, setQ: filter(setQ), status, setStatus: filter(setStatus), parentId, setParentId: filter(setParentId), page, setPage, limit, setLimit: filter(setLimit), rows, meta, tree, fieldMeta, error, reload };
+}
+
+const Icon = ({ c }) => (c.icon?.url ? <img src={c.icon.url} alt="" className="h-9 w-9 rounded object-contain" /> : <div className="flex h-9 w-9 items-center justify-center rounded bg-neutral-100 text-sm font-semibold text-neutral-500">{c.name.charAt(0)}</div>);
+
+function Filters({ t, showParent, tops }) {
   return (
-    <>
-      <div className="flex items-center gap-2 border-b border-neutral-100 px-3 py-2 hover:bg-neutral-50" style={{ paddingLeft: 12 + depth * 22 }}>
-        <button onClick={() => toggle(node.id)} className="w-5 text-neutral-500" aria-label="Expand">
-          {hasKids ? open[node.id] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" /> : null}
-        </button>
-        {node.icon?.url ? <img src={node.icon.url} alt="" className="h-7 w-7 rounded object-contain" /> : <div className="h-7 w-7 rounded bg-neutral-100" />}
-        <span className="font-medium">{node.name}</span>
-        {node.status === 'hidden' && <Badge tone="amber">hidden</Badge>}
-        {hasKids && <span className="text-xs text-neutral-500">{node.children.length} sub</span>}
-        {node.attributes.length > 0 && <span className="text-xs text-neutral-500">· {node.attributes.length} fields</span>}
-        {canEdit && (
-          <span className="ml-auto flex gap-1">
-            {node.depth < 3 && <Button variant="outline" className="px-2 py-1" title="Add sub-category" onClick={() => onAdd(node.id)}><Plus className="h-4 w-4" /></Button>}
-            <Button variant="outline" className="px-2 py-1" title="Edit" onClick={() => onEdit(node)}><Pencil className="h-4 w-4" /></Button>
-            <Button variant="outline" className="px-2 py-1" title="Delete" onClick={() => onDelete(node)}><Trash2 className="h-4 w-4" /></Button>
-          </span>
-        )}
-      </div>
-      {hasKids && open[node.id] && node.children.map((c) => <TreeRow key={c.id} node={c} depth={depth + 1} open={open} toggle={toggle} canEdit={canEdit} onAdd={onAdd} onEdit={onEdit} onDelete={onDelete} />)}
-    </>
+    <div className="mb-4 flex flex-wrap items-center gap-2">
+      <div className="w-64"><Input placeholder="Search by name" value={t.q} onChange={(e) => t.setQ(e.target.value)} /></div>
+      <div className="w-40"><Select value={t.status} onChange={(e) => t.setStatus(e.target.value)}>
+        <option value="">All statuses</option>
+        <option value="active">Active</option>
+        <option value="hidden">Hidden</option>
+      </Select></div>
+      {showParent && (
+        <div className="w-56"><Select value={t.parentId} onChange={(e) => t.setParentId(e.target.value)}>
+          <option value="">All main categories</option>
+          {(tops || []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </Select></div>
+      )}
+    </div>
   );
 }
+
+const useRemove = (reload) =>
+  useCallback(
+    async (row) => {
+      if (!window.confirm(`Delete "${row.name}"?${row.subcategoryCount ? ` It has ${row.subcategoryCount} subcategories.` : ''}`)) return;
+      try {
+        await call(http.delete(`/categories/${row.id}`));
+        toast.success('Deleted');
+        reload();
+      } catch (e) {
+        toast.error(errorMessage(e));
+      }
+    },
+    [reload]
+  );
 
 function CategoriesPage() {
   const { can } = useAuth();
   const canEdit = can('categories.edit');
-  const [tree, setTree] = useState(null);
-  const [meta, setMeta] = useState(null);
-  const [error, setError] = useState('');
-  const [open, setOpen] = useState({});
+  const t = useCategoryTable('top');
   const [form, setForm] = useState(null); // { node?, parentId? }
   const [importing, setImporting] = useState(false);
-
-  const load = useCallback(async () => {
-    setError('');
-    try {
-      const [t, m] = await Promise.all([call(http.get('/categories')), call(http.get('/categories/meta'))]);
-      setTree(t.data);
-      setMeta(m.data);
-    } catch (e) {
-      setError(errorMessage(e));
-    }
-  }, []);
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const remove = async (node) => {
-    if (!window.confirm(`Delete "${node.name}"?`)) return;
-    try {
-      await call(http.delete(`/categories/${node.id}`));
-      load();
-    } catch (e) {
-      toast.error(errorMessage(e));
-    }
-  };
+  const remove = useRemove(t.reload);
+  const s = t.meta?.stats;
 
   const importStarter = async () => {
     if (!window.confirm('Import the starter category list (Property, Vehicles, Electronics, Jobs, Services…)? You can edit or delete everything afterwards.')) return;
@@ -292,7 +338,7 @@ function CategoriesPage() {
     try {
       const { data } = await call(http.post('/categories/import-starter'));
       toast.success(`Imported ${data.count} categories`);
-      load();
+      t.reload();
     } catch (e) {
       toast.error(errorMessage(e));
     } finally {
@@ -300,36 +346,135 @@ function CategoriesPage() {
     }
   };
 
-  if (error) return <ErrorBox message={error} onRetry={load} />;
-  if (!tree || !meta) return <Spinner />;
-
   return (
     <>
       <PageHeader
         title="Categories"
-        subtitle="Organise what can be listed. Each category has its own form fields, allowed listing types and rules."
-        actions={canEdit && <Button variant="brand" onClick={() => setForm({ parentId: null })}><Plus className="h-4 w-4" /> New category</Button>}
+        subtitle="Main categories. Each has its own form fields, allowed listing types and rules. Manage the ones below them under Subcategories."
+        actions={canEdit && <Button variant="brand" disabled={!t.tree} onClick={() => setForm({ parentId: null })}><Plus className="h-4 w-4" /> New category</Button>}
       />
-      {tree.length === 0 ? (
+      {s && (
+        <div className="mb-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <StatCard label="Main categories" value={s.total} />
+          <StatCard label="Active" value={s.active} tone="green" />
+          <StatCard label="Hidden" value={s.hidden} tone="amber" />
+          <StatCard label="Subcategories" value={s.subcategories} tone="blue" />
+          <StatCard label="With form fields" value={s.withFields} />
+          <StatCard label="Live ads" value={s.liveAds} hint="across all categories" />
+        </div>
+      )}
+      {t.error && <ErrorBox message={t.error} onRetry={t.reload} />}
+      {!t.rows && !t.error && <Spinner />}
+      {t.rows && s?.total === 0 && !t.q && !t.status ? (
         <Card className="py-12 text-center">
           <FolderTree className="mx-auto mb-3 h-10 w-10 text-neutral-400" />
           <p className="font-semibold">No categories yet</p>
           <p className="mx-auto mb-4 mt-1 max-w-md text-sm text-neutral-500">Create your own, or start from the standard list used by classifieds (you can edit everything later).</p>
           {canEdit && (
             <div className="flex justify-center gap-2">
-              <Button variant="brand" onClick={() => setForm({ parentId: null })}>Create the first category</Button>
+              <Button variant="brand" disabled={!t.tree} onClick={() => setForm({ parentId: null })}>Create the first category</Button>
               <Button variant="outline" loading={importing} onClick={importStarter}>Import starter list</Button>
             </div>
           )}
         </Card>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
-          {tree.map((n) => (
-            <TreeRow key={n.id} node={n} depth={0} open={open} toggle={(id) => setOpen((o) => ({ ...o, [id]: !o[id] }))} canEdit={canEdit} onAdd={(parentId) => setForm({ parentId })} onEdit={(node) => setForm({ node })} onDelete={remove} />
-          ))}
+        t.rows && (
+          <>
+            <Filters t={t} />
+            <DataTable
+              rows={t.rows}
+              empty="No categories match"
+              columns={[
+                { key: 'icon', header: '', render: (c) => <Icon c={c} /> },
+                { key: 'name', header: 'Category', render: (c) => <div><div className="font-medium">{c.name}</div><div className="text-xs text-neutral-500">{c.listingTypes.join(', ') || 'all listing types'}</div></div> },
+                { key: 'status', header: 'Status', render: (c) => <Badge tone={c.status === 'active' ? 'green' : 'amber'}>{c.status}</Badge> },
+                { key: 'subs', header: 'Subcategories', render: (c) => (c.subcategoryCount ? <Link to={`/subcategories?parentId=${c.id}`} className="font-semibold text-blue-600 hover:underline">{c.subcategoryCount}</Link> : '0') },
+                { key: 'fields', header: 'Form fields', render: (c) => c.attributes.length },
+                { key: 'ads', header: 'Live ads', render: (c) => c.liveAds.toLocaleString('en-IN') },
+                { key: 'order', header: 'Order', render: (c) => c.order },
+                {
+                  key: 'act',
+                  header: '',
+                  render: (c) =>
+                    canEdit && (
+                      <span className="flex justify-end gap-1">
+                        <Button variant="outline" className="px-2 py-1" title="Add subcategory" disabled={!t.tree} onClick={() => setForm({ parentId: c.id })}><Plus className="h-4 w-4" /></Button>
+                        <Button variant="outline" className="px-2 py-1" title="Edit" disabled={!t.tree} onClick={() => setForm({ node: c })}><Pencil className="h-4 w-4" /></Button>
+                        <Button variant="outline" className="px-2 py-1" title="Delete" onClick={() => remove(c)}><Trash2 className="h-4 w-4" /></Button>
+                      </span>
+                    ),
+                },
+              ]}
+            />
+            <Pagination meta={t.meta} onPage={t.setPage} onLimit={t.setLimit} />
+          </>
+        )
+      )}
+      {form && t.tree && t.fieldMeta && <CategoryForm node={form.node} parentId={form.parentId} tree={t.tree} meta={t.fieldMeta} canEdit={canEdit} onClose={() => setForm(null)} onSaved={() => { setForm(null); t.reload(); }} />}
+    </>
+  );
+}
+
+function SubcategoriesPage() {
+  const { can } = useAuth();
+  const canEdit = can('categories.edit');
+  const t = useCategoryTable('sub');
+  const [form, setForm] = useState(null);
+  const remove = useRemove(t.reload);
+  const s = t.meta?.stats;
+  const tops = t.tree || [];
+
+  return (
+    <>
+      <PageHeader
+        title="Subcategories"
+        subtitle="Everything below a main category — this is where ads are posted. Filter by main category to work on one branch."
+        actions={canEdit && <Button variant="brand" disabled={!t.tree || tops.length === 0} onClick={() => setForm({ parentId: t.parentId || tops[0]?.id })}><Plus className="h-4 w-4" /> New subcategory</Button>}
+      />
+      {s && (
+        <div className="mb-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <StatCard label="Subcategories" value={s.total} />
+          <StatCard label="Active" value={s.active} tone="green" />
+          <StatCard label="Hidden" value={s.hidden} tone="amber" />
+          <StatCard label="With form fields" value={s.withFields} tone="blue" />
+          <StatCard label="Nested (level 3+)" value={s.deeper} />
+          <StatCard label="Live ads" value={s.liveAds} hint="across all categories" />
         </div>
       )}
-      {form && <CategoryForm node={form.node} parentId={form.parentId} tree={tree} meta={meta} canEdit={canEdit} onClose={() => setForm(null)} onSaved={() => { setForm(null); load(); }} />}
+      {t.error && <ErrorBox message={t.error} onRetry={t.reload} />}
+      {!t.rows && !t.error && <Spinner />}
+      {t.rows && (
+        <>
+          <Filters t={t} showParent tops={tops} />
+          <DataTable
+            rows={t.rows}
+            empty={tops.length ? 'No subcategories match' : 'Create a main category first (Categories page)'}
+            columns={[
+              { key: 'icon', header: '', render: (c) => <Icon c={c} /> },
+              { key: 'name', header: 'Subcategory', render: (c) => <div><div className="font-medium">{c.name}</div><div className="text-xs text-neutral-500">{c.path.join(' › ')}</div></div> },
+              { key: 'status', header: 'Status', render: (c) => <Badge tone={c.status === 'active' ? 'green' : 'amber'}>{c.status}</Badge> },
+              { key: 'types', header: 'Listing types', render: (c) => <span className="text-xs">{c.listingTypes.join(', ') || 'all'}</span> },
+              { key: 'fields', header: 'Form fields', render: (c) => c.attributes.length },
+              { key: 'rules', header: 'Photos · review', render: (c) => <span className="text-xs">{c.rules?.minPhotos ?? 0}–{c.rules?.maxPhotos ?? 0} · {c.rules?.requiresReview ? 'reviewed' : 'instant'}</span> },
+              { key: 'ads', header: 'Live ads', render: (c) => c.liveAds.toLocaleString('en-IN') },
+              {
+                key: 'act',
+                header: '',
+                render: (c) =>
+                  canEdit && (
+                    <span className="flex justify-end gap-1">
+                      {c.depth < 3 && <Button variant="outline" className="px-2 py-1" title="Add a level below" disabled={!t.tree} onClick={() => setForm({ parentId: c.id })}><Plus className="h-4 w-4" /></Button>}
+                      <Button variant="outline" className="px-2 py-1" title="Edit" disabled={!t.tree} onClick={() => setForm({ node: c })}><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="outline" className="px-2 py-1" title="Delete" onClick={() => remove(c)}><Trash2 className="h-4 w-4" /></Button>
+                    </span>
+                  ),
+              },
+            ]}
+          />
+          <Pagination meta={t.meta} onPage={t.setPage} onLimit={t.setLimit} />
+        </>
+      )}
+      {form && t.tree && t.fieldMeta && <CategoryForm node={form.node} parentId={form.parentId} tree={t.tree} meta={t.fieldMeta} canEdit={canEdit} onClose={() => setForm(null)} onSaved={() => { setForm(null); t.reload(); }} />}
     </>
   );
 }
@@ -337,6 +482,12 @@ function CategoriesPage() {
 export default {
   key: 'categories',
   section: 'Management',
-  nav: [{ label: 'Categories', path: '/categories', icon: FolderTree, permission: 'categories.view' }],
-  routes: [{ path: '/categories', element: <CategoriesPage />, permission: 'categories.view' }],
+  nav: [
+    { label: 'Categories', path: '/categories', icon: FolderTree, permission: 'categories.view' },
+    { label: 'Subcategories', path: '/subcategories', icon: FolderOpen, permission: 'categories.view' },
+  ],
+  routes: [
+    { path: '/categories', element: <CategoriesPage />, permission: 'categories.view' },
+    { path: '/subcategories', element: <SubcategoriesPage />, permission: 'categories.view' },
+  ],
 };

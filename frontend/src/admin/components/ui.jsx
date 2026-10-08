@@ -176,14 +176,26 @@ export function DataTable({ columns, rows, empty = 'No records', onRowClick }) {
   );
 }
 
-export function Pagination({ meta, onPage }) {
-  if (!meta || meta.pages <= 1) return null;
+/** Page controls. Pass `onLimit` to also show a rows-per-page choice (the server pages the data). */
+export function Pagination({ meta, onPage, onLimit, limits = [10, 20, 50] }) {
+  if (!meta || (meta.pages <= 1 && !onLimit)) return null;
+  const from = meta.total ? (meta.page - 1) * meta.limit + 1 : 0;
+  const to = Math.min(meta.page * meta.limit, meta.total);
   return (
-    <div className="mt-3 flex items-center justify-between text-sm text-neutral-600">
+    <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-neutral-600">
       <span>
-        Page {meta.page} of {meta.pages} · {meta.total} total
+        {onLimit ? `${from}–${to} of ${meta.total}` : `Page ${meta.page} of ${meta.pages} · ${meta.total} total`}
       </span>
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2">
+        {onLimit && (
+          <label className="flex items-center gap-2">
+            Rows per page
+            <select value={meta.limit} onChange={(e) => onLimit(Number(e.target.value))} className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5">
+              {limits.map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </label>
+        )}
+        {onLimit && <span>Page {meta.page} of {Math.max(1, meta.pages)}</span>}
         <Button variant="outline" disabled={meta.page <= 1} onClick={() => onPage(meta.page - 1)}>
           Previous
         </Button>
