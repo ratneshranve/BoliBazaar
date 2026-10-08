@@ -1,5 +1,9 @@
 import { api } from './client';
-import type { Bootstrap, LoginResult, Me, OtpSent, SessionInfo } from './types';
+import type { Bootstrap, ContentPage, LoginResult, Me, OtpSent, SessionInfo } from './types';
+
+export const pagesApi = {
+  get: (slug: ContentPage['slug']) => api<ContentPage>(`/pages/${slug}`, { auth: false }),
+};
 
 export const configApi = {
   bootstrap: () => api<Bootstrap>('/config/bootstrap', { auth: false }),

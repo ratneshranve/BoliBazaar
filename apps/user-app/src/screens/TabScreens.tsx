@@ -110,7 +110,7 @@ export const ProfileScreen = () => {
     { icon: <FileText size={22} color={colors.text} />, title: t('profile.verification'), sub: t('profile.verificationSub') },
     { icon: <ShieldCheck size={22} color={colors.text} />, title: t('profile.security'), sub: t('profile.securitySub'), onPress: () => nav.navigate('Security') },
     { icon: <Languages size={22} color={colors.text} />, title: t('profile.language'), sub: nextLang.nativeName, onPress: () => setLanguage(nextLang.code) },
-    { icon: <Headphones size={22} color={colors.text} />, title: t('profile.help'), sub: t('profile.helpSub') },
+    { icon: <Headphones size={22} color={colors.text} />, title: t('profile.help'), sub: t('profile.helpSub'), onPress: () => nav.navigate('Page', { slug: 'support' }) },
   ];
 
   return (

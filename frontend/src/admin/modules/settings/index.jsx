@@ -4,7 +4,6 @@ import AppControlPage from './pages/AppControlPage';
 import StoragePage from './pages/StoragePage';
 import SecurityPage from './pages/SecurityPage';
 import FeaturesPage from './pages/FeaturesPage';
-import LegalPage from './pages/LegalPage';
 import IntegrationsPage from './pages/IntegrationsPage';
 
 const pages = [
@@ -13,7 +12,6 @@ const pages = [
   { label: 'Image Storage', path: '/settings/storage', element: <StoragePage /> },
   { label: 'Security & OTP', path: '/settings/security', element: <SecurityPage /> },
   { label: 'Feature Flags', path: '/settings/features', element: <FeaturesPage /> },
-  { label: 'Legal Versions', path: '/settings/legal', element: <LegalPage /> },
   { label: 'Integrations', path: '/settings/integrations', element: <IntegrationsPage /> },
 ];
 

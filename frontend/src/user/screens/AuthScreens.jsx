@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
+import { PageSheet } from './PageScreen';
 import { AppText, Button, Checkbox, Field } from '../components/ui';
 import { colors, spacing } from '@theme/tokens';
 import { authApi, meApi } from '../api/endpoints';
@@ -153,14 +154,13 @@ export const ProfileSetupScreen = () => {
   const legalReady = Boolean(legal?.terms.version && legal?.privacy.version);
   const canSubmit = name.trim().length >= 2 && age && terms && privacy && legalReady;
 
-  const linkLabel = (label, url) => (
+  const [openPage, setOpenPage] = useState(null);
+  const linkLabel = (label, slug) => (
     <AppText>
       {label}{' '}
-      {!!url && (
-        <AppText color={colors.primary} variant="bodyStrong" onPress={() => Linking.openURL(url)}>
-          {t('profileSetup.read')}
-        </AppText>
-      )}
+      <AppText color={colors.primary} variant="bodyStrong" onPress={() => setOpenPage(slug)}>
+        {t('profileSetup.read')}
+      </AppText>
     </AppText>
   );
 
@@ -191,8 +191,8 @@ export const ProfileSetupScreen = () => {
         <Field value={name} onChangeText={setName} placeholder={t('profileSetup.name')} maxLength={80} />
         <View style={{ marginTop: spacing.lg }}>
           <Checkbox checked={age} onChange={setAge} label={t('profileSetup.age')} />
-          <Checkbox checked={terms} onChange={setTerms} label={linkLabel(t('profileSetup.terms'), legal?.terms.url)} />
-          <Checkbox checked={privacy} onChange={setPrivacy} label={linkLabel(t('profileSetup.privacy'), legal?.privacy.url)} />
+          <Checkbox checked={terms} onChange={setTerms} label={linkLabel(t('profileSetup.terms'), 'terms')} />
+          <Checkbox checked={privacy} onChange={setPrivacy} label={linkLabel(t('profileSetup.privacy'), 'privacy')} />
           <Checkbox checked={marketing} onChange={setMarketing} label={t('profileSetup.marketing')} />
         </View>
         {!legalReady && (
@@ -202,6 +202,7 @@ export const ProfileSetupScreen = () => {
         )}
         <Button title={t('profileSetup.submit')} onPress={submit} loading={loading} disabled={!canSubmit} style={{ marginTop: spacing.xl }} />
       </ScrollView>
+      {openPage && <PageSheet slug={openPage} onClose={() => setOpenPage(null)} />}
     </View>
   );
 };

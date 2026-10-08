@@ -4,6 +4,7 @@ export type RootStackParamList = {
   Otp: { phone: string; e164: string; length: number; resendInSec: number };
   ProfileSetup: undefined;
   Security: undefined;
+  Page: { slug: 'terms' | 'privacy' | 'support' };
 };
 
 export type MainTabParamList = {

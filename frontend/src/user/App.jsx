@@ -10,6 +10,7 @@ import { ConfigErrorScreen, LanguageScreen, MaintenanceScreen, OfflineScreen, Up
 import { LoginScreen, OtpScreen, ProfileSetupScreen } from './screens/AuthScreens';
 import { HomeScreen, ExploreScreen, SellScreen, AuctionsScreen, ProfileScreen } from './screens/TabScreens';
 import { SecurityScreen } from './screens/SecurityScreen';
+import { PageScreen } from './screens/PageScreen';
 import { TabBar } from './components/TabBar';
 import { colors } from '@theme/tokens';
 
@@ -37,6 +38,7 @@ const Navigation = () => (
       <Route path="/otp" element={<OtpScreen />} />
       <Route path="/profile-setup" element={<ProfileSetupScreen />} />
       <Route path="/security" element={<SecurityScreen />} />
+      <Route path="/page/:slug" element={<PageScreen />} />
     </Routes>
   </BrowserRouter>
 );

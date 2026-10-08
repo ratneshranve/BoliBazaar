@@ -6,10 +6,11 @@
 import dashboard from './dashboard';
 import users from './users';
 import settings from './settings';
+import cms from './cms';
 import staff from './staff';
 import audit from './audit';
 
-export const modules = [dashboard, users, settings, staff, audit];
+export const modules = [dashboard, users, cms, settings, staff, audit];
 
 /** Sections shown in the sidebar, in order. */
 export const sections = ['Overview', 'Management', 'Configuration', 'System'];

@@ -4,6 +4,11 @@ export const configApi = {
   bootstrap: () => api('/config/bootstrap', { auth: false }),
 };
 
+/** Terms, Privacy and Support text, managed in Admin › Content Pages */
+export const pagesApi = {
+  get: (slug) => api(`/pages/${slug}`, { auth: false }),
+};
+
 export const authApi = {
   sendOtp: (phone, countryCode) => api('/auth/otp/send', { method: 'POST', body: { phone, countryCode }, auth: false }),
   verifyOtp: (phone, countryCode, code) => api('/auth/otp/verify', { method: 'POST', body: { phone, countryCode, code }, auth: false }),

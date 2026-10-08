@@ -64,16 +64,6 @@ export const settingGroups = {
     },
   },
 
-  /** Current versions of legal documents users must accept (full documents are managed in CMS › Legal, Phase 2). */
-  legal: {
-    public: true,
-    schema: z.object({
-      terms: z.object({ version: z.number().int().positive().nullable(), url: z.string().url().nullable() }),
-      privacy: z.object({ version: z.number().int().positive().nullable(), url: z.string().url().nullable() }),
-    }),
-    initial: { terms: { version: null, url: null }, privacy: { version: null, url: null } },
-  },
-
   storage: {
     public: false,
     schema: z.object({

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { PageSheet } from './PageScreen';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -170,14 +171,13 @@ export const ProfileSetupScreen = ({ navigation }: NativeStackScreenProps<RootSt
   const legalReady = Boolean(legal?.terms.version && legal?.privacy.version);
   const canSubmit = name.trim().length >= 2 && age && terms && privacy && legalReady;
 
-  const linkLabel = (label: string, url?: string | null) => (
+  const [openPage, setOpenPage] = useState<'terms' | 'privacy' | null>(null);
+  const linkLabel = (label: string, slug: 'terms' | 'privacy') => (
     <AppText>
       {label}{' '}
-      {!!url && (
-        <AppText color={colors.primary} variant="bodyStrong" onPress={() => Linking.openURL(url)}>
-          {t('profileSetup.read')}
-        </AppText>
-      )}
+      <AppText color={colors.primary} variant="bodyStrong" onPress={() => setOpenPage(slug)}>
+        {t('profileSetup.read')}
+      </AppText>
     </AppText>
   );
 
@@ -209,8 +209,8 @@ export const ProfileSetupScreen = ({ navigation }: NativeStackScreenProps<RootSt
         <Field value={name} onChangeText={setName} placeholder={t('profileSetup.name')} autoComplete="name" maxLength={80} />
         <View style={{ marginTop: spacing.lg }}>
           <Checkbox checked={age} onChange={setAge} label={t('profileSetup.age')} />
-          <Checkbox checked={terms} onChange={setTerms} label={linkLabel(t('profileSetup.terms'), legal?.terms.url)} />
-          <Checkbox checked={privacy} onChange={setPrivacy} label={linkLabel(t('profileSetup.privacy'), legal?.privacy.url)} />
+          <Checkbox checked={terms} onChange={setTerms} label={linkLabel(t('profileSetup.terms'), 'terms')} />
+          <Checkbox checked={privacy} onChange={setPrivacy} label={linkLabel(t('profileSetup.privacy'), 'privacy')} />
           <Checkbox checked={marketing} onChange={setMarketing} label={t('profileSetup.marketing')} />
         </View>
         {!legalReady && (
@@ -220,6 +220,7 @@ export const ProfileSetupScreen = ({ navigation }: NativeStackScreenProps<RootSt
         )}
         <Button title={t('profileSetup.submit')} onPress={submit} loading={loading} disabled={!canSubmit} style={{ marginTop: spacing.xl }} />
       </ScrollView>
+      <PageSheet slug={openPage} onClose={() => setOpenPage(null)} />
     </SafeAreaView>
   );
 };

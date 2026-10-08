@@ -8,10 +8,14 @@
     "loading": "Loading…",
     "logout": "Log out",
     "back": "Back",
+    "close": "Close",
     "seeAll": "View all",
     "offline": "You're offline",
     "somethingWrong": "Something went wrong",
     "comingSoon": "This section will be available soon."
+  },
+  "page": {
+    "unavailable": "This page is not available yet."
   },
   "tabs": {
     "home": "Home",

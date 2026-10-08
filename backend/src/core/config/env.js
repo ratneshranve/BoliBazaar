@@ -49,10 +49,6 @@ const schema = z
     RAZORPAY_KEY_ID: optional,
     RAZORPAY_KEY_SECRET: optional,
     RAZORPAY_WEBHOOK_SECRET: optional,
-
-    ADMIN_SEED_NAME: optional,
-    ADMIN_SEED_EMAIL: optional,
-    ADMIN_SEED_PASSWORD: optional,
   })
   .superRefine((env, ctx) => {
     const need = (keys, why) =>

@@ -1,21 +1,43 @@
 /**
- * Creates the Super Admin role and the first super-admin account from env
- * (ADMIN_SEED_NAME / ADMIN_SEED_EMAIL / ADMIN_SEED_PASSWORD). Safe to run again: it never overwrites.
+ * Creates the Super Admin role and a super-admin account. Credentials are typed in the
+ * terminal (never read from env or files). Safe to run again: it never overwrites.
  *   npm run seed:admin
  */
+import readline from 'node:readline';
 import bcrypt from 'bcryptjs';
-import { env } from '../core/config/env.js';
 import { connectMongo, disconnectMongo } from '../core/db/mongo.js';
 import { Role, AdminUser } from '../modules/staff/staff.models.js';
 
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true });
+
+const ask = (question) => new Promise((resolve) => rl.question(question, resolve));
+
+/** Prompt without echoing the typed characters. */
+const askHidden = (question) =>
+  new Promise((resolve) => {
+    const out = rl.output;
+    const original = rl._writeToOutput;
+    process.stdout.write(question);
+    rl._writeToOutput = () => {};
+    rl.question('', (answer) => {
+      rl._writeToOutput = original;
+      out.write('\n');
+      resolve(answer);
+    });
+  });
+
 const run = async () => {
-  const { ADMIN_SEED_NAME: name, ADMIN_SEED_EMAIL: email, ADMIN_SEED_PASSWORD: password } = env;
-  if (!name || !email || !password) {
-    console.error('Set ADMIN_SEED_NAME, ADMIN_SEED_EMAIL and ADMIN_SEED_PASSWORD in backend/.env');
+  const name = (await ask('Admin name: ')).trim();
+  const email = (await ask('Admin email: ')).trim().toLowerCase();
+  const password = await askHidden('Password (min 10 characters): ');
+  rl.close();
+
+  if (!name || !/^\S+@\S+\.\S+$/.test(email)) {
+    console.error('A name and a valid email are required.');
     process.exit(1);
   }
   if (password.length < 10) {
-    console.error('ADMIN_SEED_PASSWORD must be at least 10 characters');
+    console.error('Password must be at least 10 characters.');
     process.exit(1);
   }
 
@@ -27,13 +49,11 @@ const run = async () => {
     console.log('Created role: Super Admin');
   }
 
-  const existing = await AdminUser.findOne({ email: email.toLowerCase() });
-  if (existing) {
+  if (await AdminUser.findOne({ email })) {
     console.log(`Admin ${email} already exists — nothing changed.`);
   } else {
     await AdminUser.create({ name, email, passwordHash: await bcrypt.hash(password, 12), roleId: role._id });
     console.log(`Created super admin: ${email}`);
-    console.log('Remove ADMIN_SEED_PASSWORD from .env now.');
   }
   await disconnectMongo();
 };

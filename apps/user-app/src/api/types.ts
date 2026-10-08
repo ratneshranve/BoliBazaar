@@ -18,8 +18,8 @@ export type Bootstrap = {
   branding: Branding;
   features: Record<string, boolean>;
   legal: {
-    terms: { version: number | null; url: string | null };
-    privacy: { version: number | null; url: string | null };
+    terms: { version: number | null };
+    privacy: { version: number | null };
   };
   maintenance: { enabled: boolean; title?: string | null; message?: string | null; until?: string | null };
   update: { required: boolean; available: boolean; latestVersion: string | null; storeUrl: string | null };
@@ -44,6 +44,9 @@ export type Me = {
   ageConfirmed: boolean;
   createdAt: string;
 };
+
+/** Terms / Privacy / Support text, managed in Admin › Content Pages */
+export type ContentPage = { slug: 'terms' | 'privacy' | 'support'; title: string; body: string; language: string; version: number; updatedAt: string };
 
 export type OtpSent = { phone: string; length: number; expiresInSec: number; resendInSec: number };
 

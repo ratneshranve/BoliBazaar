@@ -7,6 +7,7 @@ import { TabBar } from '../components/TabBar';
 import { HomeScreen, ExploreScreen, SellScreen, AuctionsScreen, ProfileScreen } from '../screens/TabScreens';
 import { LoginScreen, OtpScreen, ProfileSetupScreen } from '../screens/AuthScreens';
 import { SecurityScreen } from '../screens/SecurityScreen';
+import { PageScreen } from '../screens/PageScreen';
 import { useAppSelector } from '../store';
 import type { MainTabParamList, RootStackParamList } from './types';
 
@@ -50,6 +51,7 @@ export const RootNavigator = () => {
         <Stack.Screen name="Otp" component={OtpScreen} />
         <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} options={{ gestureEnabled: false }} />
         <Stack.Screen name="Security" component={SecurityScreen} options={{ headerShown: true, title: t('security.title') }} />
+        <Stack.Screen name="Page" component={PageScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

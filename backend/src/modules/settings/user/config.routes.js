@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { asyncHandler, ok } from '../../../core/utils/http.js';
 import { getPublicSettings } from '../settings.service.js';
+import { legalVersions } from '../../cms/page.service.js';
 
 const router = Router();
 
@@ -42,7 +43,7 @@ router.get(
       serverTime: new Date().toISOString(),
       branding: s.branding.value,
       features: s.features.value,
-      legal: s.legal.value,
+      legal: await legalVersions(),
       maintenance,
       update,
       versions: {
