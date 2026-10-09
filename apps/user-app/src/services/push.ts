@@ -10,12 +10,19 @@ import {
   AuthorizationStatus,
   setBackgroundMessageHandler,
 } from '@react-native-firebase/messaging';
+import { getApps } from '@react-native-firebase/app';
 import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
 import { authApi } from '../api/endpoints';
 import { getDeviceId, deviceMeta } from './device';
 import { kv, KV } from './storage';
 
-const messaging = getMessaging();
+/**
+ * Firebase is set up by android/app/google-services.json. Without that file (e.g. a fresh dev checkout)
+ * push is simply off: every function below becomes a no-op instead of crashing the app at start.
+ */
+const pushAvailable = () => getApps().length > 0;
+let cached: ReturnType<typeof getMessaging> | null = null;
+const fcm = () => (cached ??= getMessaging());
 const CHANNEL_ID = 'default';
 
 export type PushRoute = { route: string; params: Record<string, unknown> };
@@ -34,7 +41,8 @@ const parseRoute = (data?: Record<string, unknown>): PushRoute | null => {
 
 /** Must be called once at module load (index.js) — handles data messages while app is killed. */
 export const registerBackgroundHandler = () => {
-  setBackgroundMessageHandler(messaging, async () => {
+  if (!pushAvailable()) return;
+  setBackgroundMessageHandler(fcm(), async () => {
     /* Notification payloads are displayed by the OS; nothing to do for now. */
   });
 };
@@ -48,7 +56,7 @@ export const requestPushPermission = async () => {
     const r = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
     if (r !== PermissionsAndroid.RESULTS.GRANTED) return false;
   }
-  const status = await requestPermission(messaging);
+  const status = await requestPermission(fcm());
   return status === AuthorizationStatus.AUTHORIZED || status === AuthorizationStatus.PROVISIONAL;
 };
 
@@ -68,16 +76,19 @@ const sendTokenToBackend = async (fcmToken: string) => {
 
 /** Called after every login and on app start when logged in. */
 export const registerPushToken = async () => {
+  if (!pushAvailable()) return false;
   await ensureChannel();
   const allowed = await requestPushPermission();
   if (!allowed) return false;
-  const token = await getToken(messaging);
+  const token = await getToken(fcm());
   await sendTokenToBackend(token);
   return true;
 };
 
 /** Listeners: foreground display, token refresh, taps. Returns unsubscribe. */
 export const startPushListeners = (onOpen: OpenHandler, isLoggedIn: () => boolean) => {
+  if (!pushAvailable()) return () => {};
+  const messaging = fcm();
   const unsubs: Array<() => void> = [];
 
   unsubs.push(

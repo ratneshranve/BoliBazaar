@@ -1,6 +1,6 @@
 import './src/i18n';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, AppState, StatusBar, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { AppState, StatusBar, View } from 'react-native';
 import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { env, missingEnv } from './src/config/env';
@@ -11,6 +11,7 @@ import { ConfigErrorScreen, LanguageScreen, MaintenanceScreen, OfflineScreen, Up
 import i18n, { savedLanguage, setLanguage, ensureLanguage } from './src/i18n';
 import { registerPushToken, startPushListeners } from './src/services/push';
 import { colors } from './src/theme/tokens';
+import { AnimatedSplash } from './src/components/AnimatedSplash';
 
 const Gate = () => {
   const dispatch = useAppDispatch();
@@ -74,19 +75,22 @@ const Gate = () => {
     );
   }, [session]);
 
-  if (status === 'booting' || session === 'unknown') {
-    return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white }}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
-    );
-  }
+  // the animated splash covers the screen while the app starts
+  if (status === 'booting' || session === 'unknown') return <View style={{ flex: 1, backgroundColor: colors.white }} />;
   if (status === 'offline') return <OfflineScreen />;
   if (maintenance?.enabled) return <MaintenanceScreen />;
   if (bootstrap?.update.required) return <UpdateScreen required />;
   if (bootstrap?.update.available && !updateDismissed) return <UpdateScreen required={false} />;
   if (!languageValid && langs.length > 1) return <LanguageScreen onDone={() => setLangTick(n => n + 1)} />;
   return <RootNavigator />;
+};
+
+/** Shown over the app until it has started and the logo animation has played. */
+const Splash = () => {
+  const ready = useAppSelector(s => s.app.status !== 'booting' && s.session.status !== 'unknown');
+  const [visible, setVisible] = useState(true);
+  const hide = useCallback(() => setVisible(false), []);
+  return visible ? <AnimatedSplash ready={ready} onDone={hide} /> : null;
 };
 
 export default function App() {
@@ -103,6 +107,7 @@ export default function App() {
       <SafeAreaProvider>
         <StatusBar barStyle="dark-content" />
         <Gate />
+        <Splash />
       </SafeAreaProvider>
     </Provider>
   );

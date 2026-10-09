@@ -1,8 +1,13 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
-// Firebase: requires android/app/google-services.json (from your Firebase console; not committed)
-apply plugin: "com.google.gms.google-services"
+// Firebase (push): needs android/app/google-services.json from your Firebase console (not committed).
+// Without it the app still builds and runs; push notifications are simply off.
+if (file("google-services.json").exists()) {
+    apply plugin: "com.google.gms.google-services"
+} else {
+    logger.warn("google-services.json not found: building without Firebase (push notifications off)")
+}
 
 // react-native-config: .env (debug) / .env.production (release) — see apps/user-app/.env.example
 project.ext.envConfigFiles = [

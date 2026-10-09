@@ -857,5 +857,8 @@
     "ad": "Ad",
     "sponsored": "Sponsored",
     "businesses": "Promoted businesses"
+  },
+  "splash": {
+    "tagline": "Buy. Sell. Bid. All in One."
   }
 }
