@@ -67,7 +67,7 @@ const parentContext = async (parentId) => {
   if (!parentId) return { ancestors: [], depth: 0 };
   const parent = await Category.findById(parentId).lean();
   if (!parent) throw ApiError.badRequest('PARENT_NOT_FOUND', 'Parent category does not exist');
-  if (parent.depth >= 3) throw ApiError.badRequest('MAX_DEPTH', 'Categories can be nested at most 4 levels deep');
+  if (parent.depth >= 1) throw ApiError.badRequest('MAX_DEPTH', 'Only two levels are allowed: pick a main category as the parent');
   return { ancestors: [...parent.ancestors, parent._id], depth: parent.depth + 1 };
 };
 
@@ -116,8 +116,8 @@ export const updateCategory = async (id, input) => {
     }
     const ctx = await parentContext(newParent);
     const subtreeDepth = (await Category.find({ ancestors: doc._id }).sort({ depth: -1 }).limit(1).lean())[0];
-    if (subtreeDepth && ctx.depth + 1 + (subtreeDepth.depth - doc.depth) > 3) {
-      throw ApiError.badRequest('MAX_DEPTH', 'Categories can be nested at most 4 levels deep');
+    if (subtreeDepth && ctx.depth + (subtreeDepth.depth - doc.depth) > 1) {
+      throw ApiError.badRequest('MAX_DEPTH', 'A category that has subcategories cannot be moved under another category');
     }
     doc.parentId = newParent;
     doc.ancestors = ctx.ancestors;
@@ -261,7 +261,7 @@ export const adminCategoryPage = async ({ level, parentId, q, status, page, limi
     Category.countDocuments({ ...levelFilter, status: 'active' }),
     Category.countDocuments({ ...levelFilter, status: 'hidden' }),
     Category.countDocuments({ ...levelFilter, 'attributes.0': { $exists: true } }),
-    level === 'top' ? Category.countDocuments({ parentId: { $ne: null } }) : Category.countDocuments({ parentId: { $ne: null }, depth: { $gte: 2 } }),
+    Category.countDocuments({ parentId: { $ne: null } }),
     Listing.countDocuments({ status: 'published', expiresAt: { $gt: new Date() } }),
   ]);
   const emptyLeaves = await Category.countDocuments({ ...levelFilter, _id: { $nin: await Category.distinct('parentId', { parentId: { $ne: null } }) } });
@@ -276,7 +276,7 @@ export const adminCategoryPage = async ({ level, parentId, q, status, page, limi
     total,
     stats: level === 'top'
       ? { total: all, active, hidden, subcategories: subTotal, withFields, withoutSubcategories: emptyLeaves, liveAds }
-      : { total: all, active, hidden, withFields, deeper: subTotal, liveAds },
+      : { total: all, active, hidden, withFields, liveAds },
   };
 };
 

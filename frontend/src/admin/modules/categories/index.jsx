@@ -9,15 +9,8 @@ import { Badge, Button, Card, DataTable, ErrorBox, Field, Input, Modal, PageHead
 
 const slugValue = (s) => s.trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_+|_+$/g, '');
 
-/** Flatten the tree for a parent <select>, with indentation. Excludes a branch (when editing, to prevent cycles). */
-const flatten = (nodes, exclude, depth = 0, out = []) => {
-  for (const n of nodes) {
-    if (n.id === exclude) continue;
-    out.push({ id: n.id, label: `${'— '.repeat(depth)}${n.name}`, depth });
-    flatten(n.children, exclude, depth + 1, out);
-  }
-  return out;
-};
+/** Parent options: main categories only (two levels: Category › Subcategory). Excludes the one being edited. */
+const topLevel = (nodes, exclude) => nodes.filter((n) => n.id !== exclude).map((n) => ({ id: n.id, label: n.name }));
 
 const DEFAULT_RULES = { minPhotos: 1, maxPhotos: 10, requiresReview: true, validityDays: 30 };
 
@@ -122,7 +115,7 @@ function CategoryForm({ node, parentId, tree, meta, canEdit, onClose, onSaved })
     rules: node?.rules || DEFAULT_RULES,
   }));
   const [busy, setBusy] = useState(false);
-  const parents = useMemo(() => flatten(tree, node?.id), [tree, node]);
+  const parents = useMemo(() => topLevel(tree, node?.id), [tree, node]);
 
   const save = async () => {
     setBusy(true);
@@ -431,12 +424,11 @@ function SubcategoriesPage() {
         actions={canEdit && <Button variant="brand" disabled={!t.tree || tops.length === 0} onClick={() => setForm({ parentId: t.parentId || tops[0]?.id })}><Plus className="h-4 w-4" /> New subcategory</Button>}
       />
       {s && (
-        <div className="mb-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="mb-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <StatCard label="Subcategories" value={s.total} />
           <StatCard label="Active" value={s.active} tone="green" />
           <StatCard label="Hidden" value={s.hidden} tone="amber" />
           <StatCard label="With form fields" value={s.withFields} tone="blue" />
-          <StatCard label="Nested (level 3+)" value={s.deeper} />
           <StatCard label="Live ads" value={s.liveAds} hint="across all categories" />
         </div>
       )}
