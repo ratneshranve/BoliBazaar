@@ -155,14 +155,28 @@ function ListingsPage() {
   return (
     <>
       <PageHeader title="Listings" subtitle="Review new ads before they go live, and manage existing ones" />
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        {TABS.map((t) => (
-          <button key={t.key} onClick={() => { setTab(t.key); setPage(1); }} className={`rounded-lg px-4 py-2 text-sm font-semibold ${tab === t.key ? 'bg-neutral-900 text-white' : 'bg-white text-neutral-700 hover:bg-neutral-50'}`}>
-            {t.label}
-            {t.key === 'pending_review' && meta?.pending > 0 && <span className="ml-2 rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] text-white">{meta.pending}</span>}
-          </button>
-        ))}
-        <div className="ml-auto w-64">
+      <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          {TABS.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => { setTab(t.key); setPage(1); }}
+              className={`rounded-xl px-3.5 py-2 text-xs sm:text-sm font-semibold transition-all duration-200 shadow-2xs ${
+                tab === t.key
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-slate-200/80'
+              }`}
+            >
+              {t.label}
+              {t.key === 'pending_review' && meta?.pending > 0 && (
+                <span className="ml-2 rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-2xs">
+                  {meta.pending}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+        <div className="w-full sm:w-72">
           <Input placeholder="Search title or ad number" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
         </div>
       </div>

@@ -18,7 +18,7 @@ export default function SettingsShell({ title, subtitle, state, children, canEdi
           )
         }
       />
-      <Card className="max-w-3xl space-y-5">{children}</Card>
+      <Card className="w-full space-y-6">{children}</Card>
     </>
   );
 }

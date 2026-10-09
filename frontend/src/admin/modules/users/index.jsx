@@ -159,11 +159,11 @@ function UsersPage() {
   return (
     <>
       <PageHeader title="Users" subtitle="All app users (buyers and sellers use one account)" />
-      <div className="mb-4 flex flex-wrap gap-3">
-        <div className="w-72">
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <div className="w-full sm:w-72">
           <Input placeholder="Search name, phone, email, ID…" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
         </div>
-        <div className="w-48">
+        <div className="w-full sm:w-48">
           <Select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
             <option value="">All statuses</option>
             {Object.keys(STATUS_TONE).map((s) => (

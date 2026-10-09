@@ -27,21 +27,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-950 p-4">
-      <form onSubmit={submit} className="w-full max-w-sm space-y-4 rounded-2xl bg-white p-7 shadow-xl">
+    <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4 font-sans">
+      <form onSubmit={submit} className="w-full max-w-sm space-y-5 rounded-3xl bg-white p-8 shadow-2xl border border-slate-100">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900">Admin Panel</h1>
-          <p className="text-sm text-neutral-500">Sign in to continue</p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Admin Portal</h1>
+          <p className="mt-1 text-xs sm:text-sm text-slate-500 font-normal">Sign in to manage your marketplace</p>
         </div>
-        <Field label="Email">
-          <Input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
+        <Field label="Email Address">
+          <Input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus placeholder="admin@example.com" />
         </Field>
         <Field label="Password">
-          <Input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <Input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" />
         </Field>
-        {error && <div className="whitespace-pre-line rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-        <Button type="submit" loading={loading} className="w-full">
-          Sign in
+        {error && <div className="whitespace-pre-line rounded-xl bg-rose-50 border border-rose-200/60 p-3.5 text-xs sm:text-sm text-rose-700 font-medium">{error}</div>}
+        <Button type="submit" loading={loading} className="w-full py-3">
+          Sign In
         </Button>
       </form>
     </div>

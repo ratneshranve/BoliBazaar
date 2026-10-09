@@ -244,7 +244,7 @@ function BroadcastsPage() {
     <>
       <PageHeader title="Broadcasts" subtitle="Send a message to many users at once. It appears in their notifications and as a phone push (if they allow system updates)." />
       {can('notifications.send') && (
-        <Card className="mb-6 max-w-3xl space-y-4">
+        <Card className="mb-6 w-full space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Who gets it">
               <Select value={form.segment} onChange={(e) => set({ segment: e.target.value })}>
