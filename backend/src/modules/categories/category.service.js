@@ -7,9 +7,10 @@ import { ApiError } from '../../core/utils/ApiError.js';
 import { logger } from '../../core/utils/logger.js';
 import { enabledLanguageCodes, translateTexts } from '../i18n/translate.service.js';
 import { Media } from '../uploads/media.model.js';
+import { mediaUrlInput } from '../../core/utils/mediaUrl.js';
 
 const objectId = z.string().regex(/^[a-f0-9]{24}$/);
-const mediaInput = z.object({ url: z.string().url(), mediaId: objectId.optional() }).nullable();
+const mediaInput = z.object({ url: mediaUrlInput, mediaId: objectId.optional() }).nullable();
 
 const attributeInput = z.object({
   key: z.string().regex(/^[a-z][a-z0-9_]*$/, 'lowercase letters, digits and _ only'),

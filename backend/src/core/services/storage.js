@@ -6,11 +6,13 @@ import { v2 as cloudinary } from 'cloudinary';
 import { env, integrations } from '../config/env.js';
 import { ApiError } from '../utils/ApiError.js';
 import { getSettingValue } from '../../modules/settings/settings.service.js';
+import { UPLOAD_PREFIX } from '../utils/mediaUrl.js';
 
 /**
  * Storage adapter. The active provider is chosen by admin (Settings › Storage):
  *   - "cloudinary": credentials from env
- *   - "local": files written to UPLOAD_DIR on this VPS and served at /uploads/*
+ *   - "local": files written to UPLOAD_DIR/public on this VPS and served at /uploads/* — the DB keeps
+ *     "/uploads/<folder>/<yyyy-mm>/<id>.webp" (no host), see core/utils/mediaUrl.js
  * Private files (KYC, documents) are always kept on local disk outside the public route.
  */
 
@@ -91,7 +93,7 @@ export const storePublicImage = async (file, folder) => {
   return {
     provider: 'local',
     key,
-    url: `${env.PUBLIC_BASE_URL.replace(/\/$/, '')}/uploads/${key}`,
+    url: `${UPLOAD_PREFIX}${key}`, // short path; the API adds PUBLIC_BASE_URL when it responds
     width: info.width,
     height: info.height,
     size: info.size,

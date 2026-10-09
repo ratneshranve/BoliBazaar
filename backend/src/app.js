@@ -11,6 +11,7 @@ import userRoutes from './routes/user.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import { handleWebhook } from './modules/payments/payment.service.js';
 import { sitemapXml } from './modules/growth/growth.service.js';
+import { mediaUrlMiddleware } from './core/utils/mediaUrl.js';
 
 export const createApp = () => {
   const app = express();
@@ -31,6 +32,7 @@ export const createApp = () => {
   app.use(express.json({ limit: '1mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
   app.use(express.urlencoded({ extended: false, limit: '1mb' }));
   app.use(requestContext);
+  app.use(mediaUrlMiddleware); // photos on this server: short "/uploads/…" paths in the DB, full URLs in responses
   app.use(morgan(env.isDev ? 'dev' : 'combined'));
 
   // Files stored on this VPS (Admin › Storage = VPS). Private files are never served from here.

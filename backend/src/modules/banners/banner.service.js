@@ -4,6 +4,7 @@ import { Category } from '../categories/category.model.js';
 import { Media } from '../uploads/media.model.js';
 import { ApiError } from '../../core/utils/ApiError.js';
 import { translateForReader } from '../categories/category.service.js';
+import { mediaUrlInput } from '../../core/utils/mediaUrl.js';
 
 const objectId = z.string().regex(/^[a-f0-9]{24}$/);
 
@@ -11,7 +12,7 @@ export const bannerInput = z
   .object({
     title: z.string().trim().max(80).optional().default(''),
     subtitle: z.string().trim().max(160).optional().default(''),
-    image: z.object({ url: z.string().url(), mediaId: objectId.optional() }),
+    image: z.object({ url: mediaUrlInput, mediaId: objectId.optional() }),
     action: z.object({ type: z.enum(['none', 'category']), categoryId: objectId.nullable().optional() }).default({ type: 'none' }),
     order: z.number().int().min(0).max(100000).default(0),
     status: z.enum(['active', 'paused']).default('active'),

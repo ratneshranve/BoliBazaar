@@ -12,6 +12,7 @@ import { User } from '../users/user.model.js';
 import { getSettingValue } from '../settings/settings.service.js';
 import { factorOf } from '../payments/pricing.service.js';
 import { auditAdmin } from '../audit/audit.service.js';
+import { mediaUrlInput } from '../../core/utils/mediaUrl.js';
 
 const id = z.string().regex(/^[a-f0-9]{24}$/);
 
@@ -31,7 +32,7 @@ const adInput = z
     advertiser: z.object({ name: z.string().trim().min(2).max(120), contact: z.string().trim().max(160).optional() }),
     title: z.string().trim().max(80).optional(),
     subtitle: z.string().trim().max(160).optional(),
-    image: z.object({ url: z.string().url(), mediaId: id.optional() }).nullable().optional(),
+    image: z.object({ url: mediaUrlInput, mediaId: id.optional() }).nullable().optional(),
     route: z.string().trim().regex(/^\/[\w\-/?=&.]*$/, 'An app path such as /search?q=bike').max(200).optional(),
     listingNo: z.string().trim().max(20).optional(), // sponsored listing, by ad number
     categoryId: id.optional(),

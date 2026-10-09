@@ -8,6 +8,7 @@ import { getSettingValue } from '../settings/settings.service.js';
 import { notify } from '../notifications/notification.service.js';
 import { ApiError } from '../../core/utils/ApiError.js';
 import { logger } from '../../core/utils/logger.js';
+import { toPublicUrl } from '../../core/utils/mediaUrl.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const ORDER_TTL_MS = 30 * 60 * 1000;
@@ -273,7 +274,7 @@ export const invoiceHtml = async (userId, id) => {
   const row = (label, minor, strong) => `<tr><td>${esc(label)}</td><td style="text-align:right${strong ? ';font-weight:700' : ''}">${esc(money(minor, p.currency))}</td></tr>`;
   return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(p.invoiceNo)}</title>
 <style>body{font-family:system-ui,sans-serif;max-width:720px;margin:32px auto;padding:0 16px;color:#111}table{width:100%;border-collapse:collapse}td{padding:8px;border-bottom:1px solid #eee}h1{font-size:22px}.muted{color:#666;font-size:13px}@media print{button{display:none}}</style></head><body>
-${branding.logo?.url ? `<img src="${esc(branding.logo.url)}" alt="" style="height:48px">` : ''}
+${branding.logo?.url ? `<img src="${esc(toPublicUrl(branding.logo.url))}" alt="" style="height:48px">` : ''}
 <h1>Tax invoice</h1>
 <p class="muted">${esc(branding.appName || '')}${branding.supportEmail ? ` · ${esc(branding.supportEmail)}` : ''}${branding.supportPhone ? ` · ${esc(branding.supportPhone)}` : ''}</p>
 <p><b>Invoice no:</b> ${esc(p.invoiceNo)}<br><b>Date:</b> ${esc(new Date(p.paidAt).toLocaleDateString('en-IN'))}<br><b>Billed to:</b> ${esc(user?.name || '')} ${esc(user?.phone?.e164 || '')} ${esc(user?.email?.address || '')}</p>

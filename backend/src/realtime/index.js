@@ -4,6 +4,7 @@ import { env } from '../core/config/env.js';
 import { redis } from '../core/db/redis.js';
 import { logger } from '../core/utils/logger.js';
 import { User } from '../modules/users/user.model.js';
+import { withPublicUrls } from '../core/utils/mediaUrl.js';
 
 /**
  * Realtime (Socket.io). Every logged-in user joins the room `user:<id>`; the server pushes events there
@@ -53,12 +54,12 @@ export const initRealtime = async (httpServer, { onConnection } = {}) => {
 
 /** Send an event to every device a user has open. Safe to call when realtime is not running (tests, workers). */
 export const emitToUser = (userId, event, payload) => {
-  io?.to(`user:${userId}`).emit(event, payload);
+  io?.to(`user:${userId}`).emit(event, withPublicUrls(payload));
 };
 
 /** Send an event to everyone watching a room (e.g. an auction page). */
 export const emitToRoom = (room, event, payload) => {
-  io?.to(room).emit(event, payload);
+  io?.to(room).emit(event, withPublicUrls(payload));
 };
 
 /** True when the user has at least one live connection (used to decide whether a push is needed). */

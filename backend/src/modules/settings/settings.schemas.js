@@ -1,11 +1,12 @@
 import { z } from 'zod';
+import { mediaUrlInput } from '../../core/utils/mediaUrl.js';
 
 /**
  * Shape of each admin-managed settings group.
  * `initial` is the structural starting state written once when the group is first read:
  * it never contains business content (names, images, texts) — those stay null until admin sets them.
  */
-const mediaRef = z.object({ url: z.string().url(), mediaId: z.string().optional() }).nullable();
+const mediaRef = z.object({ url: mediaUrlInput, mediaId: z.string().optional() }).nullable();
 const semver = z.string().regex(/^\d+\.\d+\.\d+$/, 'Use format 1.2.3').nullable();
 const nullableText = (max) => z.string().trim().max(max).nullable();
 
