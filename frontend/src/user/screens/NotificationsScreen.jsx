@@ -63,11 +63,11 @@ export const NotificationsScreen = () => {
     }
   };
 
-  const togglePush = async (group, on) => {
+  const toggle = async (group, channel, on) => {
     const before = prefs;
-    setPrefs({ ...prefs, [group]: { push: on } });
+    setPrefs({ ...prefs, [group]: { ...prefs[group], [channel]: on } });
     try {
-      await notificationsApi.setPrefs({ [group]: { push: on } });
+      await notificationsApi.setPrefs({ [group]: { [channel]: on } });
     } catch (e) {
       setPrefs(before);
       Alert.alert(errorText(e));
@@ -85,10 +85,17 @@ export const NotificationsScreen = () => {
       {showPrefs && prefs && (
         <View style={styles.prefs}>
           <AppText variant="caption" color={colors.textMuted}>{t('notifications.pushHelp')}</AppText>
+          <AppText variant="caption" color={colors.textMuted}>{t('notifications.emailHelp')}</AppText>
+          <View style={styles.prefRow}>
+            <View style={{ flex: 1 }} />
+            <AppText variant="small" color={colors.textMuted} style={styles.prefCol}>{t('notifications.push')}</AppText>
+            <AppText variant="small" color={colors.textMuted} style={styles.prefCol}>{t('notifications.emailCol')}</AppText>
+          </View>
           {GROUPS.map((g) => (
             <View key={g} style={styles.prefRow}>
               <AppText style={{ flex: 1 }}>{t(`notifications.group_${g}`)}</AppText>
-              <Switch activeColor={colors.primary} value={prefs[g]?.push !== false} onValueChange={(on) => togglePush(g, on)} />
+              <View style={styles.prefCol}><Switch activeColor={colors.primary} value={prefs[g]?.push !== false} onValueChange={(on) => toggle(g, 'push', on)} /></View>
+              <View style={styles.prefCol}>{g !== 'chat' && <Switch activeColor={colors.primary} value={prefs[g]?.email !== false} onValueChange={(on) => toggle(g, 'email', on)} />}</View>
             </View>
           ))}
         </View>
@@ -118,7 +125,8 @@ const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: colors.white },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.divider },
   prefs: { padding: spacing.lg, gap: spacing.sm, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.divider },
-  prefRow: { flexDirection: 'row', alignItems: 'center' },
+  prefRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  prefCol: { width: 56, alignItems: 'center', textAlign: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.divider },
   unread: { backgroundColor: colors.primarySoft, borderColor: colors.primarySoft },
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, BadgeCheck, Building2, FileX, Flag, ImageOff, MapPin, Share2, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, BadgeCheck, Building2, FileX, Flag, ImageOff, MapPin, Phone, Share2, ShieldCheck, Truck } from 'lucide-react';
 import { ReportSheet } from '../components/ReportSheet';
 import { usePageMeta } from '../utils/pageMeta';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, TextInput, View } from '../components/primitives';
@@ -19,6 +19,67 @@ const Pill = ({ label, tone = 'neutral' }) => (
     <AppText variant="small" color={colors.text}>{label}</AppText>
   </View>
 );
+
+/** "Show phone number": revealed on tap (logged for the seller), with WhatsApp and calling hours when allowed. */
+const PhoneBox = ({ ad, authed, onLogin }) => {
+  const { t } = useTranslation();
+  const [shown, setShown] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const c = ad.seller?.contact;
+  if (!c || c.phone === 'none') return null;
+  const reveal = async () => {
+    if (c.phone === 'login' && !authed) return onLogin();
+    setBusy(true);
+    try {
+      setShown((await listingsApi.phone(ad.id)).data);
+    } catch (e) {
+      Alert.alert(errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const hours = (shown?.callHours || c.callHours) && t('listing.callHours', { from: (shown?.callHours || c.callHours).from, to: (shown?.callHours || c.callHours).to });
+  return (
+    <Card style={{ gap: spacing.sm }}>
+      {shown ? (
+        <>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            <Phone size={20} color={colors.sell} />
+            <AppText variant="h3" style={{ flex: 1 }}>{shown.phone}</AppText>
+          </View>
+          <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
+            <Button size="md" variant="sell" title={t('listing.call')} onPress={() => window.open(`tel:${shown.phone}`, '_self')} />
+            {shown.whatsappUrl && <Button size="md" variant="outline" title="WhatsApp" onPress={() => window.open(shown.whatsappUrl, '_blank', 'noopener')} />}
+          </View>
+        </>
+      ) : (
+        <Button variant="outline" title={c.phone === 'login' && !authed ? t('listing.loginForPhone') : t('listing.showPhone')} icon={<Phone size={18} color={colors.primary} />} loading={busy} onPress={reveal} />
+      )}
+      {hours && <AppText variant="caption" color={colors.textMuted}>{hours}</AppText>}
+    </Card>
+  );
+};
+
+/** Delivery the seller offers (the platform does not handle shipping or its payment). */
+const DeliveryCard = ({ shipping }) => {
+  const { t, i18n } = useTranslation();
+  if (!shipping?.delivery) return null;
+  const fee = shipping.feeType === 'paid' && shipping.fee ? formatPrice(shipping.fee, t, i18n.language) : t(`listing.shipFee_${shipping.feeType}`);
+  return (
+    <View>
+      <AppText variant="h3" style={{ marginBottom: spacing.sm }}>{t('listing.delivery')}</AppText>
+      <Card style={{ gap: spacing.xs }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+          <Truck size={20} color={colors.sell} />
+          <AppText variant="bodyStrong">{t(`listing.shipCoverage_${shipping.coverage}`)}</AppText>
+        </View>
+        <AppText color={colors.textMuted}>{t('listing.deliveryCharge')}: {fee}</AppText>
+        {shipping.note && <AppText color={colors.textMuted}>{shipping.note}</AppText>}
+        <AppText variant="small" color={colors.textSubtle}>{t('listing.deliveryNote')}</AppText>
+      </Card>
+    </View>
+  );
+};
 
 /** "Apply" on a job ad, "Send enquiry" on a service ad. */
 const LeadBox = ({ ad, authed, onLogin }) => {
@@ -215,6 +276,8 @@ export const ListingDetailScreen = () => {
             <AppText style={{ lineHeight: 24 }}>{ad.description}</AppText>
           </View>
 
+          <DeliveryCard shipping={ad.shipping} />
+
           <View>
             <AppText variant="h3" style={{ marginBottom: spacing.sm }}>{t('listing.location')}</AppText>
             <Card>
@@ -250,6 +313,7 @@ export const ListingDetailScreen = () => {
           )}
 
           {!ad.isOwner && ad.status === 'published' && ['job', 'service'].includes(ad.listingType) && <LeadBox ad={ad} authed={status === 'authenticated'} onLogin={() => navigate('/login')} />}
+          {!ad.isOwner && ad.status === 'published' && <PhoneBox ad={ad} authed={status === 'authenticated'} onLogin={() => navigate('/login')} />}
           {!ad.isOwner && ad.status === 'published' && <Button title={t('chat.chatWithSeller')} variant={['job', 'service'].includes(ad.listingType) ? 'outline' : 'primary'} loading={opening} onPress={startChat} />}
           {ad.isOwner && ['job', 'service'].includes(ad.listingType) && <Button title={t('leads.viewReceived')} variant="outline" onPress={() => navigate(`/leads/received?listing=${ad.id}`)} />}
 

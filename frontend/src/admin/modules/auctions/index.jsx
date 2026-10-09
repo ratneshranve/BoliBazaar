@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Gavel, Handshake, ShieldAlert } from 'lucide-react';
+import { Gavel, Handshake, Plus, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { call, http, errorMessage } from '@core/api';
 import { useAuth } from '@core/AuthContext';
 import { Badge, Button, DataTable, ErrorBox, Field, Input, Modal, PageHeader, Pagination, Select, Spinner, Textarea } from '@components/ui';
+import ManagedAuctionForm from './ManagedAuctionForm';
 
 const TONE = { pending_review: 'amber', rejected: 'red', scheduled: 'blue', live: 'green', suspended: 'amber', ended: 'neutral', cancelled: 'red' };
 const LABEL = { pending_review: 'Pending review', rejected: 'Rejected', scheduled: 'Upcoming', live: 'Live', suspended: 'Suspended', ended: 'Ended', cancelled: 'Cancelled' };
@@ -80,9 +81,12 @@ function AuctionPanel({ id, onClose, onChanged }) {
           <div className="flex flex-wrap items-center gap-3">
             <Badge tone={TONE[a.status]}>{LABEL[a.status]}</Badge>
             {a.outcome && <Badge tone="neutral">{OUTCOME[a.outcome]}</Badge>}
+            {a.managed && <Badge tone="blue">Managed by our team</Badge>}
             <span className="font-mono text-neutral-500">{a.listing?.listingNo}</span>
             <span className="text-neutral-500">{a.listing?.place}</span>
           </div>
+
+          {a.managed?.note && <p className="rounded-lg bg-blue-50 p-3 text-blue-900">Internal note: {a.managed.note}</p>}
 
           {a.listing?.media?.length > 0 && (
             <div className="flex gap-2 overflow-x-auto pb-1">
@@ -183,6 +187,8 @@ function AuctionPanel({ id, onClose, onChanged }) {
 }
 
 function AuctionsPage() {
+  const { can } = useAuth();
+  const [creating, setCreating] = useState(false);
   const [tab, setTab] = useState('pending_review');
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
@@ -213,7 +219,11 @@ function AuctionsPage() {
 
   return (
     <>
-      <PageHeader title="Auctions" subtitle="Review new auctions, watch live ones, and step in when needed. Every action is recorded in the audit log." />
+      <PageHeader
+        title="Auctions"
+        subtitle="Review new auctions, watch live ones, and step in when needed. Every action is recorded in the audit log."
+        actions={can('auctions.decide') && <Button variant="brand" onClick={() => setCreating(true)}><Plus className="h-4 w-4" /> New managed auction</Button>}
+      />
       <div className="flex flex-wrap items-start gap-2">
         <Tabs tabs={TABS} value={tab} onChange={(k) => { setTab(k); setPage(1); }} badge={{ pending_review: meta?.pending, live: meta?.live }} />
         <div className="ml-auto w-64"><Input placeholder="Search title or ad number" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} /></div>
@@ -228,7 +238,7 @@ function AuctionsPage() {
             onRowClick={(r) => setSelected(r.id)}
             columns={[
               { key: 'cover', header: '', render: (r) => (r.cover ? <img src={r.cover} alt="" className="h-12 w-12 rounded-lg object-cover" /> : <div className="h-12 w-12 rounded-lg bg-neutral-100" />) },
-              { key: 'title', header: 'Item', render: (r) => (<div><div className="font-medium">{r.title}</div><div className="font-mono text-xs text-neutral-500">{r.listingNo}</div></div>) },
+              { key: 'title', header: 'Item', render: (r) => (<div><div className="font-medium">{r.title}</div><div className="font-mono text-xs text-neutral-500">{r.listingNo}{r.managed ? ' · Managed' : ''}</div></div>) },
               { key: 'price', header: 'Current / start', render: (r) => fmt(r.currentMinor ?? r.startingMinor, r.currency) },
               { key: 'bids', header: 'Bids', render: (r) => r.bidCount },
               { key: 'seller', header: 'Seller', render: (r) => r.seller?.name || r.seller?.phone || '—' },
@@ -240,6 +250,17 @@ function AuctionsPage() {
         </>
       )}
       {selected && <AuctionPanel id={selected} onClose={() => setSelected(null)} onChanged={load} />}
+      {creating && (
+        <ManagedAuctionForm
+          onClose={() => setCreating(false)}
+          onCreated={(newId) => {
+            setCreating(false);
+            setTab('');
+            load();
+            setSelected(newId);
+          }}
+        />
+      )}
     </>
   );
 }

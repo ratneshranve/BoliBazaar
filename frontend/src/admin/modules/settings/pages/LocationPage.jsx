@@ -20,7 +20,7 @@ const countryLabel = (code) => {
 };
 
 /** Search the real map to add a "popular place" (comes with true coordinates). */
-function PlaceSearch({ onPick }) {
+export function PlaceSearch({ onPick, placeholder = 'Search a city or town to add…' }) {
   const [q, setQ] = useState('');
   const [items, setItems] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -60,7 +60,7 @@ function PlaceSearch({ onPick }) {
   return (
     <div className="relative max-w-md">
       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-      <Input className="pl-9" placeholder="Search a city or town to add…" value={q} disabled={busy} onChange={(e) => setQ(e.target.value)} />
+      <Input className="pl-9" placeholder={placeholder} value={q} disabled={busy} onChange={(e) => setQ(e.target.value)} />
       {items.length > 0 && (
         <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-lg">
           {items.map((s) => (

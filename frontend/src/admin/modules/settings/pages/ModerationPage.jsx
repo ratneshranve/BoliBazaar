@@ -81,3 +81,42 @@ export function SupportSettingsPage() {
     </SettingsShell>
   );
 }
+
+export function ChatSettingsPage() {
+  const state = useSetting('chat');
+  const { can } = useAuth();
+  const edit = can('settings.edit');
+  const { value: v, update } = state;
+  if (!v) return <SettingsShell title="Chat & Contact" state={state} canEdit={edit} />;
+  const num = (key) => (e) => update({ [key]: Number(e.target.value) });
+
+  return (
+    <SettingsShell title="Chat & Contact" subtitle="Preset replies, photos and files in chat, price offers, and how often people can see sellers' phone numbers." state={state} canEdit={edit}>
+      <Field label="Quick replies (one per line, up to 12)" hint="Shown to buyers as one-tap messages. Written in English and translated for other languages.">
+        <LinesInput rows={5} value={v.quickReplies} disabled={!edit} onChange={(list) => update({ quickReplies: list.slice(0, 12) })} />
+      </Field>
+      <Switch checked={v.photosEnabled} disabled={!edit} onChange={(x) => update({ photosEnabled: x })} label="Allow photos in chat" />
+      <Switch checked={v.filesEnabled} disabled={!edit} onChange={(x) => update({ filesEnabled: x })} label="Allow documents in chat" description="PDF, JPG or PNG. Only the two people in the chat can open them." />
+      <Field label="Most files in one message">
+        <Input type="number" min="1" max="10" value={v.maxAttachments} disabled={!edit} onChange={num('maxAttachments')} className="w-32" />
+      </Field>
+      <Switch checked={v.offersEnabled} disabled={!edit} onChange={(x) => update({ offersEnabled: x })} label="Allow price offers" description="Buyers send an offer card; the seller can accept, counter or decline. Works on ads with a fixed or negotiable price." />
+      {v.offersEnabled && (
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Field label="Lowest offer (% of price)" hint="Stops very low offers">
+            <Input type="number" min="0" max="100" value={v.offerMinPercent} disabled={!edit} onChange={num('offerMinPercent')} />
+          </Field>
+          <Field label="Offer expires after (hours)">
+            <Input type="number" min="1" max="720" value={v.offerExpiryHours} disabled={!edit} onChange={num('offerExpiryHours')} />
+          </Field>
+          <Field label="Open offers per buyer per ad">
+            <Input type="number" min="1" max="20" value={v.offerMaxOpen} disabled={!edit} onChange={num('offerMaxOpen')} />
+          </Field>
+        </div>
+      )}
+      <Field label="“Show phone number” taps per person per day" hint="Each tap is logged. Sellers choose in the app whether their number is shown at all.">
+        <Input type="number" min="1" max="500" value={v.phoneRevealsPerDay} disabled={!edit} onChange={num('phoneRevealsPerDay')} className="w-32" />
+      </Field>
+    </SettingsShell>
+  );
+}

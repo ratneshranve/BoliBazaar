@@ -62,6 +62,13 @@ const TimerPill = ({ a }) => {
   );
 };
 
+/** Admin-Managed auction (SOP 6.2): run by the platform team for the seller. */
+const ManagedNote = () => {
+  const { t } = useTranslation();
+  const appName = useAppSelector((s) => s.app.bootstrap?.branding?.appName) || '';
+  return <AppText variant="caption" color={colors.auction}>✓ {t('auction.managedBy', { name: appName })}</AppText>;
+};
+
 /** Auction card (Auctions page, Home rail, search results): photo with LIVE badge and countdown, the three numbers, Bid Now. */
 export const AuctionCard = ({ listing }) => {
   const { t, i18n } = useTranslation();
@@ -487,6 +494,7 @@ export const AuctionDetailScreen = () => {
               </View>
             </View>
             {a.hasReserve && <AppText variant="caption" color={a.reserveMet ? colors.sell : colors.warning}>{a.reserveMet ? t('auction.reserveMet') : t('auction.reserveNotMet')}</AppText>}
+            {a.managed && <ManagedNote />}
             {a.me && (
               <AppText variant="bodyStrong" color={a.me.won || a.me.isLeading ? colors.sell : colors.live}>
                 {a.me.won ? t('auction.youWon') : a.me.isLeading ? t('auction.youLead', { alias: a.me.alias }) : a.status === 'live' ? t('auction.youOutbid', { amount: money(a.me.highestMinor) }) : t('auction.youLost')}

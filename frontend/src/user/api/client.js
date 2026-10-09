@@ -79,6 +79,27 @@ const buildUrl = (path, query) => {
   return `${env.apiBaseUrl}${path}${q ? `?${q}` : ''}`;
 };
 
+/** Download a private file (needs the login token, so a plain link cannot be used). Returns a Blob. */
+export async function apiBlob(path) {
+  const get = async () => {
+    const headers = await baseHeaders();
+    if (tokens?.accessToken) headers.Authorization = `Bearer ${tokens.accessToken}`;
+    return fetch(buildUrl(path), { headers });
+  };
+  let res;
+  try {
+    res = await get();
+    if (res.status === 401 && (await refreshAccessToken())) res = await get();
+  } catch {
+    throw new ApiError(0, 'NETWORK_ERROR', 'No internet connection');
+  }
+  if (!res.ok) {
+    const json = await res.json().catch(() => null);
+    throw new ApiError(res.status, json?.error?.code ?? 'UNKNOWN_ERROR', json?.error?.message ?? 'Request failed');
+  }
+  return res.blob();
+}
+
 /** Same contract as the RN client: returns { data, meta }, throws ApiError. */
 export async function api(path, opts = {}) {
   const method = opts.method ?? 'GET';

@@ -29,6 +29,7 @@ function FiltersSheet({ category, params, onApply, onClose }) {
   const [price, setPrice] = useState({ min: params.priceMin ?? '', max: params.priceMax ?? '' });
   const [condition, setCondition] = useState(params.condition ?? '');
   const [type, setType] = useState(params.listingType ?? '');
+  const [delivery, setDelivery] = useState(Boolean(params.delivery));
   const [attrs, setAttrs] = useState(() => {
     try {
       return params.filters ? JSON.parse(params.filters) : {};
@@ -47,6 +48,7 @@ function FiltersSheet({ category, params, onApply, onClose }) {
       priceMax: price.max || undefined,
       condition: condition || undefined,
       listingType: type || undefined,
+      delivery: delivery ? '1' : undefined,
       filters: Object.keys(clean(attrs)).length ? JSON.stringify(clean(attrs)) : undefined,
     });
 
@@ -54,6 +56,7 @@ function FiltersSheet({ category, params, onApply, onClose }) {
     setPrice({ min: '', max: '' });
     setCondition('');
     setType('');
+    setDelivery(false);
     setAttrs({});
   };
 
@@ -83,6 +86,14 @@ function FiltersSheet({ category, params, onApply, onClose }) {
           {CONDITIONS.map((c) => (
             <Chip key={c} label={t(`listing.condition_${c}`)} active={condition === c} onPress={() => setCondition(c)} />
           ))}
+        </View>
+      </View>
+
+      <View>
+        <AppText variant="bodyStrong" style={{ marginBottom: spacing.sm }}>{t('search.delivery')}</AppText>
+        <View style={styles.chips}>
+          <Chip label={t('search.any')} active={!delivery} onPress={() => setDelivery(false)} />
+          <Chip label={t('search.deliveryOnly')} active={delivery} onPress={() => setDelivery(true)} />
         </View>
       </View>
 
@@ -165,6 +176,7 @@ export const SearchScreen = () => {
       categoryId: params.categoryId,
       listingType: params.listingType,
       condition: params.condition,
+      delivery: params.delivery,
       priceMin: params.priceMin,
       priceMax: params.priceMax,
       filters: params.filters,
@@ -217,7 +229,7 @@ export const SearchScreen = () => {
   };
 
   const sort = params.sort || 'newest';
-  const activeFilters = ['priceMin', 'priceMax', 'condition', 'listingType', 'filters'].filter((k) => params[k]).length;
+  const activeFilters = ['priceMin', 'priceMax', 'condition', 'delivery', 'listingType', 'filters'].filter((k) => params[k]).length;
 
   return (
     <View style={styles.fill}>

@@ -15,6 +15,10 @@ import { errorText } from '../i18n';
 
 const PRICE_TYPES = ['fixed', 'negotiable', 'on_request', 'free'];
 const CONDITIONS = ['new', 'used', 'refurbished'];
+const SHIP_COVERAGE = ['city', 'state', 'country', 'worldwide'];
+const SHIP_FEE_TYPES = ['free', 'paid', 'discuss'];
+const SHIPPABLE = ['sell', 'auction', 'business'];
+const NO_SHIPPING = { delivery: false, coverage: '', feeType: '', fee: '', note: '' };
 /** Duration presets in hours (1, 3, 5, 7 and 10 days). */
 const DURATIONS = [24, 72, 120, 168, 240];
 const EMPTY_AUCTION = { startingBid: '', reservePrice: '', buyNowPrice: '', increment: '', startAt: '', durationHours: 72 };
@@ -86,6 +90,8 @@ export const SellScreen = () => {
   const [photos, setPhotos] = useState([]); // { key, url, mediaId, uploading, error }
   const [form, setForm] = useState({ listingType: query.get('type') === 'auction' ? 'auction' : '', title: '', description: '', condition: '', priceType: 'fixed', amount: '', attributes: {} });
   const [auction, setAuction] = useState(EMPTY_AUCTION);
+  const [shipping, setShipping] = useState(NO_SHIPPING);
+  const ship = (patch) => setShipping((v) => ({ ...v, ...patch }));
   const setA = (patch) => setAuction((a) => ({ ...a, ...patch }));
   const [commission, setCommission] = useState(null);
   useEffect(() => {
@@ -136,6 +142,7 @@ export const SellScreen = () => {
           amount: data.price.amount != null ? String(data.price.amount) : '',
           attributes: data.attributes,
         });
+        if (data.shipping?.delivery) setShipping({ delivery: true, coverage: data.shipping.coverage, feeType: data.shipping.feeType, fee: data.shipping.fee != null ? String(data.shipping.fee) : '', note: data.shipping.note || '' });
         setPhotos(data.media.map((m) => ({ key: m.mediaId, mediaId: m.mediaId, url: m.url })));
         setPlace(data.location);
       } catch (e) {
@@ -183,6 +190,10 @@ export const SellScreen = () => {
       attributes: Object.fromEntries(Object.entries(form.attributes).filter(([, v]) => v !== undefined && v !== '')),
       mediaIds: photos.filter((p) => p.mediaId).map((p) => p.mediaId),
       location: { label: place.label, name: place.name, placeId: place.placeId, lat: place.lat, lng: place.lng, address: place.address ?? {} },
+      shipping:
+        shipping.delivery && SHIPPABLE.includes(form.listingType)
+          ? { delivery: true, coverage: shipping.coverage || undefined, feeType: shipping.feeType || undefined, ...(shipping.feeType === 'paid' ? { fee: Number(shipping.fee) } : {}), note: shipping.note.trim() || undefined }
+          : { delivery: false },
     };
     if (isAuction) {
       delete body.listingType;
@@ -328,6 +339,30 @@ export const SellScreen = () => {
               </View>
               {needsAmount && <Field value={form.amount} onChangeText={(v) => set({ amount: v.replace(/[^\d.]/g, '') })} placeholder={t('sell.amount')} keyboardType="number-pad" />}
             </Section>
+            )}
+
+            {/* delivery (physical goods only) */}
+            {SHIPPABLE.includes(form.listingType) && (
+              <Section title={t('sell.delivery')} error={errors['shipping.coverage'] || errors['shipping.feeType'] || errors['shipping.fee']}>
+                <View style={styles.chips}>
+                  <Chip label={t('sell.pickupOnly')} active={!shipping.delivery} onPress={() => ship({ delivery: false })} />
+                  <Chip label={t('sell.canDeliver')} active={shipping.delivery} onPress={() => ship({ delivery: true })} />
+                </View>
+                {shipping.delivery && (
+                  <>
+                    <AppText variant="caption" color={colors.textMuted}>{t('sell.deliverWhere')}</AppText>
+                    <View style={styles.chips}>
+                      {SHIP_COVERAGE.map((c) => <Chip key={c} label={t(`sell.shipCoverage_${c}`)} active={shipping.coverage === c} onPress={() => ship({ coverage: c })} />)}
+                    </View>
+                    <AppText variant="caption" color={colors.textMuted}>{t('sell.deliveryCharge')}</AppText>
+                    <View style={styles.chips}>
+                      {SHIP_FEE_TYPES.map((f) => <Chip key={f} label={t(`listing.shipFee_${f}`)} active={shipping.feeType === f} onPress={() => ship({ feeType: f })} />)}
+                    </View>
+                    {shipping.feeType === 'paid' && <Field value={shipping.fee} onChangeText={(v) => ship({ fee: v.replace(/[^\d.]/g, '') })} placeholder={t('sell.deliveryFee')} keyboardType="number-pad" />}
+                    <Field value={shipping.note} onChangeText={(v) => ship({ note: v })} placeholder={t('sell.deliveryNotePh')} maxLength={200} />
+                  </>
+                )}
+              </Section>
             )}
 
             {/* condition */}

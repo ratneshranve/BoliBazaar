@@ -32,6 +32,7 @@ function TemplateCard({ tpl, canEdit, onSaved }) {
           <code className="text-sm font-semibold text-neutral-800">{tpl.event}</code>
           <Badge tone="neutral">{GROUP_LABEL[tpl.group] || tpl.group}</Badge>
           {tpl.pushOnly && <Badge tone="amber">Phone push only</Badge>}
+          {tpl.email && <Badge tone="blue">Also emailed</Badge>}
         </div>
         <label className="flex items-center gap-2 text-sm text-neutral-700">
           <input type="checkbox" checked={form.enabled} disabled={!canEdit} onChange={(e) => setForm({ ...form, enabled: e.target.checked })} />
@@ -59,6 +60,11 @@ function Notifications() {
   const { can } = useAuth();
   const [items, setItems] = useState(null);
   const [error, setError] = useState('');
+  const [emailReady, setEmailReady] = useState(null);
+
+  useEffect(() => {
+    call(http.get('/settings/integrations')).then((r) => setEmailReady(Boolean(r.data.email?.configured))).catch(() => {});
+  }, []);
 
   const load = useCallback(async () => {
     setError('');
@@ -78,6 +84,12 @@ function Notifications() {
   return (
     <>
       <PageHeader title="Notifications" subtitle="The wording of every alert users receive. Write in English — each user gets it translated into their own language automatically." />
+      {emailReady === false && (
+        <Card className="mb-4 border border-amber-200 bg-amber-50 text-sm text-amber-900">
+          Email is not set up yet, so events marked “Also emailed” are only sent as in-app and push notifications. Add EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS and EMAIL_FROM to the backend .env and restart it.
+        </Card>
+      )}
+      {emailReady && <p className="mb-4 text-sm text-neutral-600">Events marked “Also emailed” are also sent to users who saved and verified an email in the app (they can switch email off per group).</p>}
       <div className="space-y-4">
         {items.map((t) => (
           <TemplateCard key={`${t.event}:${t.updatedAt}`} tpl={t} canEdit={can('notifications.edit')} onSaved={load} />

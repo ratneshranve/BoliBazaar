@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api, apiBlob } from './client';
 
 export const configApi = {
   bootstrap: () => api('/config/bootstrap', { auth: false }),
@@ -24,6 +24,7 @@ export const listingsApi = {
   favourites: (params) => api('/listings/favourites', { query: params }),
   favourite: (id, on) => api(`/listings/${id}/favourite`, { method: on ? 'POST' : 'DELETE' }),
   view: (id) => api(`/listings/${id}/view`, { method: 'POST', idempotencyKey: false }),
+  phone: (id) => api(`/listings/${id}/phone`, { method: 'POST', idempotencyKey: false }),
 };
 
 /** Photo upload (stored where the admin chose: Cloudinary or the server). */
@@ -102,6 +103,10 @@ export const meApi = {
   sessions: () => api('/me/sessions'),
   revokeSession: (id) => api(`/me/sessions/${id}`, { method: 'DELETE' }),
   revokeOtherSessions: () => api('/me/sessions', { method: 'DELETE' }),
+  sendEmailCode: (email) => api('/me/email', { method: 'POST', body: { email }, idempotencyKey: false }),
+  verifyEmail: (email, code) => api('/me/email/verify', { method: 'POST', body: { email, code }, idempotencyKey: false }),
+  removeEmail: () => api('/me/email', { method: 'DELETE' }),
+  setPrivacy: (body) => api('/me/privacy', { method: 'PATCH', body }),
 };
 
 /** In-app notifications + push preferences. */
@@ -161,7 +166,10 @@ export const chatApi = {
   start: (listingId) => api('/chats/start', { method: 'POST', body: { listingId } }),
   detail: (id) => api(`/chats/${id}`),
   messages: (id, params) => api(`/chats/${id}/messages`, { query: params }),
-  send: (id, text) => api(`/chats/${id}/messages`, { method: 'POST', body: { text } }),
+  send: (id, text, mediaIds = []) => api(`/chats/${id}/messages`, { method: 'POST', body: { text, mediaIds } }),
+  file: (id, mediaId) => apiBlob(`/chats/${id}/files/${mediaId}`),
+  offer: (id, amount) => api(`/chats/${id}/offers`, { method: 'POST', body: { amount } }),
+  answerOffer: (id, messageId, action, amount) => api(`/chats/${id}/offers/${messageId}`, { method: 'POST', body: { action, ...(amount ? { amount } : {}) } }),
   read: (id) => api(`/chats/${id}/read`, { method: 'POST', idempotencyKey: false }),
   block: (userId) => api(`/chats/blocked/${userId}`, { method: 'PUT' }),
   unblock: (userId) => api(`/chats/blocked/${userId}`, { method: 'DELETE' }),
