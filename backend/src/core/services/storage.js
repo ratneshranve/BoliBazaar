@@ -129,3 +129,33 @@ export const deleteStored = async ({ provider, key }) => {
 };
 
 export const PUBLIC_UPLOAD_DIR = PUBLIC_DIR;
+
+/** For Admin › Image Storage: where VPS files live, whether the server can write there, and how much is used. */
+export const storageStatus = async () => {
+  const check = async (dir) => {
+    try {
+      await fs.mkdir(dir, { recursive: true });
+      const probe = path.join(dir, `.write-test-${crypto.randomUUID()}`);
+      await fs.writeFile(probe, 'ok');
+      await fs.rm(probe, { force: true });
+      return { path: dir, writable: true };
+    } catch (err) {
+      return { path: dir, writable: false, error: err.code || err.message };
+    }
+  };
+  let disk = null;
+  try {
+    const s = await fs.statfs(UPLOAD_ROOT);
+    disk = { freeBytes: s.bavail * s.bsize, totalBytes: s.blocks * s.bsize };
+  } catch {
+    /* folder missing or statfs unsupported */
+  }
+  return {
+    uploadDir: env.UPLOAD_DIR,
+    root: UPLOAD_ROOT,
+    public: await check(PUBLIC_DIR),
+    private: await check(PRIVATE_DIR),
+    publicUrl: `${env.PUBLIC_BASE_URL.replace(/\/$/, '')}/uploads/`,
+    disk,
+  };
+};
