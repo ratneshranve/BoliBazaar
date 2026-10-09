@@ -49,6 +49,7 @@ router.get(
       auctions: s.auctions.value,
       monetization: s.monetization.value,
       reportReasons: s.moderation.value.reportReasons,
+      chat: s.chat.value,
       grievanceOfficer: s.support.value.grievanceOfficer,
       legal: await legalVersions(),
       languages: {

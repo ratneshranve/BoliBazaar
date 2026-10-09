@@ -28,7 +28,7 @@ router.get('/preferences', asyncHandler(async (req, res) => ok(res, { groups: aw
 
 router.patch(
   '/preferences',
-  validate({ body: z.object({ groups: z.record(z.enum(GROUPS), z.object({ push: z.boolean() })) }) }),
+  validate({ body: z.object({ groups: z.record(z.enum(GROUPS), z.object({ push: z.boolean().optional(), email: z.boolean().optional() })) }) }),
   asyncHandler(async (req, res) => ok(res, { groups: await setPrefs(req.user.id, req.body.groups) }))
 );
 

@@ -8,7 +8,8 @@ export const requestContext = (req, res, next) => {
   req.id = req.get('X-Request-Id') || crypto.randomUUID();
   res.setHeader('X-Request-Id', req.id);
   req.ctx = {
-    lang: (req.get('Accept-Language') || '').split(',')[0].split('-')[0] || undefined,
+    // first language tag only ("hi-IN,en;q=0.8" → "hi"); "*" or junk means none
+    lang: (/^[a-z]{2,3}$/i.exec((req.get('Accept-Language') || '').split(',')[0].split(';')[0].split('-')[0].trim())?.[0] || '').toLowerCase() || undefined,
     country: req.get('X-Country') || undefined,
     platform: req.get('X-Platform') || undefined,
     appVersion: req.get('X-App-Version') || undefined,

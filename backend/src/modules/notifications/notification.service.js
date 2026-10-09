@@ -3,6 +3,9 @@ import { EVENTS, GROUPS, render, varsIn } from './catalog.js';
 import { User } from '../users/user.model.js';
 import { translateTexts } from '../i18n/translate.service.js';
 import { pushToUser } from '../../core/services/push.js';
+import { sendEmail } from '../../core/services/email.js';
+import { integrations } from '../../core/config/env.js';
+import { getSettingValue } from '../settings/settings.service.js';
 import { emitToUser, isOnline } from '../../realtime/index.js';
 import { ApiError } from '../../core/utils/ApiError.js';
 import { logger } from '../../core/utils/logger.js';
@@ -23,7 +26,7 @@ export const listTemplates = async () => {
   const out = [];
   for (const [event, def] of Object.entries(EVENTS)) {
     const t = await getTemplate(event);
-    out.push({ event, group: def.group, vars: def.vars, pushOnly: Boolean(def.pushOnly), title: t.title, body: t.body, enabled: t.enabled, updatedAt: t.updatedAt });
+    out.push({ event, group: def.group, vars: def.vars, pushOnly: Boolean(def.pushOnly), email: Boolean(def.email), title: t.title, body: t.body, enabled: t.enabled, updatedAt: t.updatedAt });
   }
   return out;
 };
@@ -44,16 +47,20 @@ export const saveTemplate = async (event, { title, body, enabled }, adminId) => 
 
 /* ───── preferences ───── */
 
-/** Push on/off per group. Missing = on. The in-app inbox is always kept. */
+/** Push and email on/off per group. Missing = on. The in-app inbox is always kept. */
 export const getPrefs = async (userId) => {
   const user = await User.findById(userId).select('notificationPrefs').lean();
   const saved = user?.notificationPrefs?.groups || {};
-  return Object.fromEntries(GROUPS.map((g) => [g, { push: saved[g]?.push !== false }]));
+  return Object.fromEntries(GROUPS.map((g) => [g, { push: saved[g]?.push !== false, email: saved[g]?.email !== false }]));
 };
 
 export const setPrefs = async (userId, groups) => {
   const current = await getPrefs(userId);
-  for (const [g, v] of Object.entries(groups)) if (GROUPS.includes(g) && typeof v?.push === 'boolean') current[g] = { push: v.push };
+  for (const [g, v] of Object.entries(groups)) {
+    if (!GROUPS.includes(g)) continue;
+    if (typeof v?.push === 'boolean') current[g].push = v.push;
+    if (typeof v?.email === 'boolean') current[g].email = v.email;
+  }
   await User.updateOne({ _id: userId }, { $set: { 'notificationPrefs.groups': current } });
   return current;
 };
@@ -64,7 +71,8 @@ const dto = (n) => ({ id: String(n._id), event: n.event, group: n.group, title: 
 
 /**
  * Tell a user something happened: saved in their inbox, pushed live to their open devices and sent as a
- * phone push (unless they turned that group off). Wording comes from the admin-edited template and is
+ * phone push (unless they turned that group off). Important events (catalog `email: true`) are also
+ * emailed when the user saved a verified email and kept email on for that group. Wording comes from the admin-edited template and is
  * translated into the user's language. Never throws — a notification problem must not break the action.
  */
 export const notify = async (userId, event, vars = {}, { route } = {}) => {
@@ -72,7 +80,7 @@ export const notify = async (userId, event, vars = {}, { route } = {}) => {
     const def = EVENTS[event];
     const tpl = await getTemplate(event);
     if (!tpl.enabled) return null;
-    const user = await User.findById(userId).select('language notificationPrefs status').lean();
+    const user = await User.findById(userId).select('language notificationPrefs status email').lean();
     if (!user || ['banned', 'deleted'].includes(user.status)) return null;
 
     let { title, body } = tpl;
@@ -96,6 +104,13 @@ export const notify = async (userId, event, vars = {}, { route } = {}) => {
     // chat messages are only pushed when the user isn't already looking at the app
     if (pushOn && (!def.pushOnly || !(await isOnline(userId)))) {
       await pushToUser(userId, { title, body, route, collapseKey: event }).catch((err) => logger.warn('Push failed', { event, err: err.message }));
+    }
+
+    const emailOn = user.notificationPrefs?.groups?.[def.group]?.email !== false;
+    if (def.email && emailOn && user.email?.verifiedAt && integrations.email.configured) {
+      getSettingValue('branding')
+        .then(({ appName }) => sendEmail({ to: user.email.address, subject: title, text: body, appName }))
+        .catch((err) => logger.warn('Email failed', { event, err: err.message }));
     }
     return saved ? dto(saved) : null;
   } catch (err) {

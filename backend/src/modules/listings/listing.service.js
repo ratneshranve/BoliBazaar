@@ -1,9 +1,10 @@
+import { contactOptions } from './contact.service.js';
 import crypto from 'node:crypto';
 import mongoose from 'mongoose';
 import { auctionSummaries } from '../auctions/auction.summary.js';
 import { listingQuota, assertNoOverdueCommission } from '../payments/pricing.service.js';
 import { checkContent } from '../trust/moderation.service.js';
-import { Listing, Favourite } from './listing.model.js';
+import { Listing, Favourite, SHIPPABLE_TYPES } from './listing.model.js';
 import { buildAttributesSchema } from './listing.schema.js';
 import { Category } from '../categories/category.model.js';
 import { translateForReader } from '../categories/category.service.js';
@@ -81,7 +82,8 @@ const effectiveStatus = (l) => (l.status === 'published' && l.expiresAt && l.exp
 /* ───────── create / edit ───────── */
 
 /** Validate an input against the category rules and build the stored fields (shared by create and edit). */
-const prepare = async (input, ownerId, listingId, { auction = false } = {}) => {
+/** mediaOwner: whose uploads may be used (the seller by default; the admin for admin-managed auctions). */
+const prepare = async (input, ownerId, listingId, { auction = false, mediaOwner } = {}) => {
   const category = await Category.findOne({ _id: input.categoryId, status: 'active' }).lean();
   if (!category) throw ApiError.badRequest('CATEGORY_NOT_AVAILABLE', 'This category is not available');
   if (await Category.exists({ parentId: category._id })) throw ApiError.badRequest('CATEGORY_NOT_LEAF', 'Choose the most specific category');
@@ -104,7 +106,7 @@ const prepare = async (input, ownerId, listingId, { auction = false } = {}) => {
 
   const mediaIds = [...new Set(input.mediaIds)];
   const media = mediaIds.length
-    ? await Media.find({ _id: { $in: mediaIds }, ownerType: 'user', ownerId, purpose: 'listing', visibility: 'public', status: 'ready' }).lean()
+    ? await Media.find({ _id: { $in: mediaIds }, ...(mediaOwner || { ownerType: 'user', ownerId }), purpose: 'listing', visibility: 'public', status: 'ready' }).lean()
     : [];
   if (media.length !== mediaIds.length) throw ApiError.badRequest('MEDIA_INVALID', 'One of the photos was not found — please upload it again');
   const { minPhotos, maxPhotos } = category.rules;
@@ -116,6 +118,17 @@ const prepare = async (input, ownerId, listingId, { auction = false } = {}) => {
   const { currency } = await getSettingValue('marketplace');
   const factor = minorFactor(currency);
   const amountMinor = input.price.type === 'free' ? 0 : input.price.amount !== undefined ? Math.round(input.price.amount * factor) : undefined;
+
+  const shipping =
+    input.shipping?.delivery && SHIPPABLE_TYPES.includes(input.listingType)
+      ? {
+          delivery: true,
+          coverage: input.shipping.coverage,
+          feeType: input.shipping.feeType,
+          feeMinor: input.shipping.feeType === 'paid' ? Math.round(input.shipping.fee * factor) : undefined,
+          note: input.shipping.note || undefined,
+        }
+      : { delivery: false };
 
   const location = await toLocationRef(input.location);
   const { publicOffsetMeters } = await getSettingValue('location');
@@ -133,6 +146,7 @@ const prepare = async (input, ownerId, listingId, { auction = false } = {}) => {
       condition: input.condition,
       attributes,
       price: { type: input.price.type, amountMinor, currency },
+      shipping,
       media: orderedMedia,
       location,
       publicGeo: { type: 'Point', coordinates: [pub.lng, pub.lat] },
@@ -163,9 +177,9 @@ export const createListing = async (ownerId, input) => {
 };
 
 /** The item behind an auction. Always reviewed; the auction fixes its own start and end, so there is no expiry here. */
-export const createAuctionItem = async (ownerId, input) => {
+export const createAuctionItem = async (ownerId, input, { mediaOwner } = {}) => {
   const _id = new ObjectId();
-  const { fields } = await prepare({ ...input, listingType: 'auction' }, ownerId, String(_id), { auction: true });
+  const { fields } = await prepare({ ...input, listingType: 'auction' }, ownerId, String(_id), { auction: true, mediaOwner });
   return Listing.create({ _id, listingNo: newListingNo(), ownerId, ...fields, status: 'pending_review' });
 };
 
@@ -359,6 +373,7 @@ export const searchListings = async (query, { viewerId, lang, homepageOnly = fal
   if (query.categoryId) match.categoryPath = new ObjectId(query.categoryId);
   if (query.listingType) match.listingType = query.listingType;
   if (query.condition) match.condition = query.condition;
+  if (query.delivery) match['shipping.delivery'] = true;
 
   if (query.priceMin !== undefined || query.priceMax !== undefined) {
     const { currency } = await getSettingValue('marketplace');
@@ -441,7 +456,7 @@ export const listingDetail = async (id, { viewerId, lang, viewerPoint } = {}) =>
 
   const [category, owner, favs] = await Promise.all([
     Category.findById(d.categoryId).lean(),
-    User.findById(d.ownerId).select('publicId name avatar createdAt phone.verifiedAt verification').lean(),
+    User.findById(d.ownerId).select('publicId name avatar createdAt phone.verifiedAt verification privacy').lean(),
     favouriteSet(viewerId, [d]),
   ]);
   const pathDocs = category ? await Category.find({ _id: { $in: d.categoryPath } }).select('name depth').sort({ depth: 1 }).lean() : [];
@@ -459,6 +474,9 @@ export const listingDetail = async (id, { viewerId, lang, viewerPoint } = {}) =>
     ...card,
     status,
     description: d.description,
+    shipping: d.shipping?.delivery
+      ? { delivery: true, coverage: d.shipping.coverage, feeType: d.shipping.feeType, fee: d.shipping.feeMinor != null ? priceDto({ type: 'fixed', amountMinor: d.shipping.feeMinor, currency: d.price.currency }) : null, note: d.shipping.note || null }
+      : { delivery: false },
     media: (d.media || []).map((m) => m.url),
     attributes: defs.map((a, i) => ({ key: a.key, label: labels[i], value: values[i] })),
     category: pathDocs.map((p, i) => ({ id: String(p._id), name: pathNames[i] })),
@@ -471,7 +489,7 @@ export const listingDetail = async (id, { viewerId, lang, viewerPoint } = {}) =>
       ...(isOwner ? { exactLat: d.location?.geo?.coordinates?.[1], exactLng: d.location?.geo?.coordinates?.[0] } : {}),
     },
     seller: owner
-      ? { id: String(owner._id), publicId: owner.publicId, name: owner.name || null, avatar: owner.avatar?.url || null, memberSince: owner.createdAt, phoneVerified: Boolean(owner.phone?.verifiedAt), idVerified: Boolean(owner.verification?.idVerifiedAt), businessVerified: Boolean(owner.verification?.businessVerifiedAt), businessName: owner.verification?.businessVerifiedAt ? owner.verification.businessName || null : null }
+      ? { id: String(owner._id), publicId: owner.publicId, name: owner.name || null, avatar: owner.avatar?.url || null, memberSince: owner.createdAt, phoneVerified: Boolean(owner.phone?.verifiedAt), idVerified: Boolean(owner.verification?.idVerifiedAt), businessVerified: Boolean(owner.verification?.businessVerifiedAt), businessName: owner.verification?.businessVerifiedAt ? owner.verification.businessName || null : null, contact: contactOptions(owner, { viewerId, isOwner }) }
       : null,
     isOwner: Boolean(isOwner),
     stats: isOwner ? d.stats : undefined,
@@ -491,6 +509,9 @@ export const listingForEdit = async (ownerId, id) => {
     description: d.description,
     condition: d.condition || null,
     price: { type: d.price.type, amount: d.price.amountMinor != null ? d.price.amountMinor / factor : null },
+    shipping: d.shipping?.delivery
+      ? { delivery: true, coverage: d.shipping.coverage, feeType: d.shipping.feeType, fee: d.shipping.feeMinor != null ? d.shipping.feeMinor / factor : null, note: d.shipping.note || '' }
+      : { delivery: false },
     attributes: d.attributes || {},
     media: (d.media || []).map((m) => ({ mediaId: String(m.mediaId), url: m.url })),
     location: {

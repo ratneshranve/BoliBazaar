@@ -3,6 +3,10 @@ import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 export const PRICE_TYPES = ['fixed', 'negotiable', 'on_request', 'free'];
+export const SHIP_COVERAGE = ['city', 'state', 'country', 'worldwide'];
+export const SHIP_FEE_TYPES = ['free', 'paid', 'discuss'];
+/** Listing types that are physical goods and can be delivered (SOP §16 shipping information). */
+export const SHIPPABLE_TYPES = ['sell', 'auction', 'business'];
 export const CONDITIONS = ['new', 'used', 'refurbished'];
 /** draft is kept on the device; the server only stores submitted listings */
 export const LISTING_STATUSES = ['payment_pending', 'pending_review', 'published', 'paused', 'rejected', 'expired', 'sold', 'removed', 'deleted'];
@@ -29,6 +33,15 @@ const listingSchema = new Schema(
       currency: { type: String, required: true },
     },
 
+    // pickup only unless delivery is on; the platform does not handle shipping or the money for it
+    shipping: {
+      delivery: { type: Boolean, default: false },
+      coverage: { type: String, enum: SHIP_COVERAGE },
+      feeType: { type: String, enum: SHIP_FEE_TYPES },
+      feeMinor: { type: Number, min: 0 },
+      note: { type: String, maxlength: 200 },
+    },
+
     media: [new Schema({ mediaId: { type: Schema.Types.ObjectId, ref: 'Media' }, url: String }, { _id: false })],
 
     location: {
@@ -50,7 +63,7 @@ const listingSchema = new Schema(
     promo: { featuredUntil: Date, topUntil: Date, homepageUntil: Date, categoryUntil: Date, locationUntil: Date },
     paidListing: Boolean, // posted by paying the ad fee (does not use up the free quota)
 
-    stats: { views: { type: Number, default: 0 }, favourites: { type: Number, default: 0 } },
+    stats: { views: { type: Number, default: 0 }, favourites: { type: Number, default: 0 }, phoneReveals: { type: Number, default: 0 } },
     searchText: { type: String, default: '' }, // lowercase title + description + category + attribute values
   },
   { timestamps: true, minimize: false }

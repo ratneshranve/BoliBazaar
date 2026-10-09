@@ -2,10 +2,11 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { validate } from '../../../core/middleware/common.js';
 import { requirePermission } from '../../../core/middleware/auth.js';
-import { asyncHandler, ok, parsePaging, pageMeta } from '../../../core/utils/http.js';
+import { asyncHandler, ok, parsePaging, pageMeta, escapeRegex } from '../../../core/utils/http.js';
 import { ApiError } from '../../../core/utils/ApiError.js';
 import { AUCTION_STATUSES, DEAL_STATUSES, Deal, Strike } from '../auction.model.js';
-import { adminList, adminDetail, reviewAuction, controlAuction } from '../auction.service.js';
+import { adminList, adminDetail, reviewAuction, controlAuction, createManagedAuction } from '../auction.service.js';
+import { auctionInput } from '../auction.schema.js';
 import { voidBid } from '../bidding.service.js';
 import { addStrike } from '../deal.service.js';
 import { raiseCommission } from '../../payments/payment.service.js';
@@ -108,6 +109,33 @@ router.delete(
 );
 
 /* ───── auctions ───── */
+
+/** Find the seller account for an Admin-Managed auction by phone number or name. */
+router.get(
+  '/sellers',
+  requirePermission('auctions.decide'),
+  validate({ query: z.object({ q: z.string().trim().min(2).max(60) }) }),
+  asyncHandler(async (req, res) => {
+    const q = req.query.q;
+    const digits = q.replace(/\D/g, '');
+    const or = [{ name: new RegExp(escapeRegex(q), 'i') }];
+    if (digits.length >= 4) or.push({ 'phone.e164': new RegExp(digits) });
+    const users = await User.find({ $or: or, status: { $in: ['active', 'limited'] } }).select('name phone.e164 publicId').limit(10).lean();
+    ok(res, users.map((u) => ({ id: String(u._id), name: u.name || null, phone: u.phone?.e164 || null, publicId: u.publicId })));
+  })
+);
+
+/** Admin-Managed auction (SOP §6.2): created by our team for a seller; opens without review. */
+router.post(
+  '/',
+  requirePermission('auctions.decide'),
+  validate({ body: auctionInput.extend({ sellerId: id, note: z.string().trim().max(500).optional() }) }),
+  asyncHandler(async (req, res) => {
+    const a = await createManagedAuction(req.admin.id, req.body);
+    await auditAdmin(req, { action: 'auction.create_managed', entityType: 'Auction', entityId: a._id, before: null, after: { status: a.status, sellerId: req.body.sellerId, startAt: a.startAt, endAt: a.endAt } });
+    ok(res, { id: String(a._id), status: a.status });
+  })
+);
 router.get(
   '/',
   requirePermission('auctions.view'),

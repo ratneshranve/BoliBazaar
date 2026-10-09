@@ -18,7 +18,7 @@ export const normalisePhone = (phone, countryCode) => {
   return { e164: parsed.number, country: parsed.country };
 };
 
-const otpHash = (phone, code) => hmac(`${phone}:${code}`);
+export const otpHash = (phone, code) => hmac(`${phone}:${code}`);
 
 /* ───────── OTP ───────── */
 
@@ -60,7 +60,7 @@ export const sendLoginOtp = async ({ phone, countryCode, ip, deviceId }) => {
   return { phone: e164, length: code.length, expiresInSec: sec.otpExpirySec, resendInSec: sec.otpResendSec };
 };
 
-const consumeOtp = async ({ e164, code, purpose }) => {
+export const consumeOtp = async ({ e164, code, purpose }) => {
   const sec = await getSettingValue('security');
   const otp = await OtpRequest.findOne({ target: e164, purpose, consumedAt: null }).sort({ createdAt: -1 });
   if (!otp || otp.expiresAt < new Date()) throw ApiError.badRequest('OTP_EXPIRED', 'OTP expired, request a new one');

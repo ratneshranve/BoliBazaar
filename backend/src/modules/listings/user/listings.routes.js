@@ -12,6 +12,7 @@ import {
   createListing, updateListing, pauseListing, resumeListing, markSold, renewListing, deleteListing,
   searchListings, listingDetail, listingForEdit, myListings, recordView, addFavourite, removeFavourite, myFavourites,
 } from '../listing.service.js';
+import { revealPhone } from '../contact.service.js';
 
 const router = Router();
 const id = z.object({ id: z.string().regex(/^[a-f0-9]{24}$/) });
@@ -104,6 +105,16 @@ router.delete('/:id/favourite', requireUser, validate({ params: id }), asyncHand
   await removeFavourite(req.user.id, req.params.id);
   ok(res, { favourite: false });
 }));
+
+/* ───── "Show phone number" (logged, limited per day; guests only when the seller allows everyone) ───── */
+
+router.post(
+  '/:id/phone',
+  optionalUser,
+  limiter({ name: 'phone-reveal', windowMs: 60_000, max: 10, keyBy: (req) => req.user?.id || req.ip }),
+  validate({ params: id }),
+  asyncHandler(async (req, res) => ok(res, await revealPhone(req.params.id, { viewerId: req.user?.id, ip: req.ip })))
+);
 
 /* ───── detail (public) ───── */
 

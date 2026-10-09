@@ -316,6 +316,33 @@ export const settingGroups = {
     },
   },
 
+  /** Chat & contact: preset replies, photos/files in messages, price-offer rules, phone-number reveals. */
+  chat: {
+    public: true,
+    schema: z.object({
+      quickReplies: z.array(z.string().trim().min(2).max(80)).max(12),
+      photosEnabled: z.boolean(),
+      filesEnabled: z.boolean(), // PDF, JPG or PNG documents, private to the two people in the chat
+      maxAttachments: z.number().int().min(1).max(10),
+      offersEnabled: z.boolean(),
+      offerMinPercent: z.number().int().min(0).max(100), // lowest offer allowed, as % of the asking price
+      offerExpiryHours: z.number().int().min(1).max(720),
+      offerMaxOpen: z.number().int().min(1).max(20), // pending offers one buyer may have on one ad
+      phoneRevealsPerDay: z.number().int().min(1).max(500), // "Show phone number" taps per person per day
+    }),
+    initial: {
+      quickReplies: ['Is it available?', "What's the last price?", 'Can I see it today?', 'Where exactly is it?', 'Please share more photos'],
+      photosEnabled: true,
+      filesEnabled: true,
+      maxAttachments: 5,
+      offersEnabled: true,
+      offerMinPercent: 30,
+      offerExpiryHours: 48,
+      offerMaxOpen: 3,
+      phoneRevealsPerDay: 20,
+    },
+  },
+
   /** Help desk: how fast each kind of case must be answered, and the grievance officer (IT Rules 2021). */
   support: {
     public: true,
@@ -342,7 +369,6 @@ export const settingGroups = {
     initial: {
       auctions: false,
       proxyBidding: false,
-      makeOffer: false,
       voiceSearch: false,
       ratings: false,
       jobs: false,

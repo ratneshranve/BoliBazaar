@@ -99,6 +99,38 @@ export const updateAuction = async (sellerId, id, input) => {
   return sellerView(a, listing);
 };
 
+/**
+ * Admin-Managed auction: our team lists the item for a seller (e.g. a bank, estate or someone who
+ * needs help), using photos uploaded in the admin panel. It skips review and opens as scheduled.
+ * The seller account still receives the result and handles the deal like any other auction.
+ */
+export const createManagedAuction = async (adminId, { sellerId, note, ...input }) => {
+  const seller = await User.findById(sellerId).select('status').lean();
+  if (!seller || ['banned', 'deleted', 'pending_deletion'].includes(seller.status)) throw ApiError.badRequest('SELLER_INVALID', 'Choose an active user account as the seller');
+  const { rules, fields } = await auctionFields(input.auction);
+  const listing = await createAuctionItem(sellerId, itemOf(input), { mediaOwner: { ownerType: 'admin', ownerId: adminId } });
+  try {
+    const now = new Date();
+    const a = await Auction.create({
+      listingId: listing._id,
+      sellerId,
+      status: fields.startAt > now ? 'scheduled' : 'live',
+      rules,
+      ...fields,
+      startAt: fields.startAt > now ? fields.startAt : now,
+      originalEndAt: fields.endAt,
+      moderation: { reviewedBy: adminId, reviewedAt: now },
+      managed: { by: adminId, at: now, note: note || undefined },
+    });
+    await Listing.updateOne({ _id: listing._id }, { $set: { status: 'published', publishedAt: now, expiresAt: a.endAt, moderation: { reviewedBy: adminId, reviewedAt: now } } });
+    await notify(sellerId, 'auction.approved', { title: listing.title }, { route: `/auctions/${a._id}` });
+    return a;
+  } catch (err) {
+    await Listing.deleteOne({ _id: listing._id });
+    throw err;
+  }
+};
+
 /** The seller may cancel until the first bid. After that only the admin can. */
 export const cancelBySeller = async (sellerId, id) => {
   const a = await mine(sellerId, id);
@@ -373,6 +405,7 @@ export const adminDetail = async (id) => {
     finalMinor: a.finalMinor ?? null,
     notes: a.notes,
     moderation: a.moderation || null,
+    managed: a.managed?.by ? { at: a.managed.at, note: a.managed.note || null } : null,
     seller: who(a.sellerId),
     listing: listing
       ? { id: oid(listing._id), title: listing.title, listingNo: listing.listingNo, description: listing.description, media: (listing.media || []).map((m) => m.url), place: listing.location?.label }

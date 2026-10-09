@@ -27,6 +27,7 @@ const deviceFrom = (req) => ({
 router.post(
   '/otp/send',
   limiter({ name: 'otp-ip', windowMs: 60 * 60_000, max: 20 }),
+  limiter({ name: 'otp-phone', windowMs: 60 * 60_000, max: 10, keyBy: (req) => String(req.body?.phone || '').replace(/\D/g, '') }),
   validate({ body: phoneBody }),
   asyncHandler(async (req, res) => ok(res, await sendLoginOtp({ ...req.body, ip: req.ip, deviceId: req.ctx.deviceId })))
 );
@@ -34,6 +35,8 @@ router.post(
 router.post(
   '/otp/verify',
   limiter({ name: 'otp-verify-ip', windowMs: 15 * 60_000, max: 30 }),
+  // per number, so guesses spread over many IPs are still capped
+  limiter({ name: 'otp-verify-phone', windowMs: 15 * 60_000, max: 10, keyBy: (req) => String(req.body?.phone || '').replace(/\D/g, '') }),
   validate({ body: phoneBody.extend({ code: z.string().trim().regex(/^\d{4,8}$/) }) }),
   asyncHandler(async (req, res) => {
     const { tokens, user, isNewUser } = await verifyLoginOtp({ ...req.body, device: deviceFrom(req) });

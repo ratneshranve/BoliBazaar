@@ -79,6 +79,13 @@ const schema = z
     RAZORPAY_KEY_ID: optional,
     RAZORPAY_KEY_SECRET: optional,
     RAZORPAY_WEBHOOK_SECRET: optional,
+
+    // SMTP email (optional). All four of host/user/pass/from turn email on.
+    EMAIL_HOST: optional,
+    EMAIL_PORT: z.preprocess((v) => (v === '' || v === undefined ? 587 : v), z.coerce.number().int().positive()),
+    EMAIL_USER: optional,
+    EMAIL_PASS: optional,
+    EMAIL_FROM: optional,
   })
   .superRefine((env, ctx) => {
     const need = (keys, why) =>
@@ -150,4 +157,5 @@ export const integrations = Object.freeze({
   translate: { configured: Boolean(e.GOOGLE_TRANSLATE_API_KEY) },
   maps: { configured: Boolean(e.GOOGLE_MAPS_SERVER_KEY) },
   razorpay: { configured: Boolean(e.RAZORPAY_KEY_ID && e.RAZORPAY_KEY_SECRET) },
+  email: { configured: Boolean(e.EMAIL_HOST && e.EMAIL_USER && e.EMAIL_PASS && e.EMAIL_FROM) },
 });

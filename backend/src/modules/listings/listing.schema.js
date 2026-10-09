@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PRICE_TYPES, CONDITIONS } from './listing.model.js';
+import { PRICE_TYPES, CONDITIONS, SHIP_COVERAGE, SHIP_FEE_TYPES } from './listing.model.js';
 import { placeInput } from '../places/places.service.js';
 
 const objectId = z.string().regex(/^[a-f0-9]{24}$/);
@@ -63,6 +63,21 @@ export const priceInput = z
     if (['fixed', 'negotiable'].includes(p.type) && !(p.amount > 0)) ctx.addIssue({ code: 'custom', path: ['amount'], message: 'Enter a price greater than 0' });
   });
 
+export const shippingInput = z
+  .object({
+    delivery: z.boolean(),
+    coverage: z.enum(SHIP_COVERAGE).optional(),
+    feeType: z.enum(SHIP_FEE_TYPES).optional(),
+    fee: z.number().min(0).max(10_000_000).optional(), // major units
+    note: z.string().trim().max(200).optional(),
+  })
+  .superRefine((s, ctx) => {
+    if (!s.delivery) return;
+    if (!s.coverage) ctx.addIssue({ code: 'custom', path: ['coverage'], message: 'Choose where you can deliver' });
+    if (!s.feeType) ctx.addIssue({ code: 'custom', path: ['feeType'], message: 'Choose who pays for delivery' });
+    if (s.feeType === 'paid' && !(s.fee > 0)) ctx.addIssue({ code: 'custom', path: ['fee'], message: 'Enter the delivery charge' });
+  });
+
 export const listingInput = z.object({
   categoryId: objectId,
   listingType: z.string().min(2).max(20),
@@ -70,6 +85,7 @@ export const listingInput = z.object({
   description: z.string().trim().min(10).max(2000),
   condition: z.enum(CONDITIONS).optional(),
   price: priceInput,
+  shipping: shippingInput.optional(),
   attributes: z.record(z.string(), z.unknown()).default({}),
   mediaIds: z.array(objectId).max(30),
   location: placeInput,
@@ -82,6 +98,7 @@ export const searchQuery = z.object({
   categoryId: objectId.optional(),
   listingType: z.string().max(20).optional(),
   condition: z.enum(CONDITIONS).optional(),
+  delivery: z.enum(['1', 'true']).optional(), // only ads that offer delivery
   priceMin: num.min(0).optional(),
   priceMax: num.min(0).optional(),
   filters: z.string().max(2000).optional(), // JSON: { key: {eq|in|min|max} } for the category's form fields

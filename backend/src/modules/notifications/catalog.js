@@ -3,37 +3,39 @@
  * structural; the actual wording is stored in the database and edited in Admin › Notifications
  * (written in English, translated automatically for each user). The text below is only the starting
  * wording used the first time an event is needed.
+ *
+ * email: true = also emailed to users who saved a verified email (important updates only, never chat).
  */
 export const GROUPS = ['chat', 'listings', 'auctions', 'jobs', 'payments', 'system'];
 
 export const EVENTS = {
   'listing.approved': { group: 'listings', vars: ['title'], title: 'Your ad is live', body: '"{{title}}" is now visible to buyers.' },
-  'listing.rejected': { group: 'listings', vars: ['title', 'reason'], title: 'Your ad needs changes', body: '"{{title}}" was not approved: {{reason}}' },
-  'listing.removed': { group: 'listings', vars: ['title', 'reason'], title: 'Your ad was removed', body: '"{{title}}" was removed: {{reason}}' },
+  'listing.rejected': { group: 'listings', email: true, vars: ['title', 'reason'], title: 'Your ad needs changes', body: '"{{title}}" was not approved: {{reason}}' },
+  'listing.removed': { group: 'listings', email: true, vars: ['title', 'reason'], title: 'Your ad was removed', body: '"{{title}}" was removed: {{reason}}' },
   'chat.message': { group: 'chat', vars: ['sender', 'preview'], title: '{{sender}}', body: '{{preview}}', pushOnly: true },
   'auction.approved': { group: 'auctions', vars: ['title'], title: 'Your auction is approved', body: '"{{title}}" will run as scheduled.' },
   'auction.rejected': { group: 'auctions', vars: ['title', 'reason'], title: 'Your auction needs changes', body: '"{{title}}" was not approved: {{reason}}' },
   'auction.cancelled': { group: 'auctions', vars: ['title', 'reason'], title: 'Auction cancelled', body: '"{{title}}" was cancelled: {{reason}}' },
   'auction.outbid': { group: 'auctions', vars: ['title', 'amount'], title: 'You have been outbid', body: 'Someone bid more on "{{title}}". Current bid: {{amount}}.' },
-  'auction.won': { group: 'auctions', vars: ['title', 'amount'], title: 'You won the auction', body: 'You won "{{title}}" for {{amount}}. Confirm the deal to continue.' },
+  'auction.won': { group: 'auctions', email: true, vars: ['title', 'amount'], title: 'You won the auction', body: 'You won "{{title}}" for {{amount}}. Confirm the deal to continue.' },
   'auction.lost': { group: 'auctions', vars: ['title'], title: 'Auction ended', body: 'You did not win "{{title}}".' },
   'auction.seller_result': { group: 'auctions', vars: ['title', 'result'], title: 'Your auction has ended', body: '"{{title}}": {{result}}' },
-  'auction.offer': { group: 'auctions', vars: ['title', 'amount'], title: 'The seller made you an offer', body: 'You can buy "{{title}}" for {{amount}}. Confirm before the offer expires.' },
-  'deal.update': { group: 'auctions', vars: ['title', 'status'], title: 'Deal update', body: 'Your deal for "{{title}}" is now {{status}}.' },
-  'account.strike': { group: 'auctions', vars: ['reason'], title: 'A strike was added to your account', body: '{{reason}}' },
-  'payment.success': { group: 'payments', vars: ['item', 'amount'], title: 'Payment received', body: 'We received {{amount}} for {{item}}.' },
-  'payment.refunded': { group: 'payments', vars: ['item', 'amount'], title: 'Refund issued', body: '{{amount}} was refunded for {{item}}. It may take a few days to reach you.' },
-  'commission.due': { group: 'payments', vars: ['amount', 'days'], title: 'Auction commission due', body: 'Your auction sale is complete. Please pay the commission of {{amount}} within {{days}} days.' },
+  'auction.offer': { group: 'auctions', email: true, vars: ['title', 'amount'], title: 'The seller made you an offer', body: 'You can buy "{{title}}" for {{amount}}. Confirm before the offer expires.' },
+  'deal.update': { group: 'auctions', email: true, vars: ['title', 'status'], title: 'Deal update', body: 'Your deal for "{{title}}" is now {{status}}.' },
+  'account.strike': { group: 'auctions', email: true, vars: ['reason'], title: 'A strike was added to your account', body: '{{reason}}' },
+  'payment.success': { group: 'payments', email: true, vars: ['item', 'amount'], title: 'Payment received', body: 'We received {{amount}} for {{item}}.' },
+  'payment.refunded': { group: 'payments', email: true, vars: ['item', 'amount'], title: 'Refund issued', body: '{{amount}} was refunded for {{item}}. It may take a few days to reach you.' },
+  'commission.due': { group: 'payments', email: true, vars: ['amount', 'days'], title: 'Auction commission due', body: 'Your auction sale is complete. Please pay the commission of {{amount}} within {{days}} days.' },
   'report.update': { group: 'system', vars: ['status', 'note'], title: 'Update on your report', body: 'We reviewed your report: {{status}}. {{note}}' },
-  'case.reply': { group: 'system', vars: ['subject'], title: 'Reply from support', body: 'We replied to "{{subject}}".' },
-  'case.status': { group: 'system', vars: ['subject', 'status'], title: 'Support case update', body: '"{{subject}}" is now {{status}}.' },
-  'verification.approved': { group: 'system', vars: ['badge'], title: 'You are verified', body: 'Your "{{badge}}" badge is now on your profile.' },
-  'verification.rejected': { group: 'system', vars: ['badge', 'reason'], title: 'Verification not approved', body: 'We could not approve "{{badge}}": {{reason}}' },
+  'case.reply': { group: 'system', email: true, vars: ['subject'], title: 'Reply from support', body: 'We replied to "{{subject}}".' },
+  'case.status': { group: 'system', email: true, vars: ['subject', 'status'], title: 'Support case update', body: '"{{subject}}" is now {{status}}.' },
+  'verification.approved': { group: 'system', email: true, vars: ['badge'], title: 'You are verified', body: 'Your "{{badge}}" badge is now on your profile.' },
+  'verification.rejected': { group: 'system', email: true, vars: ['badge', 'reason'], title: 'Verification not approved', body: 'We could not approve "{{badge}}": {{reason}}' },
   'search.match': { group: 'listings', vars: ['name', 'count'], title: 'New ads for "{{name}}"', body: '{{count}} new ad(s) match your saved search.' },
   'broadcast': { group: 'system', vars: ['title', 'body'], title: '{{title}}', body: '{{body}}' },
-  'job.application_received': { group: 'jobs', vars: ['name', 'title'], title: 'New application', body: '{{name}} applied for "{{title}}".' },
-  'job.application_status': { group: 'jobs', vars: ['title', 'status'], title: 'Application update', body: 'Your application for "{{title}}" is now {{status}}.' },
-  'enquiry.received': { group: 'jobs', vars: ['name', 'title'], title: 'New enquiry', body: '{{name}} sent an enquiry about "{{title}}".' },
+  'job.application_received': { group: 'jobs', email: true, vars: ['name', 'title'], title: 'New application', body: '{{name}} applied for "{{title}}".' },
+  'job.application_status': { group: 'jobs', email: true, vars: ['title', 'status'], title: 'Application update', body: 'Your application for "{{title}}" is now {{status}}.' },
+  'enquiry.received': { group: 'jobs', email: true, vars: ['name', 'title'], title: 'New enquiry', body: '{{name}} sent an enquiry about "{{title}}".' },
   'enquiry.status': { group: 'jobs', vars: ['title', 'status'], title: 'Enquiry update', body: 'Your enquiry about "{{title}}" is now {{status}}.' },
 };
 

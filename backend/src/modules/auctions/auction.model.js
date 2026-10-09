@@ -58,6 +58,8 @@ const auctionSchema = new Schema(
     endedAt: Date,
     moderation: { reviewedBy: { type: Schema.Types.ObjectId, ref: 'AdminUser' }, reviewedAt: Date, reason: String },
     startedNotified: Boolean,
+    // Admin-Managed auction (SOP §6.2): created and run by our team for the seller
+    managed: { by: { type: Schema.Types.ObjectId, ref: 'AdminUser' }, at: Date, note: String },
   },
   { timestamps: true }
 );

@@ -16,6 +16,7 @@ export const summaryOf = (a) => ({
   buyNowMinor: buyNowOpen(a) ? a.buyNowMinor : null,
   nextMinimumMinor: a.status === 'live' && a.rules?.incrementTiers?.length ? nextMinimum({ startingMinor: a.startingMinor, state: a.state, tiers: a.rules.incrementTiers, sellerIncrementMinor: a.incrementMinor }) : null,
   outcome: a.outcome || null,
+  managed: Boolean(a.managed?.by),
 });
 
 /** Buy-now disappears once a bid reaches it, and once the reserve is met (seller cannot be undercut). */

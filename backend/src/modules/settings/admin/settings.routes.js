@@ -20,6 +20,7 @@ router.get('/integrations', requirePermission('settings.view'), (req, res) =>
     translate: integrations.translate,
     maps: integrations.maps,
     razorpay: integrations.razorpay,
+    email: integrations.email,
     storageProviders: [
       { id: 'cloudinary', available: integrations.cloudinary.configured },
       { id: 'local', available: true },

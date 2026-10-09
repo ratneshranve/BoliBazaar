@@ -7,6 +7,7 @@ import { Media } from '../uploads/media.model.js';
 import { getSettingValue } from '../settings/settings.service.js';
 import { notify } from '../notifications/notification.service.js';
 import { ApiError } from '../../core/utils/ApiError.js';
+import { formatMoney } from '../auctions/auction.util.js';
 
 const HOUR_MS = 60 * 60 * 1000;
 const oid = (v) => String(v);
@@ -30,7 +31,7 @@ const resolveTarget = async (type, id, reporterId) => {
   // only someone in the conversation can report a message
   const c = await Conversation.findById(m.conversationId).select('buyerId sellerId').lean();
   if (!c || ![oid(c.buyerId), oid(c.sellerId)].includes(oid(reporterId))) throw ApiError.notFound('TARGET_NOT_FOUND');
-  return { ownerId: m.senderId, snapshot: { text: m.text, sentAt: m.createdAt, conversationId: oid(m.conversationId) } };
+  return { ownerId: m.senderId, snapshot: { text: m.text || (m.offer ? `Offer ${formatMoney(m.offer.amountMinor, m.offer.currency)}` : ''), attachments: (m.attachments || []).map((a) => ({ kind: a.kind, url: a.url || null, name: a.name || null })), sentAt: m.createdAt, conversationId: oid(m.conversationId) } };
 };
 
 export const createReport = async (reporterId, { targetType, targetId, reason, details }) => {

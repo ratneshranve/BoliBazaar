@@ -11,6 +11,8 @@ import { revokeSession } from '../../auth/auth.service.js';
 import { meDto } from '../user.dto.js';
 import { legalVersions } from '../../cms/page.service.js';
 import { placeInput, toLocationRef } from '../../places/places.service.js';
+import { limiter } from '../../../core/middleware/rateLimit.js';
+import { startEmailVerification, confirmEmail, removeEmail } from '../email.service.js';
 
 const router = Router();
 router.use(requireUser);
@@ -92,6 +94,50 @@ router.post(
     user.consents.push(...consents.map((c) => ({ ...c, acceptedAt: new Date(), ip: req.ip })));
     user.profileCompletedAt = user.profileCompletedAt || new Date();
     await user.save();
+    ok(res, meDto(user));
+  })
+);
+
+/* Email (optional) — only used to send copies of important updates. Saved after the emailed code is entered. */
+const emailField = z.string().trim().toLowerCase().email().max(120);
+
+router.post(
+  '/email',
+  limiter({ name: 'email-code', windowMs: 60 * 60_000, max: 10, keyBy: (req) => req.user.id }),
+  validate({ body: z.object({ email: emailField }) }),
+  asyncHandler(async (req, res) => ok(res, await startEmailVerification(req.user.id, req.body.email)))
+);
+
+router.post(
+  '/email/verify',
+  limiter({ name: 'email-verify', windowMs: 15 * 60_000, max: 20, keyBy: (req) => req.user.id }),
+  validate({ body: z.object({ email: emailField, code: z.string().trim().regex(/^\d{4,8}$/) }) }),
+  asyncHandler(async (req, res) => ok(res, meDto(await confirmEmail(req.user.id, req.body.email, req.body.code))))
+);
+
+router.delete('/email', asyncHandler(async (req, res) => ok(res, meDto(await removeEmail(req.user.id)))));
+
+/* Contact privacy: who may see the phone number, calls / WhatsApp, calling hours */
+const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+router.patch(
+  '/privacy',
+  validate({
+    body: z.object({
+      showPhone: z.enum(['never', 'verified_users', 'everyone']).optional(),
+      allowCalls: z.boolean().optional(),
+      allowWhatsApp: z.boolean().optional(),
+      callHours: z.object({ from: hhmm, to: hhmm }).nullable().optional(),
+      showOnlineStatus: z.boolean().optional(),
+      readReceipts: z.boolean().optional(),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    const set = {};
+    for (const [k, v] of Object.entries(req.body)) {
+      if (k === 'callHours') set['privacy.callHours'] = v === null ? {} : v;
+      else set[`privacy.${k}`] = v;
+    }
+    const user = await User.findByIdAndUpdate(req.user.id, { $set: set }, { new: true });
     ok(res, meDto(user));
   })
 );
