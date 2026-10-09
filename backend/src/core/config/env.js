@@ -1,5 +1,13 @@
-import 'dotenv/config';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import dotenv from 'dotenv';
 import { z } from 'zod';
+
+// Always read backend/.env, whatever folder the process was started from (PM2, systemd, repo root…).
+// Values already set in the real environment win over the file.
+export const ENV_FILE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../.env');
+dotenv.config({ path: ENV_FILE });
 
 /** FIREBASE_SERVICE_ACCOUNT is the downloaded service-account JSON as a single line. */
 const parseServiceAccount = (raw) => {
@@ -132,7 +140,8 @@ const parsed = schema.safeParse(process.env);
 if (!parsed.success) {
   const lines = parsed.error.issues.map((i) => `  • ${i.path.join('.') || 'env'}: ${i.message}`);
   // eslint-disable-next-line no-console
-  console.error(`\n[config] Invalid environment configuration:\n${lines.join('\n')}\n\nSee backend/.env.example\n`);
+  const where = fs.existsSync(ENV_FILE) ? `Settings file: ${ENV_FILE}` : `Settings file NOT FOUND: ${ENV_FILE} (copy backend/.env.example to it and fill it in)`;
+  console.error(`\n[config] Invalid environment configuration:\n${lines.join('\n')}\n\n${where}\nSee backend/.env.example\n`);
   process.exit(1);
 }
 
