@@ -64,6 +64,16 @@ export const redis = env.redisEnabled
   ? new Redis(env.REDIS_URL, { maxRetriesPerRequest: 3, lazyConnect: true })
   : new MemoryStore();
 
+/** host:port of REDIS_URL without the password, for messages. */
+const redisTarget = () => {
+  try {
+    const u = new URL(env.REDIS_URL);
+    return `${u.hostname}:${u.port || 6379}`;
+  } catch {
+    return 'the configured REDIS_URL';
+  }
+};
+
 if (env.redisEnabled) {
   redis.on('error', (err) => logger.error('Redis error', { err: err.message }));
 }
@@ -73,7 +83,15 @@ export const connectRedis = async () => {
     logger.warn('REDIS_ENABLED=false — using in-process memory store (single instance only; state is lost on restart)');
     return;
   }
-  await redis.connect();
-  await redis.ping();
+  try {
+    await redis.connect();
+    await redis.ping();
+  } catch (err) {
+    throw new Error(
+      `Redis is switched on (REDIS_ENABLED=true) but cannot be reached at ${redisTarget()} (${err.message}). ` +
+        'Start Redis (sudo apt install redis-server && sudo systemctl enable --now redis-server) ' +
+        'or set REDIS_ENABLED=false and BULLMQ_ENABLED=false in backend/.env.'
+    );
+  }
   logger.info('Redis connected');
 };
