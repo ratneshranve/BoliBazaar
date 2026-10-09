@@ -10,7 +10,9 @@ import { getAccessToken, refreshAccessToken } from '../api/client';
 let socket = null;
 const listeners = new Map(); // event -> Set<fn>
 
-const origin = () => new URL(env.apiBaseUrl).origin;
+// VITE_API_BASE_URL may be a full address (https://api.example.com/api/v1) or a path on this site (/api/v1,
+// when nginx serves the API under the same domain); a path resolves against the page's own address.
+const origin = () => new URL(env.apiBaseUrl, window.location.origin).origin;
 
 const attach = (s) => {
   for (const [event, fns] of listeners) for (const fn of fns) s.on(event, fn);
@@ -18,7 +20,13 @@ const attach = (s) => {
 
 export const connectRealtime = () => {
   if (socket || !getAccessToken()) return;
-  socket = io(origin(), {
+  let target;
+  try {
+    target = origin();
+  } catch {
+    return; // a bad API address must never take the whole app down; live updates just stay off
+  }
+  socket = io(target, {
     // function form: reconnects always present the newest access token
     auth: (cb) => cb({ token: getAccessToken() }),
     transports: ['websocket'],
