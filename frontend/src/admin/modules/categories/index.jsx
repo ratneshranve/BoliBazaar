@@ -398,7 +398,6 @@ function CategoriesPage() {
                   render: (c) =>
                     canEdit && (
                       <span className="flex justify-end gap-1">
-                        <Button variant="outline" className="px-2 py-1" title="Add subcategory" disabled={!t.tree} onClick={() => setForm({ parentId: c.id })}><Plus className="h-4 w-4" /></Button>
                         <Button variant="outline" className="px-2 py-1" title="Edit" disabled={!t.tree} onClick={() => setForm({ node: c })}><Pencil className="h-4 w-4" /></Button>
                         <Button variant="outline" className="px-2 py-1" title="Delete" onClick={() => remove(c)}><Trash2 className="h-4 w-4" /></Button>
                       </span>
@@ -463,7 +462,6 @@ function SubcategoriesPage() {
                 render: (c) =>
                   canEdit && (
                     <span className="flex justify-end gap-1">
-                      {c.depth < 3 && <Button variant="outline" className="px-2 py-1" title="Add a level below" disabled={!t.tree} onClick={() => setForm({ parentId: c.id })}><Plus className="h-4 w-4" /></Button>}
                       <Button variant="outline" className="px-2 py-1" title="Edit" disabled={!t.tree} onClick={() => setForm({ node: c })}><Pencil className="h-4 w-4" /></Button>
                       <Button variant="outline" className="px-2 py-1" title="Delete" onClick={() => remove(c)}><Trash2 className="h-4 w-4" /></Button>
                     </span>
