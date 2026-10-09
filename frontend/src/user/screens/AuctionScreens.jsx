@@ -272,7 +272,7 @@ export const AuctionsScreen = () => {
         </View>
 
         <View style={{ paddingHorizontal: spacing.lg }}>
-          {!items && <ActivityIndicator style={{ padding: spacing.xl }} color={colors.primary} />}
+          {!items && <ActivityIndicator style={{ minHeight: 'calc(100dvh - 200px)' }} color={colors.primary} />}
           {items?.length === 0 && <EmptyState icon={<Gavel size={44} color={colors.textMuted} />} title={t(`auction.empty_${tab}`)} />}
           <View style={styles.grid}>
             {items?.map((l) => (
@@ -657,7 +657,7 @@ export const MyAuctionsScreen = () => {
         ))}
       </View>
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingTop: 0, gap: spacing.sm, paddingBottom: spacing.xxxl }}>
-        {!items && <ActivityIndicator style={{ padding: spacing.xl }} color={colors.auction} />}
+        {!items && <ActivityIndicator style={{ minHeight: 'calc(100dvh - 200px)' }} color={colors.auction} />}
         {items?.length === 0 && (
           <EmptyState
             icon={<Gavel size={44} color={colors.textMuted} />}
@@ -705,7 +705,7 @@ export const DealsScreen = () => {
     <View style={styles.fill}>
       <Header title={t('auction.deals')} />
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm, paddingBottom: spacing.xxxl }}>
-        {!items && <ActivityIndicator style={{ padding: spacing.xl }} color={colors.auction} />}
+        {!items && <ActivityIndicator style={{ minHeight: 'calc(100dvh - 200px)' }} color={colors.auction} />}
         {items?.length === 0 && <EmptyState icon={<Handshake size={44} color={colors.textMuted} />} title={t('auction.dealsEmpty')} />}
         {items?.map((d) => (
           <Pressable key={d.id} onPress={() => navigate(`/deals/${d.id}`)} style={styles.row}>

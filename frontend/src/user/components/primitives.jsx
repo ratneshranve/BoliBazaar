@@ -174,9 +174,14 @@ export function FlatList({ data, renderItem, keyExtractor, ListHeaderComponent, 
   );
 }
 
+/** Like RN: the spinner sits centred in its own box; `style` (padding, margins…) applies to that box, not the ring. */
 export function ActivityIndicator({ color = '#999', size = 'small', style }) {
   const px = size === 'large' ? 36 : 20;
-  return <div style={{ width: px, height: px, border: `${px / 8}px solid ${color}33`, borderTopColor: color, borderRadius: '50%', animation: 'rn-spin .8s linear infinite', ...toCss(style) }} />;
+  return (
+    <div role="progressbar" aria-busy="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', alignSelf: 'stretch', ...toCss(style) }}>
+      <div style={{ width: px, height: px, flexShrink: 0, boxSizing: 'border-box', border: `${px / 8}px solid ${color}33`, borderTopColor: color, borderRadius: '50%', animation: 'rn-spin .8s linear infinite' }} />
+    </div>
+  );
 }
 
 export function Image({ source, style, resizeMode = 'cover', ...rest }) {

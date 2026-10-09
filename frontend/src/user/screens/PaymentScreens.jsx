@@ -98,7 +98,7 @@ export const PayScreen = () => {
       <Header title={t('pay.title')} />
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
         {error && <EmptyState icon={<CreditCard size={44} color={colors.textMuted} />} title={error} action={<Button variant="outline" title={t('common.back')} onPress={() => navigate(-1)} />} />}
-        {!q && !error && <ActivityIndicator style={{ padding: spacing.xl }} color={colors.primary} />}
+        {!q && !error && <ActivityIndicator style={{ minHeight: 'calc(100dvh - 200px)' }} color={colors.primary} />}
         {q && (
           <>
             <Card style={{ gap: spacing.sm }}>
@@ -144,7 +144,7 @@ export const PromoteScreen = () => {
       <Header title={t('promote.title')} />
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
         {ad && <AppText color={colors.textMuted}>{t('promote.for', { title: ad.title })}</AppText>}
-        {!catalog && <ActivityIndicator style={{ padding: spacing.xl }} color={colors.primary} />}
+        {!catalog && <ActivityIndicator style={{ minHeight: 'calc(100dvh - 200px)' }} color={colors.primary} />}
         {catalog?.promotions.length === 0 && <EmptyState icon={<Rocket size={44} color={colors.textMuted} />} title={t('promote.none')} />}
         {catalog?.promotions.map((p) => {
           const Icon = PROMO_ICON[p.type];
@@ -181,7 +181,7 @@ export const PlansScreen = () => {
     <View style={styles.fill}>
       <Header title={t('plans.title')} />
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
-        {!catalog && <ActivityIndicator style={{ padding: spacing.xl }} color={colors.primary} />}
+        {!catalog && <ActivityIndicator style={{ minHeight: 'calc(100dvh - 200px)' }} color={colors.primary} />}
         {catalog?.myPlan && (
           <Card style={{ backgroundColor: colors.sellSoft, flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }}>
             <BadgeCheck size={22} color={colors.sell} />
@@ -282,7 +282,7 @@ export const PaymentsScreen = () => {
         ))}
 
         <AppText variant="h3" style={{ marginTop: spacing.md }}>{t('payments.history')}</AppText>
-        {!items && <ActivityIndicator style={{ padding: spacing.xl }} color={colors.primary} />}
+        {!items && <ActivityIndicator style={{ minHeight: 'calc(100dvh - 200px)' }} color={colors.primary} />}
         {items?.length === 0 && <EmptyState icon={<CreditCard size={44} color={colors.textMuted} />} title={t('payments.empty')} />}
         {items?.map((p) => (
           <View key={p.id} style={styles.row}>

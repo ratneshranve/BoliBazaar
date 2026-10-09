@@ -104,7 +104,7 @@ export const MyListingsScreen = () => {
         ))}
       </ScrollView>
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingTop: 0, gap: spacing.md, paddingBottom: spacing.xxxl }}>
-        {!items && <ActivityIndicator style={{ padding: spacing.xl }} color={colors.primary} />}
+        {!items && <ActivityIndicator style={{ minHeight: 'calc(100dvh - 200px)' }} color={colors.primary} />}
         {items?.length === 0 && <EmptyState icon={<PackageOpen size={44} color={colors.textMuted} />} title={t('myListings.empty')} />}
         {items?.map((l) => <Row key={l.id} l={l} />)}
         {hasMore && <Button title={t('search.loadMore')} variant="outline" loading={busy} onPress={more} />}
@@ -142,7 +142,7 @@ export const FavouritesScreen = () => {
         <AppText variant="h3">{t('favourites.title')}</AppText>
       </View>
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxxl }}>
-        {!items && <ActivityIndicator style={{ padding: spacing.xl }} color={colors.primary} />}
+        {!items && <ActivityIndicator style={{ minHeight: 'calc(100dvh - 200px)' }} color={colors.primary} />}
         {items?.length === 0 && <EmptyState icon={<Heart size={44} color={colors.textMuted} />} title={t('favourites.empty')} />}
         <View style={styles.grid}>
           {items?.map((l) => (

@@ -270,7 +270,7 @@ export const SearchScreen = () => {
 
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxxl }}>
         {!items && !error && (
-          <View style={{ padding: spacing.xxl, alignItems: 'center' }}><ActivityIndicator color={colors.primary} /></View>
+          <View style={{ minHeight: 'calc(100dvh - 200px)', alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color={colors.primary} /></View>
         )}
         {!!error && <AppText color={colors.danger} style={{ textAlign: 'center' }}>{error}</AppText>}
         {items && items.length === 0 && !error && (

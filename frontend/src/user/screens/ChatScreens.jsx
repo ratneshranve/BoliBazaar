@@ -57,7 +57,7 @@ export const ChatsScreen = () => {
         <AppText variant="h3">{t('chat.title')}</AppText>
       </View>
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm, paddingBottom: spacing.xxxl }}>
-        {!items && <ActivityIndicator style={{ padding: spacing.xl }} color={colors.primary} />}
+        {!items && <ActivityIndicator style={{ minHeight: 'calc(100dvh - 200px)' }} color={colors.primary} />}
         {items?.length === 0 && <EmptyState icon={<MessageSquare size={44} color={colors.textMuted} />} title={t('chat.empty')} body={t('chat.emptyBody')} />}
         {items?.map((c) => (
           <Pressable key={c.id} onPress={() => navigate(`/chat/${c.id}`)} style={styles.row}>
@@ -412,7 +412,7 @@ export const ChatScreen = () => {
 
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.xs }}>
         <AppText variant="small" color={colors.textMuted} style={{ textAlign: 'center', marginBottom: spacing.sm }} onPress={() => navigate('/page/safety')}>{t('safety.chat')}</AppText>
-        {!messages && <ActivityIndicator style={{ padding: spacing.xl }} color={colors.primary} />}
+        {!messages && <ActivityIndicator style={{ minHeight: 'calc(100dvh - 200px)' }} color={colors.primary} />}
         {hasMore && <Button size="md" variant="ghost" title={t('chat.older')} onPress={older} />}
         {messages?.map((m) => {
           const mine = m.senderId === myId;

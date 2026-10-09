@@ -67,7 +67,7 @@ export const SavedSearchesScreen = () => {
     <View style={styles.fill}>
       <Header title={t('saved.title')} />
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm }}>
-        {!items && <ActivityIndicator color={colors.primary} />}
+        {!items && <ActivityIndicator style={{ minHeight: 'calc(100dvh - 200px)' }} color={colors.primary} />}
         {items?.length === 0 && <EmptyState icon={<Bookmark size={44} color={colors.textMuted} />} title={t('saved.empty')} body={t('saved.emptyHint')} action={<Button title={t('saved.search')} onPress={() => navigate('/search')} />} />}
         {items?.map((s) => (
           <View key={s.id} style={styles.row}>

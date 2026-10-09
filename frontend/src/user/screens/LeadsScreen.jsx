@@ -79,7 +79,7 @@ export const LeadsScreen = ({ initial = 'received' }) => {
         ))}
       </View>
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingTop: 0, gap: spacing.md, paddingBottom: spacing.xxxl }}>
-        {!items && <ActivityIndicator style={{ padding: spacing.xl }} color={colors.primary} />}
+        {!items && <ActivityIndicator style={{ minHeight: 'calc(100dvh - 200px)' }} color={colors.primary} />}
         {items?.length === 0 && <EmptyState icon={<Inbox size={44} color={colors.textMuted} />} title={t(`leads.empty_${tab}`)} />}
         {items?.map((l) => (
           <View key={l.id} style={styles.card}>

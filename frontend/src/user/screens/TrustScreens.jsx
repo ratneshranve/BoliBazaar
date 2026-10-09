@@ -241,7 +241,7 @@ export const MyReportsScreen = () => {
     <View style={styles.fill}>
       <Header title={t('help.myReports')} />
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm }}>
-        {!items && <ActivityIndicator color={colors.primary} />}
+        {!items && <ActivityIndicator style={{ minHeight: 'calc(100dvh - 200px)' }} color={colors.primary} />}
         {items?.length === 0 && <EmptyState icon={<Flag size={44} color={colors.textMuted} />} title={t('report.none')} />}
         {items?.map((r) => (
           <View key={r.id} style={styles.row}>

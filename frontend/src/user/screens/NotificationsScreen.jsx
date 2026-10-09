@@ -103,7 +103,7 @@ export const NotificationsScreen = () => {
 
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm, paddingBottom: spacing.xxxl }}>
         {items?.some((n) => !n.readAt) && <Button size="md" variant="outline" title={t('notifications.markAll')} onPress={readAll} />}
-        {!items && <ActivityIndicator style={{ padding: spacing.xl }} color={colors.primary} />}
+        {!items && <ActivityIndicator style={{ minHeight: 'calc(100dvh - 200px)' }} color={colors.primary} />}
         {items?.length === 0 && <EmptyState icon={<Bell size={44} color={colors.textMuted} />} title={t('notifications.empty')} />}
         {items?.map((n) => (
           <Pressable key={n.id} onPress={() => open(n)} style={[styles.row, !n.readAt && styles.unread]}>

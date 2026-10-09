@@ -70,7 +70,7 @@ export const ExploreScreen = () => {
       )}
 
       {!tree && !failed && (
-        <View style={{ padding: spacing.xxl, alignItems: 'center' }}>
+        <View style={{ minHeight: 'calc(100dvh - 200px)', alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator color={colors.primary} />
         </View>
       )}
