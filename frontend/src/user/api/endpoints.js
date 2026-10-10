@@ -163,6 +163,15 @@ export const auctionsApi = {
   mine: (role) => api('/auctions/mine', { query: { role } }),
   deals: (role) => api('/auctions/deals', { query: { role } }),
   deal: (id) => api(`/auctions/deals/${id}`),
+  watch: (id) => api(`/auctions/${id}/watch`, { method: 'POST', idempotencyKey: false }),
+  unwatch: (id) => api(`/auctions/${id}/watch`, { method: 'DELETE', idempotencyKey: false }),
+  watching: () => api('/auctions/watching'),
+  register: (id, acceptTerms) => api(`/auctions/${id}/register`, { method: 'POST', body: { acceptTerms } }),
+  withdrawRegistration: (id) => api(`/auctions/${id}/register`, { method: 'DELETE' }),
+  myRegistrations: () => api('/auctions/registrations/mine'),
+  registrations: (id) => api(`/auctions/${id}/registrations`),
+  decideRegistration: (regId, action, reason) => api(`/auctions/registrations/${regId}/decide`, { method: 'POST', body: { action, ...(reason ? { reason } : {}) } }),
+  updateInspection: (id, body) => api(`/auctions/${id}/inspection`, { method: 'PUT', body }),
   dealAction: (id, action, reason) => api(`/auctions/deals/${id}/${action}`, { method: 'POST', body: reason ? { reason } : {} }), // confirm | complete | cancel | dispute
 };
 

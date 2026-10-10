@@ -14,6 +14,7 @@ import { ApiError } from '../api/client';
 import { useAppSelector } from '../store';
 import { onRealtime, watchAuction } from '../services/realtime';
 import { ReportSheet } from '../components/ReportSheet';
+import { InspectionCard, RegistrationBox, SellerRegistrations, WatchButton } from '../components/AuctionParticipation';
 import { usePageMeta } from '../utils/pageMeta';
 import { factorOf, formatMinor, formatLeft, syncServerTime, useCountdown } from '../utils/auction';
 import { formatDate } from '../utils/listing';
@@ -504,10 +505,13 @@ export const AuctionDetailScreen = () => {
             {a.status === 'ended' && a.outcome && <AppText variant="bodyStrong">{t(OUTCOME_KEY[a.outcome])}</AppText>}
           </Card>
 
+          <WatchButton a={a} onChange={(w) => setA((p) => ({ ...p, ...w }))} />
+          <RegistrationBox a={a} onChange={load} />
+
           {myDealRoute && <Button title={t('auction.openDeal')} icon={<Handshake size={18} color={colors.white} />} onPress={() => navigate(myDealRoute)} style={{ backgroundColor: colors.auction }} />}
 
           {/* bid box */}
-          {a.status === 'live' && !a.isSeller && (
+          {a.status === 'live' && !a.isSeller && (!a.registration?.required || a.registration.mine?.status === 'approved') && (
             <Card style={{ gap: spacing.sm }}>
               <AppText variant="bodyStrong">{t('auction.yourBid')}</AppText>
               <AppText variant="caption" color={colors.textMuted}>{t('auction.minimumIs', { amount: money(a.nextMinimumMinor) })}</AppText>
@@ -567,6 +571,9 @@ export const AuctionDetailScreen = () => {
               )}
             </Card>
           )}
+
+          <SellerRegistrations a={a} onChange={load} />
+          <InspectionCard a={a} />
 
           {/* rules */}
           <Card style={{ gap: 4 }}>
@@ -643,14 +650,15 @@ export const MyAuctionsScreen = () => {
     if (status === 'guest') return navigate('/login', { replace: true });
     if (status !== 'authenticated') return;
     setItems(null);
-    auctionsApi.mine(role).then(({ data }) => setItems(data)).catch((e) => { Alert.alert(errorText(e)); setItems([]); });
+    const req = role === 'watching' ? auctionsApi.watching().then(({ data }) => data.map((l) => ({ ...l.auction, id: l.auction?.id, title: l.title, cover: l.cover, watched: true }))) : role === 'registered' ? auctionsApi.myRegistrations().then(({ data }) => data) : auctionsApi.mine(role).then(({ data }) => data);
+    req.then(setItems).catch((e) => { Alert.alert(errorText(e)); setItems([]); });
   }, [role, status, navigate]);
 
   return (
     <View style={styles.fill}>
       <Header title={t('auction.mine')} right={<Pressable onPress={() => navigate('/deals')}><AppText variant="bodyStrong" color={colors.auction}>{t('auction.deals')}</AppText></Pressable>} />
       <View style={styles.tabs}>
-        {['bidding', 'selling'].map((k) => (
+        {['bidding', 'watching', 'registered', 'selling'].map((k) => (
           <Pressable key={k} onPress={() => setRole(k)} style={[styles.tab, role === k && styles.tabOn]}>
             <AppText variant="bodyStrong" color={role === k ? colors.white : colors.text}>{t(`auction.role_${k}`)}</AppText>
           </Pressable>
@@ -674,6 +682,10 @@ export const MyAuctionsScreen = () => {
               <TimeLeft a={a} color={colors.textMuted} />
               {role === 'bidding' ? (
                 <AppText variant="small" color={STANDING_TONE[a.standing]}>{t(`auction.standing_${a.standing}`)}</AppText>
+              ) : role === 'registered' ? (
+                <AppText variant="small" color={a.registration?.status === 'approved' ? colors.sell : a.registration?.status === 'rejected' ? colors.danger : colors.warning}>{t(`auction.regStatus_${a.registration?.status}`)}</AppText>
+              ) : role === 'watching' ? (
+                <AppText variant="small" color={colors.textMuted}>{t(`auction.status_${a.status}`)}</AppText>
               ) : (
                 <AppText variant="small" color={colors.textMuted}>{t(`auction.status_${a.status}`)}{a.outcome ? ` · ${t(OUTCOME_KEY[a.outcome])}` : ''}</AppText>
               )}

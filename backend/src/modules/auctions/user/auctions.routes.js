@@ -5,7 +5,8 @@ import { requireUser, optionalUser, requireActiveUser } from '../../../core/midd
 import { asyncHandler, ok } from '../../../core/utils/http.js';
 import { getSettingValue } from '../../settings/settings.service.js';
 import { minorFactor } from '../../listings/listing.service.js';
-import { auctionInput, bidInput } from '../auction.schema.js';
+import { auctionInput, bidInput, inspectionInput } from '../auction.schema.js';
+import { watch, unwatch, myWatchlist, register, withdrawRegistration, decideRegistration, sellerRegistrations, myRegistrations, updateInspection } from '../participation.service.js';
 import { auctionForEdit, createAuction, updateAuction, cancelBySeller, addNote, auctionDetail, bidHistory, browseAuctions, myAuctions } from '../auction.service.js';
 import { placeBid, buyNow } from '../bidding.service.js';
 import { confirmDeal, cancelDeal, completeDeal, disputeDeal, offerToBidder, getDeal, myDeals } from '../deal.service.js';
@@ -71,6 +72,15 @@ router.post('/:id/offer', requireUser, requireActiveUser, validate({ params: idP
 router.get('/:id/edit', requireUser, validate({ params: idParam }), asyncHandler(async (req, res) => ok(res, await auctionForEdit(req.user.id, req.params.id))));
 
 /* view & bid */
+router.get('/watching', requireUser, asyncHandler(async (req, res) => ok(res, await myWatchlist(req.user.id, { lang: req.ctx.lang }))));
+router.get('/registrations/mine', requireUser, asyncHandler(async (req, res) => ok(res, await myRegistrations(req.user.id, { lang: req.ctx.lang }))));
+router.post(
+  '/registrations/:id/decide',
+  requireUser,
+  validate({ params: idParam, body: z.object({ action: z.enum(['approve', 'reject']), reason: z.string().trim().max(300).optional() }) }),
+  asyncHandler(async (req, res) => ok(res, await decideRegistration({ by: 'seller', sellerId: req.user.id }, req.params.id, req.body)))
+);
+
 router.get('/:id', optionalUser, validate({ params: idParam }), asyncHandler(async (req, res) => ok(res, await auctionDetail(req.params.id, req.user?.id))));
 router.get('/:id/bids', optionalUser, validate({ params: idParam }), asyncHandler(async (req, res) => ok(res, await bidHistory(req.params.id, req.user?.id))));
 
@@ -90,5 +100,19 @@ router.post('/:id/buy-now', requireUser, requireActiveUser, validate({ params: i
   const deal = await buyNow(req.user.id, req.params.id);
   ok(res, await getDeal(req.user.id, deal._id));
 }));
+
+router.post('/:id/watch', requireUser, validate({ params: idParam }), asyncHandler(async (req, res) => ok(res, await watch(req.user.id, req.params.id))));
+router.delete('/:id/watch', requireUser, validate({ params: idParam }), asyncHandler(async (req, res) => ok(res, await unwatch(req.user.id, req.params.id))));
+
+router.post(
+  '/:id/register',
+  requireUser,
+  requireActiveUser,
+  validate({ params: idParam, body: z.object({ acceptTerms: z.boolean() }) }),
+  asyncHandler(async (req, res) => ok(res, await register(req.user.id, req.params.id, req.body)))
+);
+router.delete('/:id/register', requireUser, validate({ params: idParam }), asyncHandler(async (req, res) => ok(res, await withdrawRegistration(req.user.id, req.params.id))));
+router.get('/:id/registrations', requireUser, validate({ params: idParam }), asyncHandler(async (req, res) => ok(res, await sellerRegistrations(req.user.id, req.params.id))));
+router.put('/:id/inspection', requireUser, requireActiveUser, validate({ params: idParam, body: inspectionInput }), asyncHandler(async (req, res) => ok(res, await updateInspection(req.user.id, req.params.id, req.body))));
 
 export default router;

@@ -6,6 +6,7 @@ import { Category } from '../categories/category.model.js';
 import { User } from '../users/user.model.js';
 import { getSettingValue } from '../settings/settings.service.js';
 import { notify } from '../notifications/notification.service.js';
+import { participationPaid } from '../auctions/participation.service.js';
 import { ApiError } from '../../core/utils/ApiError.js';
 import { logger } from '../../core/utils/logger.js';
 import { toPublicUrl } from '../../core/utils/mediaUrl.js';
@@ -73,7 +74,7 @@ const fulfilPlan = async (p) => {
 
 const fulfilCommission = (p) => Commission.updateOne({ _id: p.refId, status: 'due' }, { $set: { status: 'paid', paidAt: new Date(), paymentId: p._id } });
 
-const FULFIL = { listing_fee: fulfilListingFee, promotion: fulfilPromotion, plan: fulfilPlan, commission: fulfilCommission };
+const FULFIL = { listing_fee: fulfilListingFee, promotion: fulfilPromotion, plan: fulfilPlan, commission: fulfilCommission, participation_fee: participationPaid };
 
 /** created → paid exactly once, then deliver what was bought. Safe to call again (webhook + verify both do). */
 const markPaid = async (paymentDocId, gatewayPaymentId) => {

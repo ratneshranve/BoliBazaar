@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { Subscription, Commission } from './payment.model.js';
 import { Listing } from '../listings/listing.model.js';
+import { Auction, AuctionRegistration } from '../auctions/auction.model.js';
 import { getSettingValue } from '../settings/settings.service.js';
 import { ApiError } from '../../core/utils/ApiError.js';
 
@@ -122,6 +123,14 @@ export const quote = async ({ userId, purpose, refId, productCode }) => {
     if (!target || target.status !== 'due') throw ApiError.badRequest('NOTHING_TO_PAY', 'This commission is not due');
     baseMinor = target.amountMinor;
     description = 'Auction commission';
+  } else if (purpose === 'participation_fee') {
+    const reg = await AuctionRegistration.findOne({ _id: refId, userId, status: 'awaiting_payment' }).lean();
+    if (!reg || !(reg.feeMinor > 0)) throw ApiError.badRequest('NOTHING_TO_PAY', 'This registration does not need a payment');
+    const auction = await Auction.findById(reg.auctionId).select('listingId status endAt').lean();
+    if (!auction || !['scheduled', 'live'].includes(auction.status) || auction.endAt <= new Date()) throw ApiError.badRequest('REGISTRATION_CLOSED', 'Registration for this auction has closed');
+    const item = await Listing.findById(auction.listingId).select('title').lean();
+    baseMinor = reg.feeMinor;
+    description = `Auction participation fee: ${item?.title || ''}`;
   } else {
     throw ApiError.badRequest('PURPOSE_INVALID', 'Unknown purchase');
   }

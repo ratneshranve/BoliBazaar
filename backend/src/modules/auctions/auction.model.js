@@ -58,6 +58,19 @@ const auctionSchema = new Schema(
     endedAt: Date,
     moderation: { reviewedBy: { type: Schema.Types.ObjectId, ref: 'AdminUser' }, reviewedAt: Date, reason: String },
     startedNotified: Boolean,
+    // bidder registration (SOP §6.3 eligibility): when required, only approved registrants may bid
+    registration: {
+      required: { type: Boolean, default: false },
+      approval: { type: String, enum: ['auto', 'manual'], default: 'auto' }, // manual = the seller approves each one
+      feeMinor: { type: Number, default: 0 }, // participation fee (Settings › Auctions), non-refundable
+    },
+    // where and when the item can be seen; shown to approved registrants (or any logged-in user without registration)
+    inspection: {
+      address: String,
+      note: String,
+      slots: [{ _id: false, from: Date, to: Date }],
+    },
+    remindersSent: [String], // starting_soon | started | ending_soon
     // Admin-Managed auction (SOP §6.2): created and run by our team for the seller
     managed: { by: { type: Schema.Types.ObjectId, ref: 'AdminUser' }, at: Date, note: String },
   },
@@ -69,6 +82,31 @@ auctionSchema.index({ sellerId: 1, createdAt: -1 });
 auctionSchema.index({ 'state.highestBidderId': 1 });
 
 export const Auction = mongoose.model('Auction', auctionSchema);
+
+/** "Watch" / "Remind me": the user hears when it starts and before it ends. */
+const watchSchema = new Schema({ userId: { type: Schema.Types.ObjectId, ref: 'User', required: true }, auctionId: { type: Schema.Types.ObjectId, ref: 'Auction', required: true } }, { timestamps: { createdAt: true, updatedAt: false } });
+watchSchema.index({ userId: 1, auctionId: 1 }, { unique: true });
+watchSchema.index({ auctionId: 1 });
+export const AuctionWatch = mongoose.model('AuctionWatch', watchSchema);
+
+export const REGISTRATION_STATUSES = ['awaiting_payment', 'pending', 'approved', 'rejected', 'withdrawn'];
+/** A bidder's registration for an auction that requires one. */
+const registrationSchema = new Schema(
+  {
+    auctionId: { type: Schema.Types.ObjectId, ref: 'Auction', required: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    status: { type: String, enum: REGISTRATION_STATUSES, required: true },
+    termsVersion: Number, // version of the "How auctions work" page accepted
+    feeMinor: { type: Number, default: 0 },
+    paymentId: { type: Schema.Types.ObjectId, ref: 'Payment' },
+    decided: { by: String, adminId: Schema.Types.ObjectId, at: Date, reason: String }, // by: auto | seller | admin
+  },
+  { timestamps: true }
+);
+registrationSchema.index({ auctionId: 1, userId: 1 }, { unique: true });
+registrationSchema.index({ auctionId: 1, status: 1 });
+registrationSchema.index({ userId: 1, createdAt: -1 });
+export const AuctionRegistration = mongoose.model('AuctionRegistration', registrationSchema);
 
 /** A bid is never edited or deleted — only voided by an admin (with a reason). */
 const bidSchema = new Schema(

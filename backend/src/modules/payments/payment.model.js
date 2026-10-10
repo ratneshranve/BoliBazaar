@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const { Schema } = mongoose;
 
-export const PURPOSES = ['listing_fee', 'promotion', 'plan', 'commission'];
+export const PURPOSES = ['listing_fee', 'promotion', 'plan', 'commission', 'participation_fee'];
 export const PAYMENT_STATUSES = ['created', 'paid', 'failed', 'refunded', 'partially_refunded'];
 
 /**

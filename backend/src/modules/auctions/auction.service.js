@@ -7,6 +7,7 @@ import { assertNoOverdueCommission, commissionRuleFor, commissionText } from '..
 import { checkContent } from '../trust/moderation.service.js';
 import { publicState } from './bidding.service.js';
 import { oid, snapshotRules, formatMoney, HOUR_MS } from './auction.util.js';
+import { viewerExtras, cleanInspection, registrationsOf } from './participation.service.js';
 import { Listing } from '../listings/listing.model.js';
 import { createAuctionItem, updateAuctionItem, cardDtos, minorFactor } from '../listings/listing.service.js';
 import { User } from '../users/user.model.js';
@@ -43,6 +44,7 @@ const auctionFields = async (s) => {
 
   const durationMs = Math.round(s.durationHours * HOUR_MS);
   const startAt = s.startAt || new Date();
+  const endAt = new Date(startAt.getTime() + durationMs);
   return {
     currency,
     rules,
@@ -54,7 +56,11 @@ const auctionFields = async (s) => {
       incrementMinor: m(s.increment ?? undefined) || undefined,
       durationMs,
       startAt,
-      endAt: new Date(startAt.getTime() + durationMs),
+      endAt,
+      registration: s.registrationRequired
+        ? { required: true, approval: s.registrationApproval || 'auto', feeMinor: m(cfg.participationFee || 0) || 0 }
+        : { required: false, approval: 'auto', feeMinor: 0 },
+      inspection: cleanInspection(s.inspection, endAt),
     },
   };
 };
@@ -193,9 +199,11 @@ export const auctionDetail = async (id, viewerId) => {
   const item = await Listing.findById(a.listingId).select('categoryPath').lean();
   const commission = commissionText(await commissionRuleFor(item?.categoryPath), a.currency);
 
+  const extras = await viewerExtras(a, viewerId, isSeller);
   return {
     ...summaryOf(a),
     ...publicState(a),
+    ...extras,
     listingId: oid(a.listingId),
     serverTime: new Date(),
     currency: a.currency,
@@ -413,6 +421,9 @@ export const adminDetail = async (id) => {
     bids: bids.map((b) => ({ id: oid(b._id), alias: b.alias, bidder: who(b.bidderId), amountMinor: b.amountMinor, maxMinor: b.maxMinor ?? null, kind: b.kind, status: b.status, voidReason: b.voidReason || null, at: b.createdAt })),
     deals: deals.map((d) => ({ id: oid(d._id), buyer: who(d.buyerId), amountMinor: d.amountMinor, source: d.source, status: d.status, confirmBy: d.confirmBy, createdAt: d.createdAt })),
     buyNowOpen: buyNowOpen(a),
+    registration: a.registration || { required: false },
+    inspection: a.inspection || null,
+    registrations: a.registration?.required ? await registrationsOf(a._id) : [],
     nextMinimumMinor: a.status === 'live' ? nextMinimum({ startingMinor: a.startingMinor, state: a.state, tiers: a.rules.incrementTiers, sellerIncrementMinor: a.incrementMinor }) : null,
   };
 };
@@ -435,6 +446,9 @@ export const auctionForEdit = async (sellerId, id) => {
       increment: major(a.incrementMinor),
       startAt: a.status === 'pending_review' || a.status === 'rejected' ? a.startAt : null,
       durationHours: a.durationMs / HOUR_MS,
+      registrationRequired: Boolean(a.registration?.required),
+      registrationApproval: a.registration?.approval || 'auto',
+      inspection: { address: a.inspection?.address || '', note: a.inspection?.note || '', slots: (a.inspection?.slots || []).map((s) => ({ from: s.from, to: s.to })) },
     },
   };
 };

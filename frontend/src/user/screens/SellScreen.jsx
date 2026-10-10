@@ -34,7 +34,7 @@ const videoSeconds = (file) =>
     v.onerror = () => resolve(null);
     v.src = URL.createObjectURL(file);
   });
-const EMPTY_AUCTION = { startingBid: '', reservePrice: '', buyNowPrice: '', increment: '', startAt: '', durationHours: 72 };
+const EMPTY_AUCTION = { startingBid: '', reservePrice: '', buyNowPrice: '', increment: '', startAt: '', durationHours: 72, registrationRequired: false, registrationApproval: 'auto', inspection: { address: '', note: '', slots: [] } };
 
 /** Date → value for <input type="datetime-local"> in the viewer's own time zone. */
 const toLocalInput = (iso) => {
@@ -120,6 +120,9 @@ export const SellScreen = () => {
   const [video, setVideo] = useState(null); // { url, mediaId, uploading }
   const [screening, setScreening] = useState([]); // job ads: questions for applicants
   const uploadLimits = useAppSelector((s) => s.app.bootstrap?.uploads);
+  const participationFee = useAppSelector((s) => s.app.bootstrap?.auctions?.participationFee) || 0;
+  const currencyCode = useAppSelector((s) => s.app.bootstrap?.marketplace?.currency);
+  const participationFeeText = participationFee && currencyCode ? new Intl.NumberFormat(currencyCode === 'INR' ? 'en-IN' : undefined, { style: 'currency', currency: currencyCode, maximumFractionDigits: 0 }).format(participationFee) : '';
   // drafts: unfinished ads are saved while typing (new ads only)
   const [draftId, setDraftId] = useState(query.get('draft'));
   const [drafts, setDrafts] = useState(null);
@@ -151,7 +154,11 @@ export const SellScreen = () => {
         if (auctionData) {
           const a = auctionData.auction;
           const str = (v) => (v == null ? '' : String(v));
-          setAuction({ startingBid: str(a.startingBid), reservePrice: str(a.reservePrice), buyNowPrice: str(a.buyNowPrice), increment: str(a.increment), startAt: toLocalInput(a.startAt), durationHours: a.durationHours });
+          setAuction({
+            startingBid: str(a.startingBid), reservePrice: str(a.reservePrice), buyNowPrice: str(a.buyNowPrice), increment: str(a.increment), startAt: toLocalInput(a.startAt), durationHours: a.durationHours,
+            registrationRequired: Boolean(a.registrationRequired), registrationApproval: a.registrationApproval || 'auto',
+            inspection: { address: a.inspection?.address || '', note: a.inspection?.note || '', slots: (a.inspection?.slots || []).map((s) => ({ from: toLocalInput(s.from), to: toLocalInput(s.to) })) },
+          });
         }
         const cat = (await categoriesApi.detail(data.categoryId)).data;
         setCategory(cat);
@@ -320,6 +327,13 @@ export const SellScreen = () => {
         increment: num(auction.increment),
         startAt: auction.startAt ? new Date(auction.startAt).toISOString() : null,
         durationHours: Number(auction.durationHours),
+        registrationRequired: Boolean(auction.registrationRequired),
+        registrationApproval: auction.registrationApproval,
+        inspection: {
+          address: auction.inspection.address.trim() || undefined,
+          note: auction.inspection.note.trim() || undefined,
+          slots: auction.inspection.slots.filter((s) => s.from && s.to).map((s) => ({ from: new Date(s.from).toISOString(), to: new Date(s.to).toISOString() })),
+        },
       };
     }
 
@@ -484,6 +498,43 @@ export const SellScreen = () => {
               </Section>
             )}
 
+            {/* who may bid: registration */}
+            {isAuction && (
+              <Section title={t('auction.regSettings')}>
+                <View style={styles.chips}>
+                  <Chip label={t('auction.regOpen')} active={!auction.registrationRequired} onPress={() => setA({ registrationRequired: false })} />
+                  <Chip label={t('auction.regRequired')} active={auction.registrationRequired} onPress={() => setA({ registrationRequired: true })} />
+                </View>
+                {auction.registrationRequired && (
+                  <>
+                    <AppText variant="caption" color={colors.textMuted}>{t('auction.regSettingsHint', { fee: participationFee ? participationFeeText : t('auction.regNoFee') })}</AppText>
+                    <View style={styles.chips}>
+                      <Chip label={t('auction.regApprovalAuto')} active={auction.registrationApproval === 'auto'} onPress={() => setA({ registrationApproval: 'auto' })} />
+                      <Chip label={t('auction.regApprovalManual')} active={auction.registrationApproval === 'manual'} onPress={() => setA({ registrationApproval: 'manual' })} />
+                    </View>
+                  </>
+                )}
+              </Section>
+            )}
+
+            {/* viewing the item */}
+            {isAuction && (
+              <Section title={t('auction.inspection')} error={errors['auction.inspection']}>
+                <AppText variant="caption" color={colors.textMuted}>{t('auction.inspectionHint')}</AppText>
+                <Field value={auction.inspection.address} onChangeText={(v) => setA({ inspection: { ...auction.inspection, address: v } })} maxLength={300} placeholder={t('auction.inspectionAddress')} />
+                {auction.inspection.slots.map((s, i) => (
+                  <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
+                    <input type="datetime-local" value={s.from} onChange={(e) => setA({ inspection: { ...auction.inspection, slots: auction.inspection.slots.map((x, j) => (j === i ? { ...x, from: e.target.value } : x)) } })} style={styles.dt} aria-label={t('auction.slotFrom')} />
+                    <AppText>–</AppText>
+                    <input type="datetime-local" value={s.to} onChange={(e) => setA({ inspection: { ...auction.inspection, slots: auction.inspection.slots.map((x, j) => (j === i ? { ...x, to: e.target.value } : x)) } })} style={styles.dt} aria-label={t('auction.slotTo')} />
+                    <Pressable accessibilityLabel={t('auction.removeSlot')} onPress={() => setA({ inspection: { ...auction.inspection, slots: auction.inspection.slots.filter((_, j) => j !== i) } })}><Trash2 size={18} color={colors.textMuted} /></Pressable>
+                  </View>
+                ))}
+                {auction.inspection.slots.length < 10 && <Button size="md" variant="outline" title={t('auction.addSlot')} icon={<Plus size={16} color={colors.primary} />} onPress={() => setA({ inspection: { ...auction.inspection, slots: [...auction.inspection.slots, { from: '', to: '' }] } })} />}
+                <Field value={auction.inspection.note} onChangeText={(v) => setA({ inspection: { ...auction.inspection, note: v } })} maxLength={300} placeholder={t('auction.inspectionNote')} />
+              </Section>
+            )}
+
             {/* price */}
             {!isAuction && (
             <Section title={t('sell.price')} error={errors['price.amount']}>
@@ -592,6 +643,7 @@ const styles = StyleSheet.create({
   photoBusy: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' },
   cover: { position: 'absolute', left: 4, bottom: 4, backgroundColor: colors.primary, borderRadius: 8, paddingHorizontal: 6 },
   photoX: { position: 'absolute', right: 4, top: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
+  dt: { height: 44, border: `1px solid ${colors.border}`, borderRadius: 10, padding: '0 10px', fontSize: 15, flex: 1, minWidth: 180 },
   videoBox: { position: 'relative', borderRadius: 12, overflow: 'hidden' },
   draftRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md },
   catRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider },

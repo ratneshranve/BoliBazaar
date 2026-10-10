@@ -77,7 +77,8 @@ export const PayScreen = () => {
   };
 
   const money = (minor) => formatMinor(minor, q?.currency, q?.factor, i18n.language);
-  const next = body.purpose === 'listing_fee' || body.purpose === 'promotion' ? `/listing/${body.refId}` : '/payments';
+  const back = params.get('next');
+  const next = back && back.startsWith('/') && !back.startsWith('//') ? back : body.purpose === 'listing_fee' || body.purpose === 'promotion' ? `/listing/${body.refId}` : '/payments';
 
   if (done) {
     return (

@@ -13,6 +13,7 @@ import { raiseCommission } from '../../payments/payment.service.js';
 import { Listing } from '../../listings/listing.model.js';
 import { User } from '../../users/user.model.js';
 import { notify } from '../../notifications/notification.service.js';
+import { decideRegistration } from '../participation.service.js';
 import { auditAdmin } from '../../audit/audit.service.js';
 
 const router = Router();
@@ -187,6 +188,19 @@ router.post(
   asyncHandler(async (req, res) => {
     const out = await voidBid(req.params.id, req.params.bidId, req.body.reason);
     await auditAdmin(req, { action: 'auction.void_bid', entityType: 'Bid', entityId: req.params.bidId, before: { status: 'valid' }, after: { status: 'voided' }, reason: req.body.reason });
+    ok(res, out);
+  })
+);
+
+
+/* Bidder registrations: our team can approve or reject (or withdraw an approval) for any auction. */
+router.post(
+  '/registrations/:regId/decide',
+  requirePermission('auctions.control'),
+  validate({ params: z.object({ regId: id }), body: z.object({ action: z.enum(['approve', 'reject']), reason: z.string().trim().max(300).optional() }) }),
+  asyncHandler(async (req, res) => {
+    const out = await decideRegistration({ by: 'admin', adminId: req.admin.id }, req.params.regId, req.body);
+    await auditAdmin(req, { action: `auction.registration_${req.body.action}`, entityType: 'AuctionRegistration', entityId: req.params.regId, after: { status: out.status }, reason: req.body.reason });
     ok(res, out);
   })
 );

@@ -3,6 +3,7 @@ import { Auction, Bid } from './auction.model.js';
 import { nextMinimum, resolveBid, extendedEnd, recomputeState } from './auction.rules.js';
 import { buyNowOpen } from './auction.summary.js';
 import { createDeal, restriction } from './deal.service.js';
+import { assertMayBid, sendReminders } from './participation.service.js';
 import { assertNoOverdueCommission } from '../payments/pricing.service.js';
 import { Listing } from '../listings/listing.model.js';
 import { notify } from '../notifications/notification.service.js';
@@ -68,6 +69,7 @@ export const placeBid = async (bidderId, auctionId, { amountMinor, maxMinor, con
     if (a.status !== 'live') throw ApiError.badRequest('AUCTION_NOT_LIVE', a.status === 'scheduled' ? 'This auction has not started yet' : 'This auction is not open for bids');
     if (now >= a.endAt) throw ApiError.badRequest('AUCTION_ENDED', 'This auction has ended');
     if (oid(a.sellerId) === oid(bidderId)) throw ApiError.forbidden('SELF_BID_NOT_ALLOWED', 'You cannot bid on your own auction');
+    await assertMayBid(a, bidderId);
 
     const min = nextMinimum({ startingMinor: a.startingMinor, state: plain.state, tiers: plain.rules.incrementTiers, sellerIncrementMinor: a.incrementMinor });
     if (amountMinor < min) throw ApiError.badRequest('BID_TOO_LOW', 'Your bid is below the minimum', { nextMinimumMinor: min });
@@ -144,6 +146,7 @@ export const buyNow = async (buyerId, auctionId) => {
     const a = await Auction.findById(auctionId);
     if (!a) throw ApiError.notFound('AUCTION_NOT_FOUND');
     if (oid(a.sellerId) === oid(buyerId)) throw ApiError.forbidden('SELF_BID_NOT_ALLOWED', 'You cannot buy your own auction');
+    await assertMayBid(a, buyerId);
     if (!buyNowOpen(a) || new Date() >= a.endAt) throw ApiError.badRequest('BUY_NOW_UNAVAILABLE', 'Buy now is no longer available');
 
     const now = new Date();
@@ -217,6 +220,7 @@ export const sweepAuctions = async () => {
       logger.error('Closing auction failed', { auctionId: oid(_id), err: err.message });
     }
   }
+  await sendReminders();
 };
 
 /* ───── admin: void a bid ───── */

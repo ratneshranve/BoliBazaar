@@ -189,6 +189,8 @@ export const settingGroups = {
       }),
       paymentWindowHours: z.number().int().min(1).max(720),
       offerWindowHours: z.number().int().min(1).max(720),
+      // charged once to register for an auction that requires registration (0 = free); never refunded, never held
+      participationFee: z.number().min(0).max(10_000_000).default(0),
       strikes: z.object({
         blockAt: z.number().int().min(1).max(20),
         blockDays: z.number().int().min(1).max(365),
@@ -217,6 +219,7 @@ export const settingGroups = {
       antiSniping: { enabled: true, windowSec: 120, extendSec: 120, maxExtensions: 10 },
       paymentWindowHours: 48,
       offerWindowHours: 24,
+      participationFee: 0,
       strikes: { blockAt: 2, blockDays: 30, banAt: 3, expireMonths: 12 },
     },
   },
