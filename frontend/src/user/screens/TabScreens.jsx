@@ -1,23 +1,14 @@
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Package, Gavel, ShoppingBag, Heart, MessageSquare, Wallet, MapPin, FileText, ShieldCheck, Headphones, ChevronRight, BadgeCheck, Languages, LogOut, Inbox, Bookmark,
   UserX,
 } from 'lucide-react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
-import { AppText, Button, Card, EmptyState } from '../components/ui';
+import { AppText, Button, Card } from '../components/ui';
 import { BrandHeader } from '../components/BrandHeader';
 import { colors, radius, spacing, shadow } from '@theme/tokens';
 import { useAppDispatch, useAppSelector, logoutThunk } from '../store';
-
-/** Tabs whose content arrives in a later phase (listings, search, auctions). */
-const PhaseScreen = ({ children }) => (
-  <View style={styles.fill}>
-    <BrandHeader />
-    <View style={styles.fill}>{children}</View>
-  </View>
-);
-
 
 const Row = ({ item, last }) => (
   <Pressable onPress={item.onPress} style={[styles.menuRow, !last && styles.menuDivider]}>
@@ -39,13 +30,8 @@ export const ProfileScreen = () => {
   const { status, me } = useAppSelector((s) => s.session);
   const bootstrapLanguages = useAppSelector((s) => s.app.bootstrap?.languages?.items);
 
-  if (status !== 'authenticated' || !me) {
-    return (
-      <PhaseScreen>
-        <EmptyState title={t('profile.guestTitle')} body={t('profile.guestBody')} action={<Button title={t('profile.login')} onPress={() => navigate('/login')} />} />
-      </PhaseScreen>
-    );
-  }
+  // guests go straight to the login screen
+  if (status !== 'authenticated' || !me) return <Navigate to="/login" replace />;
 
   const currentLang = (bootstrapLanguages ?? []).find((l) => l.code === i18n.language);
 
