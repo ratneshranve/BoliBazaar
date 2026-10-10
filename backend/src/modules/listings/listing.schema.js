@@ -102,6 +102,10 @@ export const searchQuery = z.object({
   priceMin: num.min(0).optional(),
   priceMax: num.min(0).optional(),
   filters: z.string().max(2000).optional(), // JSON: { key: {eq|in|min|max} } for the category's form fields
+  postedWithin: z.enum(['1', '7', '30']).optional(), // days
+  sellerType: z.enum(['individual', 'business']).optional(), // business = verified business seller
+  verified: z.enum(['1', 'true']).optional(), // sellers with an ID or business badge
+  withPhotos: z.enum(['1', 'true']).optional(),
   sort: z.enum(['newest', 'price_asc', 'price_desc', 'nearest']).default('newest'),
   // where from, and how far
   lat: num.min(-90).max(90).optional(),

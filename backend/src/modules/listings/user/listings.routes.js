@@ -10,7 +10,7 @@ import { asyncHandler, ok, created } from '../../../core/utils/http.js';
 import { listingInput, searchQuery } from '../listing.schema.js';
 import {
   createListing, updateListing, pauseListing, resumeListing, markSold, renewListing, deleteListing,
-  searchListings, listingDetail, listingForEdit, myListings, recordView, addFavourite, removeFavourite, myFavourites,
+  searchListings, suggest, relatedListings, listingDetail, listingForEdit, myListings, recordView, addFavourite, removeFavourite, myFavourites,
 } from '../listing.service.js';
 import { revealPhone } from '../contact.service.js';
 
@@ -28,6 +28,13 @@ router.get('/', optionalUser, validate({ query: searchQuery }), asyncHandler(asy
   const ads = await searchAds({ categoryPath: cat ? [...cat.ancestors, cat._id] : [], lang: req.ctx.lang, viewerPoint: req.query.lat !== undefined ? { lat: req.query.lat, lng: req.query.lng } : null });
   ok(res, { ...result, ...ads });
 }));
+
+router.get(
+  '/suggest',
+  limiter({ name: 'search-suggest', windowMs: 60_000, max: 120 }),
+  validate({ query: z.object({ q: z.string().trim().max(60).default('') }) }),
+  asyncHandler(async (req, res) => ok(res, await suggest(req.query.q, { lang: req.ctx.lang })))
+);
 
 /* ───── my account (must come before /:id) ───── */
 
@@ -128,6 +135,16 @@ router.get(
   asyncHandler(async (req, res) => {
     const viewerPoint = req.query.lat !== undefined && req.query.lng !== undefined ? { lat: req.query.lat, lng: req.query.lng } : undefined;
     ok(res, await listingDetail(req.params.id, { viewerId: req.user?.id, lang: req.ctx.lang, viewerPoint }));
+  })
+);
+
+router.get(
+  '/:id/related',
+  optionalUser,
+  validate({ params: id, query: z.object({ lat: z.coerce.number().min(-90).max(90).optional(), lng: z.coerce.number().min(-180).max(180).optional() }) }),
+  asyncHandler(async (req, res) => {
+    const viewerPoint = req.query.lat !== undefined && req.query.lng !== undefined ? { lat: req.query.lat, lng: req.query.lng } : undefined;
+    ok(res, await relatedListings(req.params.id, { viewerId: req.user?.id, lang: req.ctx.lang, viewerPoint }));
   })
 );
 

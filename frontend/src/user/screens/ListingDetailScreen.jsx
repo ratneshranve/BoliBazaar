@@ -6,7 +6,7 @@ import { ReportSheet } from '../components/ReportSheet';
 import { usePageMeta } from '../utils/pageMeta';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, TextInput, View } from '../components/primitives';
 import { AppText, Button, Card, EmptyState } from '../components/ui';
-import { FavouriteButton } from '../components/ListingCard';
+import { FavouriteButton, ListingCard } from '../components/ListingCard';
 import { colors, radius, spacing } from '@theme/tokens';
 import { listingsApi, chatApi, leadsApi } from '../api/endpoints';
 import { useAppSelector } from '../store';
@@ -17,6 +17,20 @@ import { errorText } from '../i18n';
 const Pill = ({ label, tone = 'neutral' }) => (
   <View style={[styles.pill, tone === 'blue' && { backgroundColor: colors.auctionSoft }, tone === 'green' && { backgroundColor: colors.sellSoft }, tone === 'amber' && { backgroundColor: colors.warmSoft }]}>
     <AppText variant="small" color={colors.text}>{label}</AppText>
+  </View>
+);
+
+/** A horizontal row of ad cards under the ad. */
+const Rail = ({ title, items }) => (
+  <View style={{ marginTop: spacing.lg }}>
+    <AppText variant="h3" style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.sm }}>{title}</AppText>
+    <ScrollView horizontal contentContainerStyle={{ gap: spacing.md, paddingHorizontal: spacing.lg, paddingBottom: spacing.sm }}>
+      {items.map((l) => (
+        <View key={l.id} style={{ width: 170 }}>
+          <ListingCard listing={l} />
+        </View>
+      ))}
+    </ScrollView>
   </View>
 );
 
@@ -127,6 +141,7 @@ export const ListingDetailScreen = () => {
   const [ad, setAd] = useState(null);
   const [failed, setFailed] = useState(false);
   const [slide, setSlide] = useState(0);
+  const [related, setRelated] = useState(null); // { similar, fromSeller }
   const gallery = useRef(null);
 
   const load = () => {
@@ -141,6 +156,8 @@ export const ListingDetailScreen = () => {
     setAd(null);
     load();
     listingsApi.view(id).catch(() => {});
+    setRelated(null);
+    listingsApi.related(id, current ? { lat: current.lat, lng: current.lng } : undefined).then(({ data }) => setRelated(data)).catch(() => {});
   }, [id, i18n.language]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const status = useAppSelector((s) => s.session.status);
@@ -338,6 +355,9 @@ export const ListingDetailScreen = () => {
             </Card>
           )}
         </View>
+
+        {!ad.isOwner && related?.fromSeller?.length > 0 && <Rail title={t('listing.fromSeller')} items={related.fromSeller} />}
+        {related?.similar?.length > 0 && <Rail title={t('listing.similar')} items={related.similar} />}
       </ScrollView>
       {reporting && <ReportSheet targetType={reporting} targetId={reporting === 'user' ? ad.seller.id : ad.id} onClose={() => setReporting(null)} />}
     </View>

@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { adsApi, growthApi } from '../api/endpoints';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ArrowUpDown, Bookmark, SearchX, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowLeft, ArrowUpDown, Bookmark, LayoutGrid, Map as MapIcon, Mic, Search, SearchX, SlidersHorizontal, Tag, X } from 'lucide-react';
+import { ResultsMap } from '../components/ResultsMap';
+import { listenOnce, voiceSupported } from '../services/voice';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
 import { AppText, Button, EmptyState, Field } from '../components/ui';
 import { ListingCard } from '../components/ListingCard';
@@ -15,6 +17,7 @@ import { locationQuery } from '../utils/listing';
 import { errorText } from '../i18n';
 
 const CONDITIONS = ['new', 'used', 'refurbished'];
+const POSTED = ['1', '7', '30'];
 const SORTS = ['newest', 'price_asc', 'price_desc', 'nearest'];
 
 const Chip = ({ label, active, onPress }) => (
@@ -30,6 +33,10 @@ function FiltersSheet({ category, params, onApply, onClose }) {
   const [condition, setCondition] = useState(params.condition ?? '');
   const [type, setType] = useState(params.listingType ?? '');
   const [delivery, setDelivery] = useState(Boolean(params.delivery));
+  const [posted, setPosted] = useState(params.postedWithin ?? '');
+  const [sellerType, setSellerType] = useState(params.sellerType ?? '');
+  const [verified, setVerified] = useState(Boolean(params.verified));
+  const [withPhotos, setWithPhotos] = useState(Boolean(params.withPhotos));
   const [attrs, setAttrs] = useState(() => {
     try {
       return params.filters ? JSON.parse(params.filters) : {};
@@ -49,6 +56,10 @@ function FiltersSheet({ category, params, onApply, onClose }) {
       condition: condition || undefined,
       listingType: type || undefined,
       delivery: delivery ? '1' : undefined,
+      postedWithin: posted || undefined,
+      sellerType: sellerType || undefined,
+      verified: verified ? '1' : undefined,
+      withPhotos: withPhotos ? '1' : undefined,
       filters: Object.keys(clean(attrs)).length ? JSON.stringify(clean(attrs)) : undefined,
     });
 
@@ -57,6 +68,10 @@ function FiltersSheet({ category, params, onApply, onClose }) {
     setCondition('');
     setType('');
     setDelivery(false);
+    setPosted('');
+    setSellerType('');
+    setVerified(false);
+    setWithPhotos(false);
     setAttrs({});
   };
 
@@ -94,6 +109,33 @@ function FiltersSheet({ category, params, onApply, onClose }) {
         <View style={styles.chips}>
           <Chip label={t('search.any')} active={!delivery} onPress={() => setDelivery(false)} />
           <Chip label={t('search.deliveryOnly')} active={delivery} onPress={() => setDelivery(true)} />
+        </View>
+      </View>
+
+      <View>
+        <AppText variant="bodyStrong" style={{ marginBottom: spacing.sm }}>{t('search.posted')}</AppText>
+        <View style={styles.chips}>
+          <Chip label={t('search.any')} active={!posted} onPress={() => setPosted('')} />
+          {POSTED.map((d) => (
+            <Chip key={d} label={t(`search.posted_${d}`)} active={posted === d} onPress={() => setPosted(d)} />
+          ))}
+        </View>
+      </View>
+
+      <View>
+        <AppText variant="bodyStrong" style={{ marginBottom: spacing.sm }}>{t('search.seller')}</AppText>
+        <View style={styles.chips}>
+          <Chip label={t('search.any')} active={!sellerType} onPress={() => setSellerType('')} />
+          <Chip label={t('search.seller_individual')} active={sellerType === 'individual'} onPress={() => setSellerType('individual')} />
+          <Chip label={t('search.seller_business')} active={sellerType === 'business'} onPress={() => setSellerType('business')} />
+        </View>
+      </View>
+
+      <View>
+        <AppText variant="bodyStrong" style={{ marginBottom: spacing.sm }}>{t('search.more')}</AppText>
+        <View style={styles.chips}>
+          <Chip label={t('search.verifiedOnly')} active={verified} onPress={() => setVerified(!verified)} />
+          <Chip label={t('search.withPhotos')} active={withPhotos} onPress={() => setWithPhotos(!withPhotos)} />
         </View>
       </View>
 
@@ -151,6 +193,10 @@ export const SearchScreen = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
   const [sheet, setSheet] = useState(null); // 'sort' | 'filters'
+  const [view, setView] = useState('list'); // list | map
+  const [suggestions, setSuggestions] = useState(null); // { categories, terms } while typing
+  const [focused, setFocused] = useState(false);
+  const [listening, setListening] = useState(false);
 
   const patch = useCallback((next) => {
     const merged = { ...params, ...next };
@@ -163,6 +209,32 @@ export const SearchScreen = () => {
     const id = setTimeout(() => text !== (params.q ?? '') && patch({ q: text.trim() || undefined }), 400);
     return () => clearTimeout(id);
   }, [text]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // suggestions while typing (matching categories and ad titles)
+  useEffect(() => {
+    const q = text.trim();
+    if (q.length < 2 || q === (params.q ?? '')) return setSuggestions(null);
+    let live = true;
+    const id = setTimeout(() => listingsApi.suggest(q).then(({ data }) => live && setSuggestions(data)).catch(() => {}), 200);
+    return () => {
+      live = false;
+      clearTimeout(id);
+    };
+  }, [text]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const speak = () => {
+    setListening(true);
+    listenOnce({
+      lang: i18n.language,
+      onText: (said) => {
+        if (!said) return;
+        setText(said);
+        patch({ q: said });
+      },
+      onEnd: () => setListening(false),
+      onError: (code) => code === 'not-allowed' && Alert.alert(t('search.micBlocked')),
+    });
+  };
 
   // the category (name + its filterable fields)
   useEffect(() => {
@@ -180,6 +252,10 @@ export const SearchScreen = () => {
       priceMin: params.priceMin,
       priceMax: params.priceMax,
       filters: params.filters,
+      postedWithin: params.postedWithin,
+      sellerType: params.sellerType,
+      verified: params.verified,
+      withPhotos: params.withPhotos,
       sort: params.sort === 'nearest' && !current ? undefined : params.sort,
       ...locationQuery(current),
     }),
@@ -229,7 +305,7 @@ export const SearchScreen = () => {
   };
 
   const sort = params.sort || 'newest';
-  const activeFilters = ['priceMin', 'priceMax', 'condition', 'delivery', 'listingType', 'filters'].filter((k) => params[k]).length;
+  const activeFilters = ['priceMin', 'priceMax', 'condition', 'delivery', 'listingType', 'filters', 'postedWithin', 'sellerType', 'verified', 'withPhotos'].filter((k) => params[k]).length;
 
   return (
     <View style={styles.fill}>
@@ -237,14 +313,63 @@ export const SearchScreen = () => {
         <Pressable accessibilityLabel={t('common.back')} onPress={() => navigate(-1)}>
           <ArrowLeft size={24} color={colors.text} />
         </Pressable>
-        <View style={{ flex: 1 }}>
-          <Field value={text} onChangeText={setText} placeholder={t('home.searchPlaceholder')} autoFocus={!params.q && !params.categoryId} />
+        <View style={{ flex: 1, position: 'relative' }}>
+          <Field
+            value={text}
+            onChangeText={setText}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setTimeout(() => setFocused(false), 150)}
+            onSubmitEditing={() => {
+              patch({ q: text.trim() || undefined });
+              setSuggestions(null);
+            }}
+            placeholder={t('home.searchPlaceholder')}
+            autoFocus={!params.q && !params.categoryId}
+          />
+          {focused && suggestions && (suggestions.categories.length > 0 || suggestions.terms.length > 0) && (
+            <View style={styles.suggest}>
+              {suggestions.categories.map((c) => (
+                <Pressable
+                  key={c.id}
+                  onPress={() => {
+                    setText('');
+                    setSuggestions(null);
+                    patch({ q: undefined, categoryId: c.id, filters: undefined, listingType: undefined });
+                  }}
+                  style={styles.suggestRow}>
+                  <Tag size={16} color={colors.textMuted} />
+                  <AppText style={{ flex: 1 }}>{t('search.inCategory', { name: c.name })}</AppText>
+                </Pressable>
+              ))}
+              {suggestions.terms.map((term) => (
+                <Pressable
+                  key={term}
+                  onPress={() => {
+                    setText(term);
+                    setSuggestions(null);
+                    patch({ q: term });
+                  }}
+                  style={styles.suggestRow}>
+                  <Search size={16} color={colors.textMuted} />
+                  <AppText style={{ flex: 1 }} numberOfLines={1}>{term}</AppText>
+                </Pressable>
+              ))}
+            </View>
+          )}
         </View>
+        {voiceSupported() && (
+          <Pressable accessibilityLabel={t('search.voice')} onPress={speak} style={[styles.mic, listening && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
+            <Mic size={20} color={listening ? colors.white : colors.text} />
+          </Pressable>
+        )}
       </View>
 
       <View style={styles.bar}>
         <LocationChip />
         <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+          <Pressable accessibilityLabel={view === 'map' ? t('search.listView') : t('search.mapView')} onPress={() => setView(view === 'map' ? 'list' : 'map')} style={styles.tool}>
+            {view === 'map' ? <LayoutGrid size={16} color={colors.text} /> : <MapIcon size={16} color={colors.text} />}
+          </Pressable>
           <Pressable onPress={() => setSheet('sort')} style={styles.tool}>
             <ArrowUpDown size={16} color={colors.text} />
             <AppText variant="bodyStrong">{t('search.sort')}</AppText>
@@ -286,7 +411,10 @@ export const SearchScreen = () => {
             </View>
           </Pressable>
         )}
-        {items && items.length > 0 && (
+        {items && items.length > 0 && view === 'map' && (
+          <ResultsMap items={items} center={current?.lat !== undefined ? { lat: current.lat, lng: current.lng } : null} />
+        )}
+        {items && items.length > 0 && view === 'list' && (
           <View style={styles.grid}>
             {[...ads.sponsoredListings, ...items.filter((x) => !ads.sponsoredListings.some((s) => s.id === x.id))].map((l) => (
               <View key={l.id} style={{ width: 'calc(50% - 6px)' }}>
@@ -342,5 +470,8 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white },
   chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  mic: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
+  suggest: { position: 'absolute', top: 52, left: 0, right: 0, zIndex: 20, backgroundColor: colors.white, borderRadius: 12, borderWidth: 1, borderColor: colors.border, paddingVertical: spacing.xs, boxShadow: '0 8px 24px rgba(0,0,0,0.12)' },
+  suggestRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
 });

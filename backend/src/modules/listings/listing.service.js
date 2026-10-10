@@ -313,6 +313,7 @@ export const cardDtos = async (docs, { lang, viewerPoint, favourites = new Set()
       photoCount: d.media?.length || 0,
       place: shortPlace(d.location),
       distanceKm,
+      point: pub ? { lat: pub[1], lng: pub[0] } : null, // the shifted public point (map view)
       highlights,
       publishedAt: d.publishedAt || null,
       isFavourite: favourites.has(String(d._id)),
@@ -374,6 +375,15 @@ export const searchListings = async (query, { viewerId, lang, homepageOnly = fal
   if (query.listingType) match.listingType = query.listingType;
   if (query.condition) match.condition = query.condition;
   if (query.delivery) match['shipping.delivery'] = true;
+  if (query.withPhotos) match['media.0'] = { $exists: true };
+  if (query.postedWithin) match.publishedAt = { $gte: new Date(now.getTime() - Number(query.postedWithin) * DAY_MS) };
+  // badges are granted by hand after document review, so the set of badged sellers stays small
+  if (query.sellerType === 'business') match.ownerId = { $in: await User.distinct('_id', { 'verification.businessVerifiedAt': { $ne: null } }) };
+  else if (query.sellerType === 'individual') match.ownerId = { $nin: await User.distinct('_id', { 'verification.businessVerifiedAt': { $ne: null } }) };
+  if (query.verified) {
+    const badged = await User.distinct('_id', { $or: [{ 'verification.idVerifiedAt': { $ne: null } }, { 'verification.businessVerifiedAt': { $ne: null } }] });
+    match.ownerId = match.ownerId?.$in ? { $in: match.ownerId.$in } : { ...(match.ownerId || {}), $in: badged };
+  }
 
   if (query.priceMin !== undefined || query.priceMax !== undefined) {
     const { currency } = await getSettingValue('marketplace');
@@ -443,6 +453,26 @@ export const searchListings = async (query, { viewerId, lang, homepageOnly = fal
   return { items, page: query.page, hasMore };
 };
 
+/* ───────── suggestions while typing ───────── */
+
+/** Matching categories and ad titles for the search box. */
+export const suggest = async (q, { lang }) => {
+  const text = q.trim().toLowerCase();
+  if (text.length < 2) return { categories: [], terms: [] };
+  const re = new RegExp(escapeRegex(text), 'i');
+  const [cats, titles] = await Promise.all([
+    Category.find({ status: 'active', name: re }).select('name').limit(5).lean(),
+    Listing.aggregate([
+      { $match: { status: 'published', expiresAt: { $gt: new Date() }, title: new RegExp(`(^|\\s)${escapeRegex(text)}`, 'i') } },
+      { $group: { _id: { $toLower: '$title' }, n: { $sum: 1 } } },
+      { $sort: { n: -1 } },
+      { $limit: 6 },
+    ]),
+  ]);
+  const names = await translateForReader(cats.map((c) => c.name), lang);
+  return { categories: cats.map((c, i) => ({ id: String(c._id), name: names[i] })), terms: titles.map((t) => t._id) };
+};
+
 /* ───────── detail ───────── */
 
 export const listingDetail = async (id, { viewerId, lang, viewerPoint } = {}) => {
@@ -494,6 +524,27 @@ export const listingDetail = async (id, { viewerId, lang, viewerPoint } = {}) =>
     isOwner: Boolean(isOwner),
     stats: isOwner ? d.stats : undefined,
   };
+};
+
+/** "Similar ads" (same category, nearest first when we know where the viewer is) and "More from this seller". */
+export const relatedListings = async (id, { viewerId, lang, viewerPoint }) => {
+  const d = await Listing.findById(id).select('categoryId ownerId publicGeo').lean();
+  if (!d) throw ApiError.notFound('LISTING_NOT_FOUND');
+  const live = { status: 'published', expiresAt: { $gt: new Date() }, _id: { $ne: d._id } };
+  const near = viewerPoint || (d.publicGeo?.coordinates ? { lat: d.publicGeo.coordinates[1], lng: d.publicGeo.coordinates[0] } : null);
+  const [similar, fromSeller] = await Promise.all([
+    near
+      ? Listing.aggregate([{ $geoNear: { near: { type: 'Point', coordinates: [near.lng, near.lat] }, distanceField: 'distanceM', spherical: true, query: { ...live, categoryId: d.categoryId, ownerId: { $ne: d.ownerId } } } }, { $limit: 10 }])
+      : Listing.find({ ...live, categoryId: d.categoryId, ownerId: { $ne: d.ownerId } }).sort({ publishedAt: -1 }).limit(10).lean(),
+    Listing.find({ ...live, ownerId: d.ownerId }).sort({ publishedAt: -1 }).limit(10).lean(),
+  ]);
+  const all = [...similar, ...fromSeller];
+  const favs = await favouriteSet(viewerId, all);
+  const [a, b] = await Promise.all([
+    cardDtos(similar, { lang, viewerPoint, favourites: favs }),
+    cardDtos(fromSeller, { lang, viewerPoint, favourites: favs }),
+  ]);
+  return { similar: a, fromSeller: b };
 };
 
 /** The owner's own copy for editing (exact location, raw attribute values, media ids). */

@@ -14,6 +14,8 @@ export const categoriesApi = {
 /** Ads: browse/search (public), detail, post/edit, my ads, favourites. */
 export const listingsApi = {
   search: (params) => api('/listings', { query: params }),
+  suggest: (q) => api('/listings/suggest', { query: { q }, auth: false }),
+  related: (id, point) => api(`/listings/${id}/related`, { query: point }),
   detail: (id, point) => api(`/listings/${id}`, { query: point }),
   forEdit: (id) => api(`/listings/${id}/edit`),
   create: (body) => api('/listings', { method: 'POST', body }),

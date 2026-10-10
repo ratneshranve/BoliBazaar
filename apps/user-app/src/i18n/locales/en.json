@@ -266,7 +266,9 @@
     "shipCoverage_city": "Delivers within the city",
     "shipCoverage_state": "Delivers within the state",
     "shipCoverage_country": "Delivers across the country",
-    "shipCoverage_worldwide": "Delivers worldwide"
+    "shipCoverage_worldwide": "Delivers worldwide",
+    "similar": "Similar ads",
+    "fromSeller": "More from this seller"
   },
   "status": {
     "pending_review": "Under review",
@@ -299,7 +301,22 @@
     "nearestNeedsLocation": "Choose a location to sort by distance",
     "inCategory": "in {{name}}",
     "delivery": "Delivery",
-    "deliveryOnly": "Seller can deliver"
+    "deliveryOnly": "Seller can deliver",
+    "posted": "Posted",
+    "posted_1": "Last 24 hours",
+    "posted_7": "Last 7 days",
+    "posted_30": "Last 30 days",
+    "seller": "Seller",
+    "seller_individual": "Individual",
+    "seller_business": "Verified business",
+    "more": "More",
+    "verifiedOnly": "Verified sellers only",
+    "withPhotos": "With photos",
+    "voice": "Search by voice",
+    "micBlocked": "Allow microphone access in your browser to search by voice.",
+    "mapView": "Map view",
+    "listView": "List view",
+    "mapUnavailable": "The map could not be loaded. Switch back to the list."
   },
   "sell": {
     "title": "Post an ad",

@@ -4,7 +4,7 @@ import { View } from './primitives';
 
 /** Loads the Google Maps JS API once. */
 let loader = null;
-const loadMaps = () => {
+export const loadMaps = () => {
   if (window.google?.maps) return Promise.resolve(window.google.maps);
   if (!loader) {
     loader = new Promise((resolve, reject) => {
