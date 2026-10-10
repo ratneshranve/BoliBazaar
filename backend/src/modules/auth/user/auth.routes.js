@@ -68,7 +68,7 @@ router.post(
     body: z.object({
       fcmToken: z.string().min(20).max(4096),
       deviceId: z.string().min(4).max(200),
-      platform: z.enum(['android', 'ios']),
+      platform: z.enum(['android', 'ios', 'web']),
       osVersion: z.string().max(40).optional(),
       appVersion: z.string().max(40).optional(),
       model: z.string().max(120).optional(),

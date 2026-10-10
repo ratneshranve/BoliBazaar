@@ -94,6 +94,8 @@ export const authApi = {
   sendOtp: (phone, countryCode) => api('/auth/otp/send', { method: 'POST', body: { phone, countryCode }, auth: false }),
   verifyOtp: (phone, countryCode, code) => api('/auth/otp/verify', { method: 'POST', body: { phone, countryCode, code }, auth: false }),
   logout: () => api('/auth/logout', { method: 'POST' }),
+  registerDevice: (body) => api('/auth/devices', { method: 'POST', body }),
+  removeDevice: (fcmToken) => api('/auth/devices', { method: 'DELETE', body: { fcmToken } }),
 };
 
 export const meApi = {

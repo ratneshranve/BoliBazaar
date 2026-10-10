@@ -43,7 +43,7 @@ const deviceSchema = new Schema(
     sessionId: { type: Schema.Types.ObjectId, ref: 'Session' },
     deviceId: { type: String, required: true },
     fcmToken: { type: String, required: true, unique: true },
-    platform: { type: String, enum: ['android', 'ios'], required: true },
+    platform: { type: String, enum: ['android', 'ios', 'web'], required: true },
     osVersion: String,
     appVersion: String,
     model: String,

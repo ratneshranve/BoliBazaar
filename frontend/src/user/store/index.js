@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { configApi, meApi, authApi, notificationsApi, chatApi } from '../api/endpoints';
 import { loadTokens, clearTokens, hasSession } from '../api/client';
 import { kvGetJSON, kvSetJSON, KV, kv } from '../services/storage';
+import { unregisterPushToken } from '../services/push';
 
 /* ───── app: bootstrap / maintenance / update ───── */
 export const fetchBootstrap = createAsyncThunk('app/bootstrap', async () => {
@@ -46,6 +47,7 @@ export const restoreSession = createAsyncThunk('session/restore', async () => {
 });
 
 export const logoutThunk = createAsyncThunk('session/logout', async () => {
+  await unregisterPushToken();
   try {
     await authApi.logout();
   } catch {

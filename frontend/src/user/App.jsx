@@ -5,6 +5,7 @@ import { ActivityIndicator, View } from './components/primitives';
 import { missingEnv } from './config/env';
 import { store, useAppDispatch, useAppSelector, fetchBootstrap, restoreSession, maintenanceDetected, sessionExpired, setLocation, fetchUnread, notificationArrived } from './store';
 import { connectRealtime, disconnectRealtime, onRealtime } from './services/realtime';
+import { registerPushToken } from './services/push';
 import { setClientHooks } from './api/client';
 import i18n, { savedLanguage, setLanguage, ensureLanguage } from './i18n';
 import { ConfigErrorScreen, LanguageScreen, MaintenanceScreen, OfflineScreen, UpdateScreen } from './screens/GateScreens';
@@ -56,6 +57,7 @@ const RealtimeBridge = () => {
     }
     connectRealtime();
     dispatch(fetchUnread());
+    registerPushToken().catch(() => {});
     const off = [
       onRealtime('notification:new', () => dispatch(notificationArrived())),
       onRealtime('chat:message', () => dispatch(fetchUnread())),

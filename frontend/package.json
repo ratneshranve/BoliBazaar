@@ -13,6 +13,7 @@
     "@tailwindcss/vite": "^4.1.17",
     "axios": "^1.13.6",
     "clsx": "^2.1.1",
+    "firebase": "^12.19.0",
     "i18next": "^26.4.2",
     "libphonenumber-js": "^1.13.14",
     "lucide-react": "^0.555.0",

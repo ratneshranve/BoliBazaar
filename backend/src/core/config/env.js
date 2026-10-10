@@ -56,7 +56,7 @@ const schema = z
     UPLOAD_DIR: required('UPLOAD_DIR'),
     MAX_UPLOAD_MB: z.coerce.number().positive(),
 
-    SMS_PROVIDER: z.preprocess((v) => (v === '' ? undefined : v), z.enum(['smsindiahub', 'msg91', 'twilio', 'console']).optional()),
+    SMS_PROVIDER: z.preprocess((v) => (v === '' ? undefined : v), z.enum(['smsindiahub', 'console']).optional()),
     // Testing switch: when true every login OTP is DEFAULT_OTP and no SMS is sent. Keep false for real users.
     DEFAULT_OTP_ENABLED: z.enum(['true', 'false']),
     DEFAULT_OTP: optional,
@@ -66,11 +66,6 @@ const schema = z
     SMS_INDIA_HUB_USERNAME: optional,
     SMS_INDIA_HUB_DLT_TEMPLATE_ID: optional,
     SMS_INDIA_HUB_OTP_MESSAGE: optional,
-    MSG91_AUTH_KEY: optional,
-    MSG91_OTP_TEMPLATE_ID: optional,
-    TWILIO_ACCOUNT_SID: optional,
-    TWILIO_AUTH_TOKEN: optional,
-    TWILIO_FROM_NUMBER: optional,
 
     // Firebase Admin (push). The whole service-account JSON as ONE single-quoted line.
     FIREBASE_SERVICE_ACCOUNT: optional,
@@ -109,7 +104,7 @@ const schema = z
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['DEFAULT_OTP'], message: 'DEFAULT_OTP must be 4-8 digits when DEFAULT_OTP_ENABLED=true' });
     }
     if (env.DEFAULT_OTP_ENABLED !== 'true' && !env.SMS_PROVIDER) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['SMS_PROVIDER'], message: 'Set SMS_PROVIDER (smsindiahub | msg91 | twilio | console), or DEFAULT_OTP_ENABLED=true for testing' });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['SMS_PROVIDER'], message: 'Set SMS_PROVIDER (smsindiahub | console), or DEFAULT_OTP_ENABLED=true for testing' });
     }
     if (env.SMS_PROVIDER === 'smsindiahub') {
       need(['SMS_INDIA_HUB_API_KEY', 'SMS_INDIA_HUB_SENDER_ID', 'SMS_INDIA_HUB_OTP_MESSAGE'], 'when SMS_PROVIDER=smsindiahub');
@@ -117,8 +112,6 @@ const schema = z
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['SMS_INDIA_HUB_OTP_MESSAGE'], message: 'Put {{otp}} where the code goes in the message' });
       }
     }
-    if (env.SMS_PROVIDER === 'msg91') need(['MSG91_AUTH_KEY', 'MSG91_OTP_TEMPLATE_ID'], 'when SMS_PROVIDER=msg91');
-    if (env.SMS_PROVIDER === 'twilio') need(['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_FROM_NUMBER'], 'when SMS_PROVIDER=twilio');
     if (env.SMS_PROVIDER === 'console' && env.NODE_ENV !== 'development') {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['SMS_PROVIDER'], message: 'SMS_PROVIDER=console is only allowed when NODE_ENV=development' });
     }
