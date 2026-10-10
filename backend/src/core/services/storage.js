@@ -40,6 +40,8 @@ const sniff = (buf) => {
   if (buf.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'image/png';
   if (buf.slice(0, 4).toString() === 'RIFF' && buf.slice(8, 12).toString() === 'WEBP') return 'image/webp';
   if (buf.slice(0, 4).toString() === '%PDF') return 'application/pdf';
+  if (buf.slice(4, 8).toString() === 'ftyp') return buf.slice(8, 10).toString() === 'qt' ? 'video/quicktime' : 'video/mp4';
+  if (buf[0] === 0x1a && buf[1] === 0x45 && buf[2] === 0xdf && buf[3] === 0xa3) return 'video/webm';
   return null;
 };
 
@@ -99,6 +101,33 @@ export const storePublicImage = async (file, folder) => {
     size: info.size,
     mime: 'image/webp',
   };
+};
+
+const VIDEO_EXT = { 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm' };
+
+/** Store a PUBLIC video (one per ad). Size limit from Admin › Image Storage; length is checked on the device. */
+export const storePublicVideo = async (file, folder) => {
+  const cfg = await resolveProvider();
+  if (file.size > (cfg.maxVideoMb ?? 50) * 1024 * 1024) throw ApiError.badRequest('FILE_TOO_LARGE', `Max ${cfg.maxVideoMb ?? 50} MB`, { maxMb: cfg.maxVideoMb ?? 50 });
+  const mime = sniff(file.buffer);
+  if (!VIDEO_EXT[mime]) throw ApiError.badRequest('FILE_TYPE_NOT_ALLOWED', 'Only MP4, MOV or WebM videos');
+
+  if (cfg.provider === 'cloudinary') {
+    const r = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: `${env.CLOUDINARY_FOLDER || ''}/${folder}`.replace(/^\//, ''), resource_type: 'video' },
+        (err, result) => (err ? reject(err) : resolve(result))
+      );
+      stream.end(file.buffer);
+    });
+    return { provider: 'cloudinary', key: r.public_id, url: r.secure_url, width: r.width, height: r.height, size: r.bytes, mime, durationSec: r.duration };
+  }
+
+  const key = `${folder}/${new Date().toISOString().slice(0, 7)}/${crypto.randomUUID()}.${VIDEO_EXT[mime]}`;
+  const abs = path.join(PUBLIC_DIR, key);
+  await fs.mkdir(path.dirname(abs), { recursive: true });
+  await fs.writeFile(abs, file.buffer);
+  return { provider: 'local', key, url: `${UPLOAD_PREFIX}${key}`, size: file.size, mime };
 };
 
 /** Store a PRIVATE document (KYC, property papers, resumes). Never publicly routable. */

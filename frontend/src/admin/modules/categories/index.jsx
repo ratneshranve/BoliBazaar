@@ -12,7 +12,7 @@ const slugValue = (s) => s.trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '_')
 /** Parent options: main categories only (two levels: Category › Subcategory). Excludes the one being edited. */
 const topLevel = (nodes, exclude) => nodes.filter((n) => n.id !== exclude).map((n) => ({ id: n.id, label: n.name }));
 
-const DEFAULT_RULES = { minPhotos: 1, maxPhotos: 10, requiresReview: true, validityDays: 30 };
+const DEFAULT_RULES = { minPhotos: 1, maxPhotos: 10, requiresReview: true, validityDays: 30, allowVideo: true };
 
 /* ───────── form-field (attribute) builder ───────── */
 
@@ -211,6 +211,7 @@ function CategoryForm({ node, parentId, tree, meta, canEdit, onClose, onSaved })
           <Field label="Ad validity (days)"><Input type="number" min="1" max="365" value={f.rules.validityDays} disabled={!canEdit} onChange={(e) => setF({ ...f, rules: { ...f.rules, validityDays: Number(e.target.value) } })} /></Field>
           <div className="self-end">
             <Switch checked={f.rules.requiresReview} disabled={!canEdit} onChange={(v) => setF({ ...f, rules: { ...f.rules, requiresReview: v } })} label="Moderator review before publishing" />
+            <Switch checked={f.rules.allowVideo !== false} disabled={!canEdit} onChange={(v) => setF({ ...f, rules: { ...f.rules, allowVideo: v } })} label="Sellers can add a video" description="One short video per ad (limits in Settings › Image Storage)" />
           </div>
         </div>
       )}

@@ -88,6 +88,8 @@ export const listingInput = z.object({
   shipping: shippingInput.optional(),
   attributes: z.record(z.string(), z.unknown()).default({}),
   mediaIds: z.array(objectId).max(30),
+  videoId: objectId.nullable().optional(),
+  screening: z.array(z.string().trim().min(5).max(200)).max(5).optional(), // job ads only
   location: placeInput,
 });
 

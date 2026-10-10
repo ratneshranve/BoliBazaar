@@ -92,6 +92,16 @@ export const LeadsScreen = ({ initial = 'received' }) => {
             <AppText variant="small" color={colors.primary}>
               {t(`leads.type_${l.type}`)}{tab === 'received' && l.listing ? ` · ${l.listing.title}` : ''}
             </AppText>
+            {l.answers?.length > 0 && (
+              <View style={{ gap: spacing.xs, padding: spacing.sm, borderRadius: 10, backgroundColor: colors.surface }}>
+                {l.answers.map((a, i) => (
+                  <View key={i}>
+                    <AppText variant="caption" color={colors.textMuted}>{a.question}</AppText>
+                    <AppText style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{a.answer}</AppText>
+                  </View>
+                ))}
+              </View>
+            )}
             <AppText style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{l.message}</AppText>
             <AppText variant="small" color={colors.textSubtle}>{formatDate(l.createdAt, i18n.language)}</AppText>
 

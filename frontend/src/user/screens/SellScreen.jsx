@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, CheckCircle2, ChevronRight, ImagePlus, MapPin, X } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ChevronRight, FileClock, ImagePlus, MapPin, Plus, Trash2, Video, X } from 'lucide-react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
 import { AppText, Button, Card, Field } from '../components/ui';
 import { DynamicFields } from '../components/DynamicFields';
@@ -21,6 +21,19 @@ const SHIPPABLE = ['sell', 'auction', 'business'];
 const NO_SHIPPING = { delivery: false, coverage: '', feeType: '', fee: '', note: '' };
 /** Duration presets in hours (1, 3, 5, 7 and 10 days). */
 const DURATIONS = [24, 72, 120, 168, 240];
+const MAX_QUESTIONS = 5;
+/** Length of a picked video file, read in the browser. */
+const videoSeconds = (file) =>
+  new Promise((resolve) => {
+    const v = document.createElement('video');
+    v.preload = 'metadata';
+    v.onloadedmetadata = () => {
+      URL.revokeObjectURL(v.src);
+      resolve(v.duration);
+    };
+    v.onerror = () => resolve(null);
+    v.src = URL.createObjectURL(file);
+  });
 const EMPTY_AUCTION = { startingBid: '', reservePrice: '', buyNowPrice: '', increment: '', startAt: '', durationHours: 72 };
 
 /** Date → value for <input type="datetime-local"> in the viewer's own time zone. */
@@ -103,6 +116,15 @@ export const SellScreen = () => {
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(null); // { id, status }
   const fileInput = useRef(null);
+  const videoInput = useRef(null);
+  const [video, setVideo] = useState(null); // { url, mediaId, uploading }
+  const [screening, setScreening] = useState([]); // job ads: questions for applicants
+  const uploadLimits = useAppSelector((s) => s.app.bootstrap?.uploads);
+  // drafts: unfinished ads are saved while typing (new ads only)
+  const [draftId, setDraftId] = useState(query.get('draft'));
+  const [drafts, setDrafts] = useState(null);
+  const [draftState, setDraftState] = useState(''); // '' | 'saving' | 'saved'
+  const restoring = useRef(Boolean(query.get('draft')));
 
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
   const setAttr = (key, value) => setForm((f) => ({ ...f, attributes: { ...f.attributes, [key]: value } }));
@@ -144,6 +166,8 @@ export const SellScreen = () => {
         });
         if (data.shipping?.delivery) setShipping({ delivery: true, coverage: data.shipping.coverage, feeType: data.shipping.feeType, fee: data.shipping.fee != null ? String(data.shipping.fee) : '', note: data.shipping.note || '' });
         setPhotos(data.media.map((m) => ({ key: m.mediaId, mediaId: m.mediaId, url: m.url })));
+        setVideo(data.video || null);
+        setScreening(data.screening || []);
         setPlace(data.location);
       } catch (e) {
         setFormError(errorText(e));
@@ -154,6 +178,95 @@ export const SellScreen = () => {
   }, [id, auctionId, editing]);
 
   const maxPhotos = category?.rules.maxPhotos ?? 10;
+
+  /* ───── drafts ───── */
+  useEffect(() => {
+    if (editing) return;
+    listingsApi.drafts().then(({ data }) => setDrafts(data)).catch(() => setDrafts([]));
+  }, [editing]);
+
+  const restoreDraft = async (d) => {
+    restoring.current = true;
+    const x = d.data || {};
+    setDraftId(d.id);
+    if (x.categoryId) {
+      try {
+        setCategory((await categoriesApi.detail(x.categoryId)).data);
+      } catch {
+        /* category no longer available: the seller picks again */
+      }
+    }
+    if (x.form) setForm(x.form);
+    if (x.auction) setAuction(x.auction);
+    if (x.shipping) setShipping(x.shipping);
+    if (x.place) setPlace(x.place);
+    setPhotos((x.photos || []).map((p) => ({ key: p.mediaId, mediaId: p.mediaId, url: p.url })));
+    setVideo(x.video || null);
+    setScreening(x.screening || []);
+    setTimeout(() => (restoring.current = false), 0);
+  };
+
+  // open /sell?draft=<id> straight into that draft
+  useEffect(() => {
+    const want = query.get('draft');
+    if (!want || !drafts) return;
+    const d = drafts.find((x) => x.id === want);
+    if (d) restoreDraft(d);
+    else restoring.current = false;
+  }, [drafts]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // autosave 1.5 s after the last change, once there is something worth keeping
+  useEffect(() => {
+    if (editing || done || restoring.current) return undefined;
+    if (!category && !form.title.trim()) return undefined;
+    const data = {
+      categoryId: category?.id,
+      form,
+      auction,
+      shipping,
+      place,
+      photos: photos.filter((p) => p.mediaId).map((p) => ({ mediaId: p.mediaId, url: p.url })),
+      video: video?.mediaId ? { mediaId: video.mediaId, url: video.url } : null,
+      screening,
+    };
+    const title = form.title.trim() || category?.name || '';
+    const timer = setTimeout(async () => {
+      setDraftState('saving');
+      try {
+        if (draftId) await listingsApi.saveDraft(draftId, { title, data });
+        else setDraftId((await listingsApi.createDraft({ title, data })).data.id);
+        setDraftState('saved');
+      } catch {
+        setDraftState('');
+      }
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [category, form, auction, shipping, place, photos, video, screening]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const removeDraft = async (d) => {
+    if (!window.confirm(t('sell.deleteDraftConfirm'))) return;
+    await listingsApi.deleteDraft(d.id).catch(() => {});
+    setDrafts((x) => x.filter((y) => y.id !== d.id));
+  };
+
+  /* ───── video ───── */
+  const addVideo = async (file) => {
+    if (!file) return;
+    setFormError('');
+    const maxMb = uploadLimits?.maxVideoMb ?? 50;
+    const maxSec = uploadLimits?.maxVideoSeconds ?? 60;
+    if (file.size > maxMb * 1024 * 1024) return setFormError(t('sell.videoTooBig', { mb: maxMb }));
+    const secs = await videoSeconds(file);
+    if (secs && secs > maxSec + 0.5) return setFormError(t('sell.videoTooLong', { seconds: maxSec }));
+    setVideo({ url: URL.createObjectURL(file), uploading: true });
+    try {
+      const { data } = await uploadsApi.video(file);
+      setVideo({ url: data.url, mediaId: data.id });
+    } catch (e) {
+      setVideo(null);
+      setFormError(errorText(e));
+    }
+  };
 
   const addPhotos = async (files) => {
     const room = maxPhotos - photos.length;
@@ -189,6 +302,8 @@ export const SellScreen = () => {
       price: { type: form.priceType, ...(['fixed', 'negotiable'].includes(form.priceType) ? { amount: Number(form.amount) } : {}) },
       attributes: Object.fromEntries(Object.entries(form.attributes).filter(([, v]) => v !== undefined && v !== '')),
       mediaIds: photos.filter((p) => p.mediaId).map((p) => p.mediaId),
+      videoId: video?.mediaId || null,
+      ...(form.listingType === 'job' ? { screening: screening.map((q) => q.trim()).filter(Boolean) } : {}),
       location: { label: place.label, name: place.name, placeId: place.placeId, lat: place.lat, lng: place.lng, address: place.address ?? {} },
       shipping:
         shipping.delivery && SHIPPABLE.includes(form.listingType)
@@ -210,13 +325,16 @@ export const SellScreen = () => {
 
     setSaving(true);
     try {
+      let result;
       if (isAuction) {
         const { data } = auctionId ? await auctionsApi.update(auctionId, body) : await auctionsApi.create(body);
-        setDone({ id: data.id, status: data.status, auction: true });
+        result = { id: data.id, status: data.status, auction: true };
       } else {
         const { data } = editing ? await listingsApi.update(id, body) : await listingsApi.create(body);
-        setDone(data);
+        result = data;
       }
+      if (draftId) await listingsApi.deleteDraft(draftId).catch(() => {}); // posted: the draft is done
+      setDone(result);
     } catch (e) {
       if (e instanceof ApiError && e.details?.fields) {
         const fe = {};
@@ -260,6 +378,21 @@ export const SellScreen = () => {
 
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.xl, paddingBottom: spacing.xxxl }}>
         {editing && <Card style={{ backgroundColor: colors.warmSoft }}><AppText variant="caption">{t('sell.reviewNote')}</AppText></Card>}
+        {!editing && !category && !draftId && drafts?.length > 0 && (
+          <Section title={t('sell.drafts')}>
+            {drafts.map((d) => (
+              <View key={d.id} style={styles.draftRow}>
+                <FileClock size={20} color={colors.textMuted} />
+                <Pressable onPress={() => restoreDraft(d)} style={{ flex: 1 }}>
+                  <AppText variant="bodyStrong" numberOfLines={1}>{d.title || t('sell.untitledDraft')}</AppText>
+                  <AppText variant="caption" color={colors.textMuted}>{t('sell.draftSaved', { time: new Date(d.updatedAt).toLocaleString() })}</AppText>
+                </Pressable>
+                <Pressable accessibilityLabel={t('sell.deleteDraft')} onPress={() => removeDraft(d)}><Trash2 size={18} color={colors.textMuted} /></Pressable>
+              </View>
+            ))}
+          </Section>
+        )}
+        {!editing && draftState === 'saved' && <AppText variant="caption" color={colors.textMuted}>{t('sell.draftAutosaved')}</AppText>}
 
         {/* category */}
         <Section title={t('sell.category')} error={errors.category}>
@@ -293,6 +426,26 @@ export const SellScreen = () => {
               </View>
               <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" multiple style={{ display: 'none' }} onChange={(e) => { addPhotos(e.target.files); e.target.value = ''; }} />
             </Section>
+
+            {/* video (one per ad, unless the category turns it off) */}
+            {category.rules.allowVideo !== false && (
+              <Section title={t('sell.video')}>
+                <AppText variant="caption" color={colors.textMuted}>{t('sell.videoHint', { seconds: uploadLimits?.maxVideoSeconds ?? 60, mb: uploadLimits?.maxVideoMb ?? 50 })}</AppText>
+                {video ? (
+                  <View style={styles.videoBox}>
+                    <video src={video.url} controls preload="metadata" style={{ width: '100%', maxHeight: 220, borderRadius: 12, background: '#000' }} />
+                    {video.uploading && <View style={styles.photoBusy}><ActivityIndicator color={colors.white} /></View>}
+                    {!video.uploading && <Pressable accessibilityLabel={t('sell.removeVideo')} onPress={() => setVideo(null)} style={styles.photoX}><X size={14} color={colors.white} /></Pressable>}
+                  </View>
+                ) : (
+                  <Pressable onPress={() => videoInput.current?.click()} style={[styles.picker, { borderStyle: 'dashed', borderColor: colors.primary }]}>
+                    <Video size={20} color={colors.primary} />
+                    <AppText variant="bodyStrong" color={colors.primary}>{t('sell.addVideo')}</AppText>
+                  </Pressable>
+                )}
+                <input ref={videoInput} type="file" accept="video/mp4,video/webm,video/quicktime" style={{ display: 'none' }} onChange={(e) => { addVideo(e.target.files?.[0]); e.target.value = ''; }} />
+              </Section>
+            )}
 
             {/* type */}
             {types.length > 1 && (
@@ -384,6 +537,22 @@ export const SellScreen = () => {
               </Section>
             )}
 
+            {/* job ads: questions every applicant must answer */}
+            {form.listingType === 'job' && (
+              <Section title={t('sell.screening')} error={errors.screening}>
+                <AppText variant="caption" color={colors.textMuted}>{t('sell.screeningHint', { max: MAX_QUESTIONS })}</AppText>
+                {screening.map((q, i) => (
+                  <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                    <View style={{ flex: 1 }}>
+                      <Field value={q} onChangeText={(v) => setScreening((s) => s.map((x, j) => (j === i ? v : x)))} maxLength={200} placeholder={t('sell.screeningPh')} error={errors[`screening.${i}`]} />
+                    </View>
+                    <Pressable accessibilityLabel={t('sell.removeQuestion')} onPress={() => setScreening((s) => s.filter((_, j) => j !== i))}><Trash2 size={18} color={colors.textMuted} /></Pressable>
+                  </View>
+                ))}
+                {screening.length < MAX_QUESTIONS && <Button size="md" variant="outline" title={t('sell.addQuestion')} icon={<Plus size={16} color={colors.primary} />} onPress={() => setScreening((s) => [...s, ''])} />}
+              </Section>
+            )}
+
             {/* location */}
             <Section title={t('sell.location')} error={errors.location || errors['location.label']}>
               <Pressable onPress={() => setSheet('place')} style={styles.picker}>
@@ -395,7 +564,7 @@ export const SellScreen = () => {
 
             <AppText variant="caption" color={colors.primary} onPress={() => navigate('/page/prohibited')}>{t('sell.prohibitedLink')}</AppText>
             {!!formError && <AppText color={colors.danger}>{formError}</AppText>}
-            <Button title={editing ? t('sell.saveChanges') : isAuction ? t('auction.submit') : t('sell.publish')} loading={saving} disabled={photos.some((p) => p.uploading)} onPress={submit} />
+            <Button title={editing ? t('sell.saveChanges') : isAuction ? t('auction.submit') : t('sell.publish')} loading={saving} disabled={photos.some((p) => p.uploading) || Boolean(video?.uploading)} onPress={submit} />
           </>
         )}
       </ScrollView>
@@ -423,5 +592,7 @@ const styles = StyleSheet.create({
   photoBusy: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' },
   cover: { position: 'absolute', left: 4, bottom: 4, backgroundColor: colors.primary, borderRadius: 8, paddingHorizontal: 6 },
   photoX: { position: 'absolute', right: 4, top: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
+  videoBox: { position: 'relative', borderRadius: 12, overflow: 'hidden' },
+  draftRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md },
   catRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider },
 });

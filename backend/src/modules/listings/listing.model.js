@@ -43,6 +43,8 @@ const listingSchema = new Schema(
     },
 
     media: [new Schema({ mediaId: { type: Schema.Types.ObjectId, ref: 'Media' }, url: String }, { _id: false })],
+    video: { mediaId: { type: Schema.Types.ObjectId, ref: 'Media' }, url: String },
+    screening: [{ type: String, maxlength: 200 }], // job ads: questions every applicant answers
 
     location: {
       label: String,
@@ -95,3 +97,16 @@ favouriteSchema.index({ userId: 1, listingId: 1 }, { unique: true });
 favouriteSchema.index({ userId: 1, createdAt: -1 });
 
 export const Favourite = mongoose.model('Favourite', favouriteSchema);
+
+/** An unfinished ad the seller is still writing (the Sell form as-is). Nothing here is checked until it is posted. */
+const draftSchema = new Schema(
+  {
+    ownerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    title: { type: String, maxlength: 120 },
+    data: { type: Schema.Types.Mixed, required: true },
+  },
+  { timestamps: true, minimize: false }
+);
+draftSchema.index({ ownerId: 1, updatedAt: -1 });
+
+export const ListingDraft = mongoose.model('ListingDraft', draftSchema);

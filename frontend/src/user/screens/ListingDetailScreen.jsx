@@ -103,11 +103,14 @@ const LeadBox = ({ ad, authed, onLogin }) => {
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const kind = ad.listingType === 'job' ? 'apply' : 'enquire';
+  const questions = ad.screening ?? [];
+  const [answers, setAnswers] = useState(() => questions.map(() => ''));
+  const answered = answers.every((a) => a.trim());
 
   const submit = async () => {
     setBusy(true);
     try {
-      await leadsApi.send(ad.id, message.trim());
+      await leadsApi.send(ad.id, message.trim(), answers.map((a) => a.trim()));
       setSent(true);
       setOpen(false);
     } catch (e) {
@@ -123,9 +126,16 @@ const LeadBox = ({ ad, authed, onLogin }) => {
   return (
     <Card style={{ gap: spacing.sm }}>
       <AppText variant="bodyStrong">{t(`leads.${kind}_title`)}</AppText>
+      {questions.length > 0 && <AppText variant="caption" color={colors.textMuted}>{t('leads.answerAll')}</AppText>}
+      {questions.map((q, i) => (
+        <View key={i} style={{ gap: spacing.xs }}>
+          <AppText variant="bodyStrong">{i + 1}. {q}</AppText>
+          <TextInput value={answers[i]} onChangeText={(v) => setAnswers((a) => a.map((x, j) => (j === i ? v : x)))} maxLength={500} multiline style={[styles.leadInput, { minHeight: 56 }]} />
+        </View>
+      ))}
       <TextInput value={message} onChangeText={setMessage} multiline maxLength={1000} placeholder={t(`leads.${kind}_placeholder`)} style={styles.leadInput} />
       <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-        <Button size="md" variant="sell" title={t('leads.submit')} loading={busy} disabled={message.trim().length < 5} onPress={submit} />
+        <Button size="md" variant="sell" title={t('leads.submit')} loading={busy} disabled={message.trim().length < 5 || !answered} onPress={submit} />
         <Button size="md" variant="ghost" title={t('common.cancel')} onPress={() => setOpen(false)} />
       </View>
     </Card>
@@ -217,6 +227,7 @@ export const ListingDetailScreen = () => {
 
   if (ad?.auction?.id) return <Navigate to={`/auctions/${ad.auction.id}`} replace />;
   const photos = ad.media;
+  const slides = photos.length + (ad.video ? 1 : 0);
   const onScroll = (e) => {
     const el = e.target;
     setSlide(Math.round(el.scrollLeft / el.clientWidth));
@@ -227,11 +238,12 @@ export const ListingDetailScreen = () => {
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxxl }}>
         {/* gallery */}
         <View style={styles.galleryWrap}>
-          {photos.length > 0 ? (
+          {slides > 0 ? (
             <div ref={gallery} onScroll={onScroll} style={{ display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', height: '100%' }}>
               {photos.map((u) => (
                 <img key={u} src={u} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', flex: '0 0 100%', scrollSnapAlign: 'start' }} />
               ))}
+              {ad.video && <video src={ad.video} controls preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'contain', flex: '0 0 100%', scrollSnapAlign: 'start', background: '#000' }} />}
             </div>
           ) : (
             <View style={[styles.noImg]}><ImageOff size={40} color={colors.textSubtle} /></View>
@@ -244,8 +256,8 @@ export const ListingDetailScreen = () => {
             {!ad.isOwner && <FavouriteButton listing={ad} />}
             {!ad.isOwner && <Pressable accessibilityLabel={t('report.title_listing')} onPress={() => setReporting('listing')} style={styles.round}><Flag size={18} color={colors.text} /></Pressable>}
           </View>
-          {photos.length > 1 && (
-            <View style={styles.counter}><AppText variant="small" color={colors.white}>{slide + 1}/{photos.length}</AppText></View>
+          {slides > 1 && (
+            <View style={styles.counter}><AppText variant="small" color={colors.white}>{slide + 1}/{slides}</AppText></View>
           )}
         </View>
 

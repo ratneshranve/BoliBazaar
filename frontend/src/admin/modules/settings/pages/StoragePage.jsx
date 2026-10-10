@@ -115,7 +115,7 @@ export default function StoragePage() {
           {!v.provider && <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">No provider selected — uploads are disabled until you choose one.</p>}
           <VpsFolder />
           <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="Max upload size (MB)">
+            <Field label="Max photo size (MB)">
               <Input type="number" min="1" max="50" value={v.maxImageMb} disabled={!edit} onChange={(e) => update({ maxImageMb: Number(e.target.value) })} />
             </Field>
             <Field label="Longest edge (px)" hint="Images are resized to this">
@@ -123,6 +123,14 @@ export default function StoragePage() {
             </Field>
             <Field label="WebP quality (40–100)">
               <Input type="number" min="40" max="100" value={v.imageQuality} disabled={!edit} onChange={(e) => update({ imageQuality: Number(e.target.value) })} />
+            </Field>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label="Max video size (MB)" hint="One video per ad">
+              <Input type="number" min="1" max="200" value={v.maxVideoMb ?? 50} disabled={!edit} onChange={(e) => update({ maxVideoMb: Number(e.target.value) })} />
+            </Field>
+            <Field label="Max video length (seconds)" hint="Checked on the user's device">
+              <Input type="number" min="10" max="300" value={v.maxVideoSeconds ?? 60} disabled={!edit} onChange={(e) => update({ maxVideoSeconds: Number(e.target.value) })} />
             </Field>
           </div>
         </>

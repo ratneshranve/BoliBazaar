@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { asyncHandler, ok } from '../../../core/utils/http.js';
-import { getPublicSettings } from '../settings.service.js';
+import { getPublicSettings, getSettingValue } from '../settings.service.js';
 import { legalVersions } from '../../cms/page.service.js';
 import { languageInfo } from '../../i18n/catalogue.js';
 import { translateForReader } from '../../categories/category.service.js';
@@ -61,6 +61,7 @@ router.get(
       chat: s.chat.value,
       grievanceOfficer: s.support.value.grievanceOfficer,
       onboarding: await onboardingFor(s.onboarding.value, req.ctx.lang),
+      uploads: await getSettingValue('storage').then((st) => ({ maxImageMb: st.maxImageMb, maxVideoMb: st.maxVideoMb ?? 50, maxVideoSeconds: st.maxVideoSeconds ?? 60 })),
       legal: await legalVersions(),
       languages: {
         default: s.languages.value.default,

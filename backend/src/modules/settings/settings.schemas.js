@@ -135,8 +135,10 @@ export const settingGroups = {
       maxImageMb: z.number().positive().max(50),
       imageMaxEdgePx: z.number().int().min(320).max(4096),
       imageQuality: z.number().int().min(40).max(100),
+      maxVideoMb: z.number().positive().max(200).default(50),
+      maxVideoSeconds: z.number().int().min(10).max(300).default(60),
     }),
-    initial: { provider: null, maxImageMb: 10, imageMaxEdgePx: 1600, imageQuality: 80 },
+    initial: { provider: null, maxImageMb: 10, imageMaxEdgePx: 1600, imageQuality: 80, maxVideoMb: 50, maxVideoSeconds: 60 },
   },
 
   security: {

@@ -42,6 +42,7 @@ export const categoryInput = z.object({
       maxPhotos: z.number().int().min(1).max(30),
       requiresReview: z.boolean(),
       validityDays: z.number().int().min(1).max(365),
+      allowVideo: z.boolean().default(true),
     })
     .optional(),
 });

@@ -4,7 +4,7 @@ import { requireUser, requireActiveUser } from '../../../core/middleware/auth.js
 import { validate } from '../../../core/middleware/common.js';
 import { limiter } from '../../../core/middleware/rateLimit.js';
 import { asyncHandler, created } from '../../../core/utils/http.js';
-import { singleFile, savePublicImage, savePrivateFile } from '../uploads.service.js';
+import { singleFile, singleVideo, savePublicImage, savePublicVideo, savePrivateFile } from '../uploads.service.js';
 
 const router = Router();
 
@@ -16,6 +16,15 @@ router.post(
   validate({ body: z.object({ purpose: z.enum(['listing', 'avatar', 'chat']) }) }),
   asyncHandler(async (req, res) =>
     created(res, await savePublicImage({ file: req.file, ownerType: 'user', ownerId: req.user.id, purpose: req.body.purpose }))
+  )
+);
+
+router.post(
+  '/video',
+  singleVideo,
+  validate({ body: z.object({ purpose: z.enum(['listing']) }) }),
+  asyncHandler(async (req, res) =>
+    created(res, await savePublicVideo({ file: req.file, ownerType: 'user', ownerId: req.user.id, purpose: req.body.purpose }))
   )
 );
 

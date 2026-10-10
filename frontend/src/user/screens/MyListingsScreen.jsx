@@ -10,7 +10,7 @@ import { listingsApi } from '../api/endpoints';
 import { formatPrice, formatDate } from '../utils/listing';
 import { errorText } from '../i18n';
 
-const TABS = ['active', 'payment_pending', 'pending_review', 'paused', 'rejected', 'expired', 'sold'];
+const TABS = ['drafts', 'active', 'payment_pending', 'pending_review', 'paused', 'rejected', 'expired', 'sold'];
 
 const TONE = { payment_pending: colors.warning, published: colors.sell, pending_review: colors.warning, paused: colors.textMuted, rejected: colors.danger, expired: colors.textMuted, sold: colors.auctionBlue };
 
@@ -27,6 +27,12 @@ export const MyListingsScreen = () => {
   const load = useCallback(
     async (pageNo = 1) => {
       try {
+        if (tab === 'drafts') {
+          const { data } = await listingsApi.drafts();
+          setItems(data.map((d) => ({ ...d, draft: true })));
+          setHasMore(false);
+          return;
+        }
         const { data } = await listingsApi.mine({ status: tab, page: pageNo, limit: 20 });
         setItems((prev) => (pageNo === 1 ? data.items : [...(prev ?? []), ...data.items]));
         setHasMore(data.hasMore);
@@ -61,6 +67,17 @@ export const MyListingsScreen = () => {
     await load(page + 1);
     setBusy(false);
   };
+
+  const DraftRow = ({ d }) => (
+    <View style={styles.row}>
+      <AppText variant="bodyStrong" numberOfLines={1}>{d.title || t('sell.untitledDraft')}</AppText>
+      <AppText variant="small" color={colors.textMuted}>{t('sell.draftSaved', { time: new Date(d.updatedAt).toLocaleString(i18n.language) })}</AppText>
+      <View style={styles.actions}>
+        <Button size="md" title={t('sell.continueDraft')} onPress={() => navigate(`/sell?draft=${d.id}`)} />
+        <Button size="md" variant="ghost" title={t('myListings.delete')} onPress={async () => { if (!window.confirm(t('sell.deleteDraftConfirm'))) return; await listingsApi.deleteDraft(d.id).catch(() => {}); load(1); }} />
+      </View>
+    </View>
+  );
 
   const Row = ({ l }) => (
     <View style={styles.row}>
@@ -106,7 +123,7 @@ export const MyListingsScreen = () => {
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingTop: 0, gap: spacing.md, paddingBottom: spacing.xxxl }}>
         {!items && <ActivityIndicator style={{ minHeight: 'calc(100dvh - 200px)' }} color={colors.primary} />}
         {items?.length === 0 && <EmptyState icon={<PackageOpen size={44} color={colors.textMuted} />} title={t('myListings.empty')} />}
-        {items?.map((l) => <Row key={l.id} l={l} />)}
+        {items?.map((l) => (l.draft ? <DraftRow key={l.id} d={l} /> : <Row key={l.id} l={l} />))}
         {hasMore && <Button title={t('search.loadMore')} variant="outline" loading={busy} onPress={more} />}
       </ScrollView>
     </View>

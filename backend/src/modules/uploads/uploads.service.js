@@ -1,13 +1,19 @@
 import multer from 'multer';
 import { env } from '../../core/config/env.js';
 import { ApiError } from '../../core/utils/ApiError.js';
-import { storePublicImage, storePrivateFile } from '../../core/services/storage.js';
+import { storePublicImage, storePublicVideo, storePrivateFile } from '../../core/services/storage.js';
 import { Media } from './media.model.js';
 
 /** Single-file multipart parser (field name "file"), kept in memory for validation & processing. */
 export const singleFile = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: env.MAX_UPLOAD_MB * 1024 * 1024, files: 1 },
+}).single('file');
+
+/** Videos are bigger than photos: a hard cap here, the admin's own limit is checked when storing. */
+export const singleVideo = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 200 * 1024 * 1024, files: 1 },
 }).single('file');
 
 const requireFile = (file) => {
@@ -17,6 +23,13 @@ const requireFile = (file) => {
 export const savePublicImage = async ({ file, ownerType, ownerId, purpose }) => {
   requireFile(file);
   const stored = await storePublicImage(file, purpose);
+  const media = await Media.create({ ownerType, ownerId, purpose, visibility: 'public', ...stored });
+  return toDto(media);
+};
+
+export const savePublicVideo = async ({ file, ownerType, ownerId, purpose }) => {
+  requireFile(file);
+  const stored = await storePublicVideo(file, purpose);
   const media = await Media.create({ ownerType, ownerId, purpose, visibility: 'public', ...stored });
   return toDto(media);
 };

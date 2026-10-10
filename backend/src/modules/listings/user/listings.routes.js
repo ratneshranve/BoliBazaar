@@ -13,6 +13,16 @@ import {
   searchListings, suggest, relatedListings, listingDetail, listingForEdit, myListings, recordView, addFavourite, removeFavourite, myFavourites,
 } from '../listing.service.js';
 import { revealPhone } from '../contact.service.js';
+import { ListingDraft } from '../listing.model.js';
+import { ApiError } from '../../../core/utils/ApiError.js';
+
+const MAX_DRAFTS = 10;
+const draftDto = (d) => ({ id: String(d._id), title: d.title || null, data: d.data, updatedAt: d.updatedAt });
+const draftBody = z.object({
+  title: z.string().trim().max(120).optional(),
+  // the Sell form as the app keeps it; limited in size, checked only when the ad is posted
+  data: z.record(z.string(), z.unknown()).refine((v) => JSON.stringify(v).length <= 60_000, 'Draft is too large'),
+});
 
 const router = Router();
 const id = z.object({ id: z.string().regex(/^[a-f0-9]{24}$/) });
@@ -44,6 +54,28 @@ router.get(
   validate({ query: paging.extend({ status: z.enum(['active', 'payment_pending', 'pending_review', 'rejected', 'expired', 'sold', 'paused']).optional() }) }),
   asyncHandler(async (req, res) => ok(res, await myListings(req.user.id, { ...req.query, lang: req.ctx.lang })))
 );
+
+/* ───── drafts: unfinished ads (saved while typing) ───── */
+
+router.get('/drafts', requireUser, asyncHandler(async (req, res) => {
+  const docs = await ListingDraft.find({ ownerId: req.user.id }).sort({ updatedAt: -1 }).limit(MAX_DRAFTS).lean();
+  ok(res, docs.map(draftDto));
+}));
+router.post('/drafts', requireUser, validate({ body: draftBody }), asyncHandler(async (req, res) => {
+  if ((await ListingDraft.countDocuments({ ownerId: req.user.id })) >= MAX_DRAFTS) {
+    throw ApiError.badRequest('TOO_MANY_DRAFTS', `You can keep up to ${MAX_DRAFTS} drafts — post or delete one first`, { max: MAX_DRAFTS });
+  }
+  created(res, draftDto(await ListingDraft.create({ ownerId: req.user.id, ...req.body })));
+}));
+router.put('/drafts/:id', requireUser, validate({ params: id, body: draftBody }), asyncHandler(async (req, res) => {
+  const d = await ListingDraft.findOneAndUpdate({ _id: req.params.id, ownerId: req.user.id }, { $set: req.body }, { new: true }).lean();
+  if (!d) throw ApiError.notFound('DRAFT_NOT_FOUND', 'This draft was deleted');
+  ok(res, draftDto(d));
+}));
+router.delete('/drafts/:id', requireUser, validate({ params: id }), asyncHandler(async (req, res) => {
+  await ListingDraft.deleteOne({ _id: req.params.id, ownerId: req.user.id });
+  ok(res, { deleted: true });
+}));
 
 router.get('/favourites', requireUser, validate({ query: paging }), asyncHandler(async (req, res) => ok(res, await myFavourites(req.user.id, { ...req.query, lang: req.ctx.lang }))));
 

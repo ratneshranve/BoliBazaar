@@ -27,10 +27,20 @@ export const listingsApi = {
   favourite: (id, on) => api(`/listings/${id}/favourite`, { method: on ? 'POST' : 'DELETE' }),
   view: (id) => api(`/listings/${id}/view`, { method: 'POST', idempotencyKey: false }),
   phone: (id) => api(`/listings/${id}/phone`, { method: 'POST', idempotencyKey: false }),
+  drafts: () => api('/listings/drafts'),
+  createDraft: (body) => api('/listings/drafts', { method: 'POST', body, idempotencyKey: false }),
+  saveDraft: (id, body) => api(`/listings/drafts/${id}`, { method: 'PUT', body, idempotencyKey: false }),
+  deleteDraft: (id) => api(`/listings/drafts/${id}`, { method: 'DELETE', idempotencyKey: false }),
 };
 
 /** Photo upload (stored where the admin chose: Cloudinary or the server). */
 export const uploadsApi = {
+  video: (file, purpose = 'listing') => {
+    const form = new FormData();
+    form.append('purpose', purpose);
+    form.append('file', file);
+    return api('/uploads/video', { method: 'POST', form, idempotencyKey: false });
+  },
   image: (file, purpose = 'listing') => {
     const form = new FormData();
     form.append('purpose', purpose);
@@ -158,7 +168,7 @@ export const auctionsApi = {
 
 /** Job applications and service enquiries. */
 export const leadsApi = {
-  send: (listingId, message) => api('/leads', { method: 'POST', body: { listingId, message } }),
+  send: (listingId, message, answers = []) => api('/leads', { method: 'POST', body: { listingId, message, answers } }),
   received: (params) => api('/leads/received', { query: params }),
   unseen: () => api('/leads/received/unseen-count'),
   sent: (params) => api('/leads/sent', { query: params }),

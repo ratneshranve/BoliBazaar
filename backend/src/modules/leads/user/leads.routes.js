@@ -16,8 +16,8 @@ const paging = { page: z.coerce.number().int().min(1).max(200).default(1), limit
 router.post(
   '/',
   requireActiveUser,
-  validate({ body: z.object({ listingId: id, message: z.string().trim().min(5).max(1000) }) }),
-  asyncHandler(async (req, res) => ok(res, await createLead(req.user.id, req.body.listingId, req.body.message)))
+  validate({ body: z.object({ listingId: id, message: z.string().trim().min(5).max(1000), answers: z.array(z.string().trim().max(500)).max(5).default([]) }) }),
+  asyncHandler(async (req, res) => ok(res, await createLead(req.user.id, req.body.listingId, req.body.message, req.body.answers)))
 );
 
 router.get('/sent', validate({ query: z.object(paging) }), asyncHandler(async (req, res) => ok(res, await listSent(req.user.id, req.query))));

@@ -15,6 +15,7 @@ const ownerDto = (l, sender, listing) => ({
   id: oid(l._id),
   type: l.type,
   message: l.message,
+  answers: l.answers || [],
   status: l.status,
   createdAt: l.createdAt,
   listing: listing ? { id: oid(listing._id), title: listing.title } : null,
@@ -31,10 +32,15 @@ const senderDto = (l, listing) => ({
 });
 
 /** Apply for a job ad / send an enquiry to a service ad. */
-export const createLead = async (senderId, listingId, message) => {
-  const listing = await Listing.findById(listingId).select('ownerId status title listingType').lean();
+export const createLead = async (senderId, listingId, message, answers = []) => {
+  const listing = await Listing.findById(listingId).select('ownerId status title listingType screening').lean();
   if (!listing || listing.status !== 'published') throw ApiError.notFound('LISTING_NOT_FOUND');
-  await checkContent([message], { where: 'message', allowContact: true });
+  // a job ad's screening questions must all be answered, in order
+  const questions = listing.listingType === 'job' ? listing.screening || [] : [];
+  if (questions.length && (answers.length !== questions.length || answers.some((a) => !a?.trim()))) {
+    throw ApiError.badRequest('ANSWERS_REQUIRED', 'Answer every question from the employer', { questions });
+  }
+  await checkContent([message, ...answers], { where: 'message', allowContact: true });
   const type = TYPE_FOR[listing.listingType];
   if (!type) throw ApiError.badRequest('LISTING_TYPE_NOT_SUPPORTED', 'This ad does not take applications or enquiries');
   if (oid(listing.ownerId) === oid(senderId)) throw ApiError.badRequest('OWN_LISTING', 'You cannot respond to your own ad');
@@ -46,7 +52,7 @@ export const createLead = async (senderId, listingId, message) => {
   if (await Lead.exists({ listingId, senderId })) throw already();
   let lead;
   try {
-    lead = await Lead.create({ type, listingId, ownerId: listing.ownerId, senderId, message });
+    lead = await Lead.create({ type, listingId, ownerId: listing.ownerId, senderId, message, answers: questions.map((q, i) => ({ question: q, answer: answers[i].trim() })) });
   } catch (err) {
     if (err.code === 11000) throw already(); // two taps at the same moment
     throw err;

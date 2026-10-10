@@ -18,6 +18,7 @@ const mediaSchema = new mongoose.Schema(
     size: Number,
     width: Number,
     height: Number,
+    durationSec: Number, // videos (Cloudinary reports it)
     status: { type: String, enum: ['ready', 'rejected', 'deleted'], default: 'ready' },
     attachedTo: { kind: String, id: mongoose.Schema.Types.ObjectId },
   },

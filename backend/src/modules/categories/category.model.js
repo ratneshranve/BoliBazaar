@@ -44,6 +44,7 @@ const categorySchema = new Schema(
       maxPhotos: { type: Number, default: 10 },
       requiresReview: { type: Boolean, default: true },
       validityDays: { type: Number, default: 30 },
+      allowVideo: { type: Boolean, default: true },
     },
   },
   { timestamps: true }

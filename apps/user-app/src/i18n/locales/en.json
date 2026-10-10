@@ -363,7 +363,25 @@
     "shipCoverage_city": "My city",
     "shipCoverage_state": "My state",
     "shipCoverage_country": "Whole country",
-    "shipCoverage_worldwide": "Worldwide"
+    "shipCoverage_worldwide": "Worldwide",
+    "video": "Video",
+    "videoHint": "Optional. Up to {{seconds}} seconds and {{mb}} MB (MP4, MOV or WebM).",
+    "addVideo": "Add a video",
+    "removeVideo": "Remove video",
+    "videoTooBig": "This video is larger than {{mb}} MB.",
+    "videoTooLong": "This video is longer than {{seconds}} seconds. Trim it and try again.",
+    "screening": "Questions for applicants",
+    "screeningHint": "Optional. Up to {{max}} questions every applicant must answer.",
+    "screeningPh": "e.g. How many years have you driven a tractor?",
+    "addQuestion": "Add a question",
+    "removeQuestion": "Remove question",
+    "drafts": "Continue a draft",
+    "untitledDraft": "Untitled draft",
+    "draftSaved": "Saved {{time}}",
+    "draftAutosaved": "Draft saved",
+    "deleteDraft": "Delete draft",
+    "deleteDraftConfirm": "Delete this draft?",
+    "continueDraft": "Continue"
   },
   "myListings": {
     "title": "My Listings",
@@ -386,7 +404,8 @@
     "expires": "Expires {{date}}",
     "tab_payment_pending": "Payment pending",
     "payFee": "Pay posting fee",
-    "promote": "Promote"
+    "promote": "Promote",
+    "tab_drafts": "Drafts"
   },
   "favourites": {
     "title": "Favourites",
@@ -487,7 +506,8 @@
     "enquire_title": "Send an enquiry",
     "enquire_placeholder": "Describe what you need",
     "enquire_sent": "Your enquiry was sent",
-    "submit": "Send"
+    "submit": "Send",
+    "answerAll": "Answer the employer's questions:"
   },
   "auction": {
     "title": "Auctions",

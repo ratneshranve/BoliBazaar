@@ -115,6 +115,15 @@ const prepare = async (input, ownerId, listingId, { auction = false, mediaOwner 
   const byId = new Map(media.map((m) => [String(m._id), m]));
   const orderedMedia = mediaIds.map((id) => ({ mediaId: byId.get(id)._id, url: byId.get(id).url }));
 
+  let video;
+  if (input.videoId) {
+    if (category.rules.allowVideo === false) throw ApiError.badRequest('VIDEO_NOT_ALLOWED', 'This category does not take videos');
+    const v = await Media.findOne({ _id: input.videoId, ...(mediaOwner || { ownerType: 'user', ownerId }), purpose: 'listing', visibility: 'public', status: 'ready', mime: /^video\// }).lean();
+    if (!v) throw ApiError.badRequest('MEDIA_INVALID', 'The video was not found — please upload it again');
+    video = { mediaId: v._id, url: v.url };
+  }
+  const screening = input.listingType === 'job' ? (input.screening || []).filter(Boolean) : [];
+
   const { currency } = await getSettingValue('marketplace');
   const factor = minorFactor(currency);
   const amountMinor = input.price.type === 'free' ? 0 : input.price.amount !== undefined ? Math.round(input.price.amount * factor) : undefined;
@@ -148,6 +157,8 @@ const prepare = async (input, ownerId, listingId, { auction = false, mediaOwner 
       price: { type: input.price.type, amountMinor, currency },
       shipping,
       media: orderedMedia,
+      video: video || null,
+      screening,
       location,
       publicGeo: { type: 'Point', coordinates: [pub.lng, pub.lat] },
       searchText: searchTextOf(input.title, input.description, category, attributes),
@@ -311,6 +322,7 @@ export const cardDtos = async (docs, { lang, viewerPoint, favourites = new Set()
       condition: d.condition || null,
       cover: d.media?.[0]?.url || null,
       photoCount: d.media?.length || 0,
+      hasVideo: Boolean(d.video?.url),
       place: shortPlace(d.location),
       distanceKm,
       point: pub ? { lat: pub[1], lng: pub[0] } : null, // the shifted public point (map view)
@@ -508,6 +520,8 @@ export const listingDetail = async (id, { viewerId, lang, viewerPoint } = {}) =>
       ? { delivery: true, coverage: d.shipping.coverage, feeType: d.shipping.feeType, fee: d.shipping.feeMinor != null ? priceDto({ type: 'fixed', amountMinor: d.shipping.feeMinor, currency: d.price.currency }) : null, note: d.shipping.note || null }
       : { delivery: false },
     media: (d.media || []).map((m) => m.url),
+    video: d.video?.url || null,
+    screening: d.listingType === 'job' ? d.screening || [] : [],
     attributes: defs.map((a, i) => ({ key: a.key, label: labels[i], value: values[i] })),
     category: pathDocs.map((p, i) => ({ id: String(p._id), name: pathNames[i] })),
     // other users get the shifted point only; the owner also sees where they put the pin
@@ -565,6 +579,8 @@ export const listingForEdit = async (ownerId, id) => {
       : { delivery: false },
     attributes: d.attributes || {},
     media: (d.media || []).map((m) => ({ mediaId: String(m.mediaId), url: m.url })),
+    video: d.video?.url ? { mediaId: String(d.video.mediaId), url: d.video.url } : null,
+    screening: d.screening || [],
     location: {
       label: d.location.label,
       name: d.location.name,
