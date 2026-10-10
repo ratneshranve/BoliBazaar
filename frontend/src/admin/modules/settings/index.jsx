@@ -3,6 +3,7 @@ import BrandingPage from './pages/BrandingPage';
 import AppControlPage from './pages/AppControlPage';
 import StoragePage from './pages/StoragePage';
 import LanguagesPage from './pages/LanguagesPage';
+import IntroSlidesPage from './pages/IntroSlidesPage';
 import LocationPage from './pages/LocationPage';
 import MarketplacePage from './pages/MarketplacePage';
 import AuctionsSettingsPage from './pages/AuctionsPage';
@@ -11,6 +12,7 @@ import { ChatSettingsPage, ModerationSettingsPage, SupportSettingsPage } from '.
 
 const pages = [
   { label: 'Branding', path: '/settings/branding', element: <BrandingPage /> },
+  { label: 'Intro Slides', path: '/settings/intro', element: <IntroSlidesPage /> },
   { label: 'Location', path: '/settings/location', element: <LocationPage /> },
   { label: 'Marketplace', path: '/settings/marketplace', element: <MarketplacePage /> },
   { label: 'Auctions', path: '/settings/auctions', element: <AuctionsSettingsPage /> },

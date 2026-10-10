@@ -9,6 +9,8 @@ import { Media } from '../../uploads/media.model.js';
 import { Session } from '../../auth/auth.models.js';
 import { revokeSession } from '../../auth/auth.service.js';
 import { meDto } from '../user.dto.js';
+import { Strike } from '../../auctions/auction.model.js';
+import { Case } from '../../trust/trust.model.js';
 import { legalVersions } from '../../cms/page.service.js';
 import { placeInput, toLocationRef } from '../../places/places.service.js';
 import { limiter } from '../../../core/middleware/rateLimit.js';
@@ -24,6 +26,39 @@ const loadMe = async (id) => {
 };
 
 router.get('/', asyncHandler(async (req, res) => ok(res, meDto(await loadMe(req.user.id)))));
+
+/* Why the account is limited or suspended, until when, and any active strikes. */
+router.get(
+  '/account-status',
+  asyncHandler(async (req, res) => {
+    const u = await loadMe(req.user.id);
+    const strikes = await Strike.find({ userId: u._id, removedAt: null, expiresAt: { $gt: new Date() } }).sort({ createdAt: -1 }).lean();
+    const appeal = await Case.findOne({ userId: u._id, type: 'appeal' }).sort({ createdAt: -1 }).select('caseNo status createdAt').lean();
+    ok(res, {
+      status: u.status,
+      reason: u.status === 'active' ? null : u.statusReason || null,
+      suspendedUntil: u.status === 'suspended' ? u.suspendedUntil : null,
+      strikes: strikes.map((s) => ({ id: String(s._id), role: s.role, reason: s.reason || null, createdAt: s.createdAt, expiresAt: s.expiresAt })),
+      appeal: appeal ? { caseNo: appeal.caseNo, status: appeal.status, createdAt: appeal.createdAt } : null,
+    });
+  })
+);
+
+/* Accept the current Terms / Privacy Policy again after they changed. */
+router.post(
+  '/consents',
+  validate({ body: z.object({ consents: z.array(z.object({ docType: z.enum(['terms', 'privacy']), version: z.number().int().positive() })).min(1).max(2) }) }),
+  asyncHandler(async (req, res) => {
+    const legal = await legalVersions();
+    if (req.body.consents.some((c) => c.version !== legal[c.docType].version)) {
+      throw ApiError.badRequest('CONSENT_OUTDATED', 'These documents changed again — please review the latest version', { terms: legal.terms.version, privacy: legal.privacy.version });
+    }
+    const user = await loadMe(req.user.id);
+    user.consents.push(...req.body.consents.map((c) => ({ ...c, acceptedAt: new Date(), ip: req.ip })));
+    await user.save();
+    ok(res, meDto(user));
+  })
+);
 
 const profileBody = z.object({
   name: z.string().trim().min(2).max(80).optional(),

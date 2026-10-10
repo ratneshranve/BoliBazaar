@@ -97,6 +97,7 @@ export const authApi = {
   verifyOtp: (phone, countryCode, code) => api('/auth/otp/verify', { method: 'POST', body: { phone, countryCode, code }, auth: false }),
   logout: () => api('/auth/logout', { method: 'POST' }),
   registerDevice: (body) => api('/auth/devices', { method: 'POST', body }),
+  banAppeal: (appealToken, message) => api('/auth/appeal', { method: 'POST', body: { appealToken, message }, auth: false }),
   removeDevice: (fcmToken) => api('/auth/devices', { method: 'DELETE', body: { fcmToken } }),
 };
 
@@ -111,6 +112,8 @@ export const meApi = {
   verifyEmail: (email, code) => api('/me/email/verify', { method: 'POST', body: { email, code }, idempotencyKey: false }),
   removeEmail: () => api('/me/email', { method: 'DELETE' }),
   setPrivacy: (body) => api('/me/privacy', { method: 'PATCH', body }),
+  accountStatus: () => api('/me/account-status'),
+  acceptConsents: (consents) => api('/me/consents', { method: 'POST', body: { consents } }),
 };
 
 /** In-app notifications + push preferences. */

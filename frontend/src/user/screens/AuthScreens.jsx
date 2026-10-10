@@ -137,6 +137,7 @@ export const OtpScreen = () => {
       dispatch(signedIn(data.user));
       navigate(data.isNewUser ? '/profile-setup' : '/', { replace: true });
     } catch (e) {
+      if (e instanceof ApiError && e.code === 'ACCOUNT_BANNED') return navigate('/banned', { replace: true, state: e.details ?? {} });
       setCode('');
       setError(
         e instanceof ApiError && e.code === 'OTP_INVALID' && typeof e.details?.attemptsLeft === 'number'

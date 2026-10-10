@@ -8,6 +8,7 @@ import { User } from '../user.model.js';
 import { Session } from '../../auth/auth.models.js';
 import { revokeSession } from '../../auth/auth.service.js';
 import { auditAdmin } from '../../audit/audit.service.js';
+import { emitToUser } from '../../../realtime/index.js';
 
 const router = Router();
 const objectId = z.string().regex(/^[a-f0-9]{24}$/);
@@ -109,6 +110,7 @@ router.patch(
       const sessions = await Session.find({ userId: u._id, revokedAt: null });
       await Promise.all(sessions.map((s) => revokeSession(s, 'banned')));
     }
+    emitToUser(String(u._id), 'account:status', { status: u.status });
     await auditAdmin(req, {
       action: 'users.status',
       entityType: 'User',

@@ -135,7 +135,7 @@ export async function api(path, opts = {}) {
       await clearTokens();
       onSessionExpired?.();
     }
-  } else if (res.status === 401 && ['SESSION_REVOKED', 'TOKEN_INVALID', 'USER_NOT_FOUND'].includes(json?.error?.code ?? '')) {
+  } else if ((res.status === 401 && ['SESSION_REVOKED', 'TOKEN_INVALID', 'USER_NOT_FOUND'].includes(json?.error?.code ?? '')) || (res.status === 403 && json?.error?.code === 'ACCOUNT_BLOCKED')) {
     await clearTokens();
     onSessionExpired?.();
   }

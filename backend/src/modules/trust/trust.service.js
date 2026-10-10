@@ -129,6 +129,16 @@ export const createCase = async (userId, { type, subject, message, related = {},
   return caseDto(c, { forUser: true });
 };
 
+/** Appeal against a ban: one open appeal at a time. */
+export const fileBanAppeal = async (userId, message) => {
+  const user = await User.findById(userId).select('status').lean();
+  if (user?.status !== 'banned') throw ApiError.badRequest('NOT_BANNED', 'This account is not banned');
+  const open = await Case.findOne({ userId, type: 'appeal', status: { $nin: ['resolved', 'closed'] } }).select('caseNo').lean();
+  if (open) throw ApiError.conflict('APPEAL_OPEN', 'Your appeal is already being reviewed', { caseNo: open.caseNo });
+  const c = await createCase(userId, { type: 'appeal', subject: 'Appeal against account ban', message });
+  return { caseNo: c.caseNo };
+};
+
 const caseDto = (c, { forUser }) => ({
   id: oid(c._id),
   caseNo: c.caseNo,

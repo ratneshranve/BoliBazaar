@@ -3,7 +3,7 @@ import { BrowserRouter, Outlet, Route, Routes, useNavigate } from 'react-router-
 import { Provider } from 'react-redux';
 import { ActivityIndicator, View } from './components/primitives';
 import { missingEnv } from './config/env';
-import { store, useAppDispatch, useAppSelector, fetchBootstrap, restoreSession, maintenanceDetected, sessionExpired, setLocation, fetchUnread, notificationArrived } from './store';
+import { store, useAppDispatch, useAppSelector, fetchBootstrap, restoreSession, maintenanceDetected, sessionExpired, setLocation, fetchUnread, notificationArrived, meUpdated } from './store';
 import { connectRealtime, disconnectRealtime, onRealtime } from './services/realtime';
 import { registerPushToken } from './services/push';
 import { setClientHooks } from './api/client';
@@ -28,6 +28,8 @@ import { SavedSearchesScreen, SavedSearchRedirect, SellerScreen } from './screen
 import { HelpScreen, NewCaseScreen, CaseScreen, MyReportsScreen, VerificationScreen, AccountScreen } from './screens/TrustScreens';
 import { ChatsScreen, ChatScreen } from './screens/ChatScreens';
 import { TabBar } from './components/TabBar';
+import { AccountStatusBanner, AccountStatusScreen, BannedScreen, IntroScreen, ReConsentScreen, introPending, reconsentNeeded } from './screens/FirstRunScreens';
+import { meApi } from './api/endpoints';
 import { colors } from '@theme/tokens';
 
 /** Change language later from Profile (same list as the first-run chooser) */
@@ -39,6 +41,7 @@ const LanguageRoute = () => {
 /** Screens with the bottom tab bar (same as the app's MainTabs). */
 const MainTabs = () => (
   <View style={{ flex: 1, minHeight: 0 }}>
+    <AccountStatusBanner />
     <View style={{ flex: 1, minHeight: 0 }}>
       <Outlet />
     </View>
@@ -60,6 +63,8 @@ const RealtimeBridge = () => {
     registerPushToken().catch(() => {});
     const off = [
       onRealtime('notification:new', () => dispatch(notificationArrived())),
+      // the team changed this account's status: refresh it (a ban ends the session on the next call)
+      onRealtime('account:status', () => meApi.get().then(({ data }) => dispatch(meUpdated(data))).catch(() => {})),
       onRealtime('chat:message', () => dispatch(fetchUnread())),
       onRealtime('chat:read', () => dispatch(fetchUnread())),
     ];
@@ -112,6 +117,8 @@ const Navigation = () => (
       <Route path="/reports" element={<MyReportsScreen />} />
       <Route path="/verification" element={<VerificationScreen />} />
       <Route path="/account" element={<AccountScreen />} />
+      <Route path="/account-status" element={<AccountStatusScreen />} />
+      <Route path="/banned" element={<BannedScreen />} />
       <Route path="/deals/:id" element={<DealScreen />} />
       <Route path="/leads/received" element={<LeadsScreen initial="received" />} />
       <Route path="/leads/sent" element={<LeadsScreen initial="sent" />} />
@@ -181,6 +188,8 @@ const Gate = () => {
   if (bootstrap?.update.required) return <UpdateScreen required />;
   if (bootstrap?.update.available && !updateDismissed) return <UpdateScreen required={false} />;
   if (!languageValid && langs.length > 1) return <LanguageScreen onDone={() => setLangTick((n) => n + 1)} />;
+  if (introPending(bootstrap)) return <IntroScreen onDone={() => setLangTick((n) => n + 1)} />;
+  if (session === 'authenticated' && reconsentNeeded(me, bootstrap?.legal)) return <ReConsentScreen />;
   return <Navigation />;
 };
 

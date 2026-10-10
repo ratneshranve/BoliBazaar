@@ -20,6 +20,18 @@ export const normalisePhone = (phone, countryCode) => {
 
 export const otpHash = (phone, code) => hmac(`${phone}:${code}`);
 
+/** A signed pass (1 hour) that lets a banned account file an appeal. */
+const APPEAL_TTL_MS = 60 * 60 * 1000;
+export const appealToken = (userId) => {
+  const exp = Date.now() + APPEAL_TTL_MS;
+  return `${userId}.${exp}.${hmac(`appeal:${userId}:${exp}`)}`;
+};
+export const readAppealToken = (token) => {
+  const [userId, exp, sig] = String(token || '').split('.');
+  if (!userId || !exp || !sig || Number(exp) < Date.now() || sig !== hmac(`appeal:${userId}:${exp}`)) throw ApiError.unauthorized('APPEAL_TOKEN_INVALID', 'Please log in again to appeal');
+  return userId;
+};
+
 /* ───────── OTP ───────── */
 
 export const sendLoginOtp = async ({ phone, countryCode, ip, deviceId }) => {
@@ -128,7 +140,10 @@ export const verifyLoginOtp = async ({ phone, countryCode, code, device }) => {
     });
     isNewUser = true;
   } else {
-    if (user.status === 'banned') throw ApiError.forbidden('ACCOUNT_BANNED', 'This account is banned');
+    if (user.status === 'banned') {
+      // the phone was just proven, so the owner may file one appeal without a session
+      throw new ApiError(403, 'ACCOUNT_BANNED', 'This account is banned', { reason: user.statusReason || null, appealToken: appealToken(String(user._id)) });
+    }
     if (user.status === 'deleted') throw ApiError.forbidden('ACCOUNT_DELETED');
     if (['deactivated', 'pending_deletion'].includes(user.status)) {
       user.status = 'active'; // logging in reactivates / cancels deletion

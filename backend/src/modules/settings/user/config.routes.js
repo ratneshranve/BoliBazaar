@@ -3,6 +3,15 @@ import { asyncHandler, ok } from '../../../core/utils/http.js';
 import { getPublicSettings } from '../settings.service.js';
 import { legalVersions } from '../../cms/page.service.js';
 import { languageInfo } from '../../i18n/catalogue.js';
+import { translateForReader } from '../../categories/category.service.js';
+
+/** Intro slides in the reader's language (written in English in admin). */
+const onboardingFor = async (o, lang) => {
+  if (!o.enabled || !o.slides.length) return null;
+  const texts = o.slides.flatMap((x) => [x.title, x.body || '']);
+  const tr = await translateForReader(texts, lang);
+  return { slides: o.slides.map((x, i) => ({ title: tr[i * 2], body: x.body ? tr[i * 2 + 1] : null, image: x.image })) };
+};
 
 const router = Router();
 
@@ -51,6 +60,7 @@ router.get(
       reportReasons: s.moderation.value.reportReasons,
       chat: s.chat.value,
       grievanceOfficer: s.support.value.grievanceOfficer,
+      onboarding: await onboardingFor(s.onboarding.value, req.ctx.lang),
       legal: await legalVersions(),
       languages: {
         default: s.languages.value.default,
@@ -65,6 +75,7 @@ router.get(
         branding: s.branding.version,
         appControl: s.appControl.version,
         features: s.features.version,
+        onboarding: s.onboarding.version,
       },
     });
   })

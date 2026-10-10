@@ -364,6 +364,18 @@ export const settingGroups = {
     },
   },
 
+  /** First-run intro slides (shown once after the language choice). Text is English, translated on read. */
+  onboarding: {
+    public: true,
+    schema: z.object({
+      enabled: z.boolean(),
+      slides: z
+        .array(z.object({ title: z.string().trim().min(1).max(60), body: z.string().trim().max(200).nullable(), image: mediaRef }))
+        .max(5),
+    }),
+    initial: { enabled: false, slides: [] },
+  },
+
   features: {
     public: true,
     schema: z.record(z.string().regex(/^[a-zA-Z][a-zA-Z0-9_]*$/), z.boolean()),

@@ -15,6 +15,9 @@ export const meDto = (u) => ({
   privacy: u.privacy,
   status: u.status,
   suspendedUntil: u.suspendedUntil || null,
+  statusReason: ['limited', 'suspended'].includes(u.status) ? u.statusReason || null : null,
+  // latest version of each legal document this user accepted (compared with bootstrap.legal for re-consent)
+  accepted: ['terms', 'privacy'].reduce((o, t) => ({ ...o, [t]: Math.max(0, ...(u.consents || []).filter((c) => c.docType === t).map((c) => c.version || 0)) }), {}),
   profileCompleted: Boolean(u.profileCompletedAt),
   ageConfirmed: Boolean(u.ageConfirmedAt),
   createdAt: u.createdAt,

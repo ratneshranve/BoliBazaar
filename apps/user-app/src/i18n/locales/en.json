@@ -877,5 +877,46 @@
   },
   "splash": {
     "tagline": "Buy. Sell. Bid. All in One."
+  },
+  "intro": {
+    "skip": "Skip",
+    "next": "Next",
+    "start": "Get started"
+  },
+  "reconsent": {
+    "title": "We've updated our policies",
+    "body": "Please read the updated documents below. You need to accept them to keep using your account.",
+    "terms": "Terms & Conditions",
+    "privacy": "Privacy Policy",
+    "read": "Read",
+    "accept": "I accept"
+  },
+  "accountStatus": {
+    "title": "Account status",
+    "status_active": "Your account is in good standing",
+    "status_limited": "Your account is limited",
+    "status_suspended": "Your account is suspended",
+    "status_banned": "Your account is banned",
+    "effect_limited": "Some actions, like posting ads, bidding or chatting, may be blocked for now.",
+    "effect_suspended": "You can still browse, but you can't post ads, bid, chat or pay until the suspension ends.",
+    "effect_banned": "This account can no longer be used. If you think this is a mistake, you can appeal below.",
+    "reason": "Reason: {{reason}}",
+    "until": "Until {{date}}",
+    "strikes_one": "{{count}} active strike",
+    "strikes_other": "{{count}} active strikes",
+    "strike_buyer": "Did not complete a won auction",
+    "strike_seller": "Did not complete a sold auction",
+    "strikeDates": "Given {{from}} · expires {{to}}",
+    "appeal": "Appeal this decision",
+    "appealHint": "Explain why you think this decision should be reviewed (at least 20 characters).",
+    "sendAppeal": "Send appeal",
+    "appealSent": "Your appeal has been sent (case {{no}}). We'll review it and contact you.",
+    "appealFiled": "Appeal {{no}}: {{status}}",
+    "contact": "Contact support",
+    "supportAt": "Support: {{contact}}",
+    "bannedTitle": "This account is banned",
+    "banner_limited": "Your account is limited",
+    "banner_suspended": "Your account is suspended",
+    "details": "Details"
   }
 }

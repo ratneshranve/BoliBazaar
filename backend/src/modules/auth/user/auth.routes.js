@@ -4,7 +4,8 @@ import { validate } from '../../../core/middleware/common.js';
 import { limiter } from '../../../core/middleware/rateLimit.js';
 import { requireUser } from '../../../core/middleware/auth.js';
 import { asyncHandler, ok } from '../../../core/utils/http.js';
-import { sendLoginOtp, verifyLoginOtp, refreshSession, logout, registerDevice, removeDevice } from '../auth.service.js';
+import { sendLoginOtp, verifyLoginOtp, refreshSession, logout, registerDevice, removeDevice, readAppealToken } from '../auth.service.js';
+import { fileBanAppeal } from '../../trust/trust.service.js';
 import { meDto } from '../../users/user.dto.js';
 
 const router = Router();
@@ -30,6 +31,14 @@ router.post(
   limiter({ name: 'otp-phone', windowMs: 60 * 60_000, max: 10, keyBy: (req) => String(req.body?.phone || '').replace(/\D/g, '') }),
   validate({ body: phoneBody }),
   asyncHandler(async (req, res) => ok(res, await sendLoginOtp({ ...req.body, ip: req.ip, deviceId: req.ctx.deviceId })))
+);
+
+/* A banned account appeals with the pass it got at login (no session). */
+router.post(
+  '/appeal',
+  limiter({ name: 'ban-appeal', windowMs: 60 * 60_000, max: 5 }),
+  validate({ body: z.object({ appealToken: z.string().min(20).max(300), message: z.string().trim().min(20).max(2000) }) }),
+  asyncHandler(async (req, res) => ok(res, await fileBanAppeal(readAppealToken(req.body.appealToken), req.body.message)))
 );
 
 router.post(
