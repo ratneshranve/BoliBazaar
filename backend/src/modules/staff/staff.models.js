@@ -33,3 +33,17 @@ const adminUserSchema = new mongoose.Schema(
 
 export const Role = mongoose.model('Role', roleSchema);
 export const AdminUser = mongoose.model('AdminUser', adminUserSchema);
+
+/** A one-time code emailed to an admin who forgot the password. Expires quickly; limited tries. */
+const passwordResetSchema = new mongoose.Schema(
+  {
+    adminId: { type: mongoose.Schema.Types.ObjectId, ref: 'AdminUser', required: true, unique: true },
+    codeHash: { type: String, required: true },
+    expiresAt: { type: Date, required: true },
+    attempts: { type: Number, default: 0 },
+  },
+  { timestamps: true }
+);
+passwordResetSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+export const AdminPasswordReset = mongoose.model('AdminPasswordReset', passwordResetSchema);

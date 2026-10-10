@@ -7,7 +7,9 @@ import { requireAdmin } from '../../../core/middleware/auth.js';
 import { asyncHandler, ok } from '../../../core/utils/http.js';
 import { ApiError } from '../../../core/utils/ApiError.js';
 import { signAdminAccess } from '../../../core/services/tokens.js';
-import { AdminUser } from '../staff.models.js';
+import { AdminUser, AdminPasswordReset } from '../staff.models.js';
+import { hmac, randomDigits } from '../../../core/services/tokens.js';
+import { sendEmail, emailAvailable } from '../../../core/services/email.js';
 import { getSettingValue } from '../../settings/settings.service.js';
 import { auditAdmin } from '../../audit/audit.service.js';
 import { ALL_PERMISSIONS } from '../../../core/rbac/permissions.js';
@@ -59,6 +61,71 @@ router.post(
     await auditAdmin(req, { action: 'admin.login', entityType: 'AdminUser', entityId: admin._id });
 
     ok(res, { accessToken: signAdminAccess({ adminId: String(admin._id), tokenVersion: admin.tokenVersion }), admin: adminProfileDto(admin) });
+  })
+);
+
+/* ───── forgot password: a 6-digit code by email (SMTP), then a new password ───── */
+
+const RESET_TTL_MIN = 10;
+const RESET_MAX_TRIES = 5;
+const resetHash = (adminId, code) => hmac(`admin-reset:${adminId}:${code}`);
+
+router.post(
+  '/forgot-password',
+  limiter({ name: 'admin-forgot-ip', windowMs: 60 * 60_000, max: 10 }),
+  limiter({ name: 'admin-forgot-email', windowMs: 60 * 60_000, max: 5, keyBy: (req) => String(req.body?.email || '').toLowerCase() }),
+  validate({ body: z.object({ email: z.string().email().toLowerCase() }) }),
+  asyncHandler(async (req, res) => {
+    if (!emailAvailable()) throw ApiError.unavailable('EMAIL_UNAVAILABLE', 'Email is not set up on the server (EMAIL_HOST … in backend .env)');
+    const admin = await AdminUser.findOne({ email: req.body.email, status: 'active' }).lean();
+    // the same answer whether or not the address exists, so it cannot be used to find admin emails
+    if (admin) {
+      const code = randomDigits(6);
+      await AdminPasswordReset.findOneAndUpdate(
+        { adminId: admin._id },
+        { $set: { codeHash: resetHash(String(admin._id), code), expiresAt: new Date(Date.now() + RESET_TTL_MIN * 60_000), attempts: 0 } },
+        { upsert: true }
+      );
+      const { appName } = await getSettingValue('branding');
+      await sendEmail({
+        to: admin.email,
+        subject: `${code} is your password reset code`,
+        heading: 'Reset your admin password',
+        text: `Your code is ${code}. It expires in ${RESET_TTL_MIN} minutes.
+If you did not ask for this, ignore this email — your password stays the same.`,
+        appName: appName || undefined,
+      });
+      req.admin = { id: String(admin._id), name: admin.name };
+      await auditAdmin(req, { action: 'admin.password_reset_requested', entityType: 'AdminUser', entityId: admin._id });
+    }
+    ok(res, { sent: true, expiresInMin: RESET_TTL_MIN });
+  })
+);
+
+router.post(
+  '/reset-password',
+  limiter({ name: 'admin-reset-ip', windowMs: 15 * 60_000, max: 20 }),
+  validate({ body: z.object({ email: z.string().email().toLowerCase(), code: z.string().trim().regex(/^\d{6}$/), newPassword: z.string().min(10).max(200) }) }),
+  asyncHandler(async (req, res) => {
+    const invalid = () => ApiError.badRequest('RESET_CODE_INVALID', 'The code is wrong or has expired — ask for a new one');
+    const admin = await AdminUser.findOne({ email: req.body.email, status: 'active' }).select('+passwordHash');
+    if (!admin) throw invalid();
+    const reset = await AdminPasswordReset.findOne({ adminId: admin._id });
+    if (!reset || reset.expiresAt < new Date() || reset.attempts >= RESET_MAX_TRIES) throw invalid();
+    if (reset.codeHash !== resetHash(String(admin._id), req.body.code)) {
+      reset.attempts += 1;
+      await reset.save();
+      throw invalid();
+    }
+    await AdminPasswordReset.deleteOne({ _id: reset._id });
+    admin.passwordHash = await bcrypt.hash(req.body.newPassword, 12);
+    admin.tokenVersion += 1; // every old session ends
+    admin.failedLogins = 0;
+    admin.lockedUntil = undefined;
+    await admin.save();
+    req.admin = { id: String(admin._id), name: admin.name };
+    await auditAdmin(req, { action: 'admin.password_reset', entityType: 'AdminUser', entityId: admin._id });
+    ok(res, { reset: true });
   })
 );
 

@@ -6,6 +6,7 @@ import { missingEnv } from '@core/env';
 import { modules } from '@modules/registry';
 import AdminLayout from './AdminLayout';
 import LoginPage from './LoginPage';
+import ProfilePage from './ProfilePage';
 import { Spinner } from '@components/ui';
 
 function Protected({ children }) {
@@ -55,6 +56,7 @@ export default function App() {
                   <Route key={r.path} path={r.path} element={<Guarded permission={r.permission}>{r.element}</Guarded>} />
                 ))
               )}
+              <Route path="/profile" element={<ProfilePage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Routes>

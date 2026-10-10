@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
 import { LogOut, Menu, User } from 'lucide-react';
 import Sidebar from './Sidebar';
 import { useAuth } from '@core/AuthContext';
@@ -25,7 +25,7 @@ export default function AdminLayout() {
             <span className="text-base font-bold tracking-tight text-slate-900">{branding?.appName || 'Admin Panel'}</span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-3 text-sm">
+            <Link to="/profile" title="My profile" className="flex items-center gap-3 rounded-xl p-1 pr-2 text-sm hover:bg-slate-100 transition">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-slate-900 to-slate-700 text-white shadow-xs">
                 <User className="h-4 w-4" />
               </div>
@@ -33,7 +33,7 @@ export default function AdminLayout() {
                 <div className="font-semibold text-slate-900">{admin?.name}</div>
                 <div className="text-xs font-medium text-slate-500">{admin?.role?.name || 'Administrator'}</div>
               </div>
-            </div>
+            </Link>
             <button onClick={logout} title="Log out" className="rounded-xl p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition">
               <LogOut className="h-5 w-5" />
             </button>
