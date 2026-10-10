@@ -64,6 +64,7 @@ const listingSchema = new Schema(
     // paid boosts (see payments/Promotion); each is active while its date is in the future
     promo: { featuredUntil: Date, topUntil: Date, homepageUntil: Date, categoryUntil: Date, locationUntil: Date },
     paidListing: Boolean, // posted by paying the ad fee (does not use up the free quota)
+    hiddenByBan: Boolean, // taken down because the owner was banned; put back if the ban is lifted
 
     stats: { views: { type: Number, default: 0 }, favourites: { type: Number, default: 0 }, phoneReveals: { type: Number, default: 0 } },
     searchText: { type: String, default: '' }, // lowercase title + description + category + attribute values

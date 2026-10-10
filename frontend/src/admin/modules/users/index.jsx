@@ -24,8 +24,25 @@ function UserDetail({ id, onClose, onChanged }) {
     try {
       const body = { status: form.status, reason: form.reason };
       if (form.status === 'suspended') body.suspendedUntil = new Date(form.suspendedUntil).toISOString();
-      await call(http.patch(`/users/${id}/status`, body));
-      toast.success('Status updated');
+      const { data } = await call(http.patch(`/users/${id}/status`, body));
+      const fx = data.effects || {};
+      toast.success(['Status updated', fx.hiddenAds ? `${fx.hiddenAds} ads hidden` : null, fx.cancelledAuctions ? `${fx.cancelledAuctions} auctions cancelled` : null, fx.restoredAds ? `${fx.restoredAds} ads restored` : null].filter(Boolean).join(' · '));
+      await load();
+      onChanged();
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const ban = async () => {
+    const reason = window.prompt(`Ban ${user.name || user.phone}? They are signed out at once, can't log in again, their ads are hidden and their open auctions are cancelled.\n\nReason (the user sees this and can appeal):`);
+    if (!reason || reason.trim().length < 3) return;
+    setBusy(true);
+    try {
+      const { data } = await call(http.patch(`/users/${id}/status`, { status: 'banned', reason: reason.trim() }));
+      toast.success(`User banned · ${data.effects?.hiddenAds ?? 0} ads hidden · ${data.effects?.cancelledAuctions ?? 0} auctions cancelled`);
       await load();
       onChanged();
     } catch (e) {
@@ -99,6 +116,7 @@ function UserDetail({ id, onClose, onChanged }) {
             <div className="space-y-3 rounded-xl border border-neutral-200 p-4">
               <h3 className="text-sm font-semibold">Change account status</h3>
               <div className="grid grid-cols-2 gap-3">
+                {user.status === 'banned' && <p className="col-span-2 rounded-lg bg-rose-50 p-3 text-sm text-rose-800">This user is banned. Setting them back to Active (or Limited / Suspended) restores the ads the ban hid, if their time hasn't run out.</p>}
                 <Field label="New status">
                   <Select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
                     <option value="active">Active</option>
@@ -113,7 +131,7 @@ function UserDetail({ id, onClose, onChanged }) {
                   </Field>
                 )}
               </div>
-              <Field label="Reason (required, shown in audit log)">
+              <Field label="Reason (required — the user sees it on their account status page; also kept in the audit log)">
                 <Textarea value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
               </Field>
               <div className="flex gap-2">
@@ -123,6 +141,11 @@ function UserDetail({ id, onClose, onChanged }) {
                 <Button variant="outline" onClick={forceLogout}>
                   Force logout everywhere
                 </Button>
+                {user.status !== 'banned' && (
+                  <Button variant="danger" loading={busy} onClick={ban} className="ml-auto">
+                    Ban user
+                  </Button>
+                )}
               </div>
             </div>
           )}

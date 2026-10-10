@@ -8,7 +8,30 @@ import { User } from '../user.model.js';
 import { Session } from '../../auth/auth.models.js';
 import { revokeSession } from '../../auth/auth.service.js';
 import { auditAdmin } from '../../audit/audit.service.js';
-import { emitToUser } from '../../../realtime/index.js';
+import { emitToUser, disconnectSession } from '../../../realtime/index.js';
+import { Listing } from '../../listings/listing.model.js';
+import { Auction } from '../../auctions/auction.model.js';
+import { controlAuction } from '../../auctions/auction.service.js';
+
+/** A ban takes the user's ads down (reversibly) and cancels their open auctions (bidders are told). */
+const applyBan = async (userId, reason) => {
+  const now = new Date();
+  const hidden = await Listing.updateMany(
+    { ownerId: userId, listingType: { $ne: 'auction' }, status: { $in: ['published', 'paused', 'pending_review', 'payment_pending'] } },
+    { $set: { status: 'removed', hiddenByBan: true, moderation: { reviewedAt: now, reason: 'Account banned' } } }
+  );
+  const open = await Auction.find({ sellerId: userId, status: { $in: ['pending_review', 'scheduled', 'live', 'suspended'] } }).select('_id').lean();
+  for (const a of open) await controlAuction(a._id, { action: 'cancel', reason: reason || 'Seller account closed' });
+  return { hiddenAds: hidden.modifiedCount, cancelledAuctions: open.length };
+};
+
+/** Lifting a ban puts back the ads it took down (those whose time has not run out). */
+const liftBan = async (userId) => {
+  const now = new Date();
+  const back = await Listing.updateMany({ ownerId: userId, hiddenByBan: true, expiresAt: { $gt: now } }, { $set: { status: 'published' }, $unset: { hiddenByBan: 1, moderation: 1 } });
+  await Listing.updateMany({ ownerId: userId, hiddenByBan: true }, { $set: { status: 'expired' }, $unset: { hiddenByBan: 1 } });
+  return { restoredAds: back.modifiedCount };
+};
 
 const router = Router();
 const objectId = z.string().regex(/^[a-f0-9]{24}$/);
@@ -106,9 +129,14 @@ router.patch(
     u.suspendedUntil = req.body.status === 'suspended' ? new Date(req.body.suspendedUntil) : undefined;
     await u.save();
 
-    if (req.body.status === 'banned') {
+    let effects = {};
+    if (req.body.status === 'banned' && before.status !== 'banned') {
       const sessions = await Session.find({ userId: u._id, revokedAt: null });
       await Promise.all(sessions.map((s) => revokeSession(s, 'banned')));
+      await Promise.all(sessions.map((s) => disconnectSession(String(s._id))));
+      effects = await applyBan(u._id, req.body.reason);
+    } else if (before.status === 'banned' && req.body.status !== 'banned') {
+      effects = await liftBan(u._id);
     }
     emitToUser(String(u._id), 'account:status', { status: u.status });
     await auditAdmin(req, {
@@ -116,10 +144,10 @@ router.patch(
       entityType: 'User',
       entityId: u._id,
       before,
-      after: { status: u.status, suspendedUntil: u.suspendedUntil },
+      after: { status: u.status, suspendedUntil: u.suspendedUntil, ...effects },
       reason: req.body.reason,
     });
-    ok(res, rowDto(u.toObject(), false));
+    ok(res, { ...rowDto(u.toObject(), false), effects });
   })
 );
 
