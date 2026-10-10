@@ -187,7 +187,10 @@ export const leadsApi = {
 
 /** Buyer ↔ seller chat, one conversation per ad. */
 export const chatApi = {
-  list: () => api('/chats'),
+  list: (params) => api('/chats', { query: params }),
+  prefs: (id, body) => api(`/chats/${id}/prefs`, { method: 'PATCH', body }),
+  location: (id, body) => api(`/chats/${id}/location`, { method: 'POST', body }),
+  blocked: () => api('/chats/blocked'),
   unread: () => api('/chats/unread-count'),
   start: (listingId) => api('/chats/start', { method: 'POST', body: { listingId } }),
   detail: (id) => api(`/chats/${id}`),

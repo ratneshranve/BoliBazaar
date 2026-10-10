@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, FileText, IndianRupee, MessageSquare, Paperclip, Send, X } from 'lucide-react';
+import { Archive, ArrowLeft, BellOff, FileText, IndianRupee, MapPin, MessageSquare, MoreVertical, Paperclip, Send, UserX, X } from 'lucide-react';
+import { Sheet } from '../components/Sheet';
+import { getPosition } from '../services/geolocation';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, TextInput, View } from '../components/primitives';
 import { AppText, Button, EmptyState } from '../components/ui';
 import { colors, radius, spacing } from '@theme/tokens';
-import { chatApi, listingsApi, uploadsApi } from '../api/endpoints';
+import { chatApi, listingsApi, placesApi, uploadsApi } from '../api/endpoints';
 import { useAppDispatch, useAppSelector, fetchUnread } from '../store';
 import { emitRealtime, onRealtime } from '../services/realtime';
 import { ReportSheet } from '../components/ReportSheet';
@@ -38,10 +40,19 @@ export const ChatsScreen = () => {
   const navigate = useNavigate();
   const authed = useRequireLogin();
   const [items, setItems] = useState(null);
+  const [filter, setFilter] = useState('all');
+  const [archived, setArchived] = useState(false);
+  const [archivedCount, setArchivedCount] = useState(0);
 
   const load = useCallback(() => {
-    chatApi.list().then(({ data }) => setItems(data)).catch((e) => { Alert.alert(errorText(e)); setItems((p) => p ?? []); });
-  }, []);
+    chatApi
+      .list({ filter, ...(archived ? { archived: '1' } : {}) })
+      .then(({ data, meta }) => {
+        setItems(data);
+        setArchivedCount(meta?.archivedCount ?? 0);
+      })
+      .catch((e) => { Alert.alert(errorText(e)); setItems((p) => p ?? []); });
+  }, [filter, archived]);
 
   useEffect(() => {
     if (!authed) return undefined;
@@ -54,17 +65,28 @@ export const ChatsScreen = () => {
     <View style={styles.fill}>
       <View style={styles.header}>
         <Pressable accessibilityLabel={t('common.back')} onPress={() => navigate(-1)}><ArrowLeft size={24} color={colors.text} /></Pressable>
-        <AppText variant="h3">{t('chat.title')}</AppText>
+        <AppText variant="h3" style={{ flex: 1 }}>{archived ? t('chat.archived') : t('chat.title')}</AppText>
+        {archived && <Pressable onPress={() => setArchived(false)}><AppText variant="bodyStrong" color={colors.primary}>{t('chat.backToInbox')}</AppText></Pressable>}
       </View>
+      {!archived && (
+        <View style={styles.filters}>
+          {['all', 'buying', 'selling', 'unread'].map((k) => (
+            <Pressable key={k} onPress={() => setFilter(k)} style={[styles.chip, filter === k && styles.chipOn]}>
+              <AppText variant="caption" color={filter === k ? colors.white : colors.text}>{t(`chat.filter_${k}`)}</AppText>
+            </Pressable>
+          ))}
+        </View>
+      )}
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm, paddingBottom: spacing.xxxl }}>
         {!items && <ActivityIndicator style={{ minHeight: 'calc(100dvh - 200px)' }} color={colors.primary} />}
-        {items?.length === 0 && <EmptyState icon={<MessageSquare size={44} color={colors.textMuted} />} title={t('chat.empty')} body={t('chat.emptyBody')} />}
+        {items?.length === 0 && <EmptyState icon={<MessageSquare size={44} color={colors.textMuted} />} title={archived ? t('chat.noArchived') : t('chat.empty')} body={archived ? undefined : t('chat.emptyBody')} />}
         {items?.map((c) => (
           <Pressable key={c.id} onPress={() => navigate(`/chat/${c.id}`)} style={styles.row}>
             <Avatar peer={c.peer} />
             <View style={{ flex: 1, gap: 2 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm }}>
                 <AppText variant="bodyStrong" numberOfLines={1} style={{ flex: 1 }}>{c.peer.name ?? t('chat.unknownUser')}</AppText>
+                {c.muted && <BellOff size={14} color={colors.textSubtle} />}
                 <AppText variant="small" color={colors.textSubtle}>{formatChatTime(c.lastMessageAt, i18n.language)}</AppText>
               </View>
               {c.listing && <AppText variant="small" color={colors.primary} numberOfLines={1}>{c.listing.title}</AppText>}
@@ -77,6 +99,12 @@ export const ChatsScreen = () => {
             )}
           </Pressable>
         ))}
+        {!archived && archivedCount > 0 && (
+          <Pressable onPress={() => setArchived(true)} style={styles.archivedLink}>
+            <Archive size={18} color={colors.textMuted} />
+            <AppText color={colors.textMuted}>{t('chat.archivedCount', { count: archivedCount })}</AppText>
+          </Pressable>
+        )}
       </ScrollView>
     </View>
   );
@@ -350,6 +378,37 @@ export const ChatScreen = () => {
     }
   };
 
+  const [menu, setMenu] = useState(false);
+  const setPrefs = async (body) => {
+    try {
+      const { data } = await chatApi.prefs(id, body);
+      setInfo((i) => ({ ...i, mutedUntil: data.mutedUntil, archived: data.archived }));
+      setMenu(false);
+      if (body.archived) navigate('/chats');
+    } catch (e) {
+      Alert.alert(errorText(e));
+    }
+  };
+  const [locating, setLocating] = useState(false);
+  const shareLocation = async () => {
+    if (!window.confirm(t('chat.shareLocationConfirm'))) return;
+    setLocating(true);
+    try {
+      const point = await getPosition();
+      let label;
+      try {
+        label = (await placesApi.reverse(point.lat, point.lng)).data?.label;
+      } catch {
+        /* the point alone is enough */
+      }
+      await chatApi.location(id, { ...point, ...(label ? { label } : {}) });
+    } catch (e) {
+      Alert.alert(e.message === 'denied' ? t('chat.locationDenied') : errorText(e));
+    } finally {
+      setLocating(false);
+    }
+  };
+
   const toggleBlock = async () => {
     const blocking = !info.iBlockedThem;
     if (blocking && !window.confirm(t('chat.confirmBlock', { name: info.peer.name ?? '' }))) return;
@@ -373,8 +432,8 @@ export const ChatScreen = () => {
           <AppText variant="bodyStrong" numberOfLines={1}>{info?.peer.name ?? ''}</AppText>
           {typing && <AppText variant="small" color={colors.sell}>{t('chat.typing')}</AppText>}
         </View>
-        {info?.peer?.id && <Pressable onPress={() => setReporting(true)}><AppText variant="caption" color={colors.textMuted}>{t('report.short')}</AppText></Pressable>}
-        {info && <Pressable onPress={toggleBlock}><AppText variant="caption" color={colors.danger}>{info.iBlockedThem ? t('chat.unblock') : t('chat.block')}</AppText></Pressable>}
+        {info?.mutedUntil && <BellOff size={18} color={colors.textSubtle} />}
+        {info && <Pressable accessibilityLabel={t('chat.options')} onPress={() => setMenu(true)} style={{ padding: 4 }}><MoreVertical size={22} color={colors.text} /></Pressable>}
       </View>
 
       {listing && (
@@ -427,6 +486,15 @@ export const ChatScreen = () => {
           return (
             <View key={m.id} style={[styles.bubble, mine ? styles.mine : styles.theirs]}>
               {m.attachments?.length > 0 && <Attachments m={m} conversationId={id} mine={mine} />}
+              {m.kind === 'location' && m.location && (
+                <Pressable onPress={() => window.open(`https://www.google.com/maps?q=${m.location.lat},${m.location.lng}`, '_blank', 'noopener')} style={styles.locCard}>
+                  <MapPin size={22} color={mine ? colors.white : colors.primary} />
+                  <View style={{ flex: 1 }}>
+                    <AppText variant="bodyStrong" color={mine ? colors.white : colors.text}>{m.location.label || t('chat.sharedLocation')}</AppText>
+                    <AppText variant="small" color={mine ? 'rgba(255,255,255,0.85)' : colors.primary}>{t('chat.openInMaps')}</AppText>
+                  </View>
+                </Pressable>
+              )}
               {!!m.text && <AppText color={mine ? colors.white : colors.text} style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{m.text}</AppText>}
               <AppText variant="small" color={mine ? 'rgba(255,255,255,0.8)' : colors.textSubtle} style={{ alignSelf: 'flex-end' }}>
                 {formatChatTime(m.createdAt, i18n.language)}{mine ? (m.readAt ? ' ✓✓' : ' ✓') : ''}
@@ -438,6 +506,38 @@ export const ChatScreen = () => {
       </ScrollView>
 
       {reporting && <ReportSheet targetType="user" targetId={info.peer.id} onClose={() => setReporting(false)} />}
+      {menu && info && (
+        <Sheet title={t('chat.options')} onClose={() => setMenu(false)}>
+          <View style={{ gap: spacing.xs }}>
+            <AppText variant="bodyStrong">{info.mutedUntil ? t('chat.mutedUntil', { time: new Date(info.mutedUntil).getFullYear() > 9000 ? t('chat.muteAlwaysShort') : new Date(info.mutedUntil).toLocaleString(i18n.language, { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) }) : t('chat.muteTitle')}</AppText>
+            <View style={styles.chips}>
+              {['1h', '8h', '1w', 'always'].map((k) => (
+                <Pressable key={k} onPress={() => setPrefs({ mute: k })} style={styles.chip}><AppText variant="caption">{t(`chat.mute_${k}`)}</AppText></Pressable>
+              ))}
+              {info.mutedUntil && <Pressable onPress={() => setPrefs({ mute: 'off' })} style={styles.chip}><AppText variant="caption" color={colors.primary}>{t('chat.unmute')}</AppText></Pressable>}
+            </View>
+            <Pressable onPress={() => setPrefs({ archived: !info.archived })} style={styles.menuRow}>
+              <Archive size={20} color={colors.text} />
+              <AppText>{info.archived ? t('chat.unarchive') : t('chat.archive')}</AppText>
+            </Pressable>
+            {listing && (
+              <Pressable onPress={() => navigate(`/listing/${listing.id}`)} style={styles.menuRow}>
+                <FileText size={20} color={colors.text} />
+                <AppText>{t('chat.viewAd')}</AppText>
+              </Pressable>
+            )}
+            <Pressable onPress={() => { setMenu(false); toggleBlock(); }} style={styles.menuRow}>
+              <UserX size={20} color={colors.danger} />
+              <AppText color={colors.danger}>{info.iBlockedThem ? t('chat.unblock') : t('chat.block')}</AppText>
+            </Pressable>
+            {info.peer?.id && (
+              <Pressable onPress={() => { setMenu(false); setReporting(true); }} style={styles.menuRow}>
+                <AppText color={colors.danger}>{t('report.title_user')}</AppText>
+              </Pressable>
+            )}
+          </View>
+        </Sheet>
+      )}
       {info?.iBlockedThem ? (
         <View style={styles.composerNote}><AppText color={colors.textMuted}>{t('chat.youBlocked')}</AppText></View>
       ) : (
@@ -479,6 +579,9 @@ export const ChatScreen = () => {
                 </Pressable>
               </>
             )}
+            <Pressable accessibilityLabel={t('chat.shareLocation')} onPress={shareLocation} disabled={locating} style={styles.attachBtn}>
+              {locating ? <ActivityIndicator color={colors.primary} /> : <MapPin size={20} color={colors.textMuted} />}
+            </Pressable>
             <TextInput
               value={text}
               onChangeText={onChange}
@@ -524,6 +627,11 @@ const styles = StyleSheet.create({
   pendingRemove: { position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: 10, backgroundColor: colors.text, alignItems: 'center', justifyContent: 'center' },
   composer: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md },
   composerNote: { padding: spacing.lg, alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.divider },
+  filters: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.sm, flexWrap: 'wrap' },
+  chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  archivedLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, padding: spacing.lg },
+  menuRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.divider },
+  locCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minWidth: 200, paddingVertical: spacing.xs },
   attachBtn: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },
   input: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: spacing.lg, paddingVertical: 10, fontSize: 16 },
   sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },

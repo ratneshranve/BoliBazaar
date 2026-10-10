@@ -44,6 +44,7 @@ const messageDto = (m) => ({
         replyTo: m.offer.replyTo ? oid(m.offer.replyTo) : null,
       }
     : null,
+  location: m.kind === 'location' && m.location ? { lat: m.location.lat, lng: m.location.lng, label: m.location.label || null } : null,
   readAt: m.readAt || null,
   createdAt: m.createdAt,
 });
@@ -51,6 +52,7 @@ const messageDto = (m) => ({
 /** One-line summary for the chat list and push notifications. */
 const previewOf = (m) => {
   if (m.kind === 'offer') return `Offer: ${formatMoney(m.offer.amountMinor, m.offer.currency)}`;
+  if (m.kind === 'location') return `📍 ${m.location?.label || 'Location'}`;
   if (m.text) return m.text;
   const files = m.attachments || [];
   if (files.every((a) => a.kind === 'image')) return files.length > 1 ? `📷 ${files.length} photos` : '📷 Photo';
@@ -81,15 +83,21 @@ const deliver = async (c, userId, fields) => {
   const m = await Message.create({ conversationId: c._id, senderId: userId, ...fields });
   const otherSide = sideOf(c, userId) === 'buyer' ? 'seller' : 'buyer';
   const preview = previewOf(m);
+  // a new message brings an archived chat back to the inbox (for both people)
   await Conversation.updateOne(
     { _id: c._id },
-    { $set: { lastMessage: { text: preview, senderId: userId, at: m.createdAt }, lastMessageAt: m.createdAt }, $inc: { [`unread.${otherSide}`]: 1 } }
+    {
+      $set: { lastMessage: { text: preview, senderId: userId, at: m.createdAt }, lastMessageAt: m.createdAt },
+      $unset: { 'prefs.buyer.archivedAt': 1, 'prefs.seller.archivedAt': 1 },
+      $inc: { [`unread.${otherSide}`]: 1 },
+    }
   );
+  const muted = c.prefs?.[otherSide]?.mutedUntil && c.prefs[otherSide].mutedUntil > new Date();
   const dto = messageDto(m);
   emitToUser(other, 'chat:message', dto);
   emitToUser(userId, 'chat:message', dto); // other tabs/devices of the sender
   const sender = await User.findById(userId).select('name').lean();
-  await notify(other, 'chat.message', { sender: sender?.name || 'New message', preview: preview.slice(0, 120) }, { route: `/chat/${c._id}` });
+  if (!muted) await notify(other, 'chat.message', { sender: sender?.name || 'New message', preview: preview.slice(0, 120) }, { route: `/chat/${c._id}` });
   return dto;
 };
 
@@ -230,8 +238,14 @@ const listingCard = (l) => ({
   price: { type: l.price.type, amountMinor: l.price.amountMinor ?? null, currency: l.price.currency, factor: minorFactor(l.price.currency) },
 });
 
-export const listConversations = async (userId) => {
-  const docs = await Conversation.find({ $or: [{ buyerId: userId }, { sellerId: userId }], lastMessage: { $exists: true } }).sort({ lastMessageAt: -1 }).limit(100).lean();
+/** filter: all | buying | selling | unread; archived=true shows only archived chats. */
+export const listConversations = async (userId, { filter = 'all', archived = false } = {}) => {
+  const sides = filter === 'buying' ? [{ buyerId: userId }] : filter === 'selling' ? [{ sellerId: userId }] : [{ buyerId: userId }, { sellerId: userId }];
+  const all = await Conversation.find({ $or: sides, lastMessage: { $exists: true } }).sort({ lastMessageAt: -1 }).limit(200).lean();
+  const docs = all
+    .filter((c) => Boolean(c.prefs?.[sideOf(c, userId)]?.archivedAt) === archived)
+    .filter((c) => filter !== 'unread' || (c.unread?.[sideOf(c, userId)] || 0) > 0)
+    .slice(0, 100);
   const peers = new Map(
     (await User.find({ _id: { $in: docs.map((c) => peerIdOf(c, userId)) } }).select('name avatar.url').lean()).map((u) => [oid(u._id), u])
   );
@@ -246,9 +260,44 @@ export const listConversations = async (userId) => {
       listing: l ? listingCard(l) : null,
       lastMessage: c.lastMessage ? { text: c.lastMessage.text, mine: oid(c.lastMessage.senderId) === oid(userId), at: c.lastMessage.at } : null,
       unread: c.unread?.[side] || 0,
+      side,
+      muted: Boolean(c.prefs?.[side]?.mutedUntil && c.prefs[side].mutedUntil > new Date()),
+      archived: Boolean(c.prefs?.[side]?.archivedAt),
       lastMessageAt: c.lastMessageAt,
     };
   });
+};
+
+/** How many chats sit in the archive (shown as a link at the bottom of the inbox). */
+export const archivedCount = async (userId) =>
+  (await Conversation.find({ $or: [{ buyerId: userId, 'prefs.buyer.archivedAt': { $ne: null } }, { sellerId: userId, 'prefs.seller.archivedAt': { $ne: null } }] }).select('_id').lean()).length;
+
+const MUTE_MS = { '1h': 3_600_000, '8h': 8 * 3_600_000, '1w': 7 * 24 * 3_600_000 };
+
+/** Mute (1 h / 8 h / 1 week / always / off) and archive are each person's own setting. */
+export const setChatPrefs = async (userId, conversationId, { mute, archived }) => {
+  const c = await loadMine(conversationId, userId);
+  const side = sideOf(c, userId);
+  const set = {};
+  const unset = {};
+  if (mute !== undefined) {
+    if (mute === 'off') unset[`prefs.${side}.mutedUntil`] = 1;
+    else set[`prefs.${side}.mutedUntil`] = mute === 'always' ? new Date('9999-12-31') : new Date(Date.now() + MUTE_MS[mute]);
+  }
+  if (archived !== undefined) {
+    if (archived) set[`prefs.${side}.archivedAt`] = new Date();
+    else unset[`prefs.${side}.archivedAt`] = 1;
+  }
+  const fresh = await Conversation.findByIdAndUpdate(c._id, { ...(Object.keys(set).length ? { $set: set } : {}), ...(Object.keys(unset).length ? { $unset: unset } : {}) }, { new: true }).lean();
+  const p = fresh.prefs?.[side] || {};
+  return { mutedUntil: p.mutedUntil && p.mutedUntil > new Date() ? p.mutedUntil : null, archived: Boolean(p.archivedAt) };
+};
+
+/** Share a place (GPS point and an optional readable label). */
+export const sendLocation = async (userId, conversationId, { lat, lng, label }) => {
+  const c = await loadMine(conversationId, userId);
+  await assertCanWrite(c, userId);
+  return deliver(c, userId, { kind: 'location', location: { lat, lng, label: label || undefined } });
 };
 
 export const conversationDetail = async (userId, conversationId) => {
@@ -266,6 +315,8 @@ export const conversationDetail = async (userId, conversationId) => {
     peer: peer ? peerCard(peer) : { id: oid(peerId), name: null, avatar: null },
     listing: l ? listingCard(l) : null,
     iBlockedThem: Boolean(blocked),
+    mutedUntil: c.prefs?.[side]?.mutedUntil && c.prefs[side].mutedUntil > new Date() ? c.prefs[side].mutedUntil : null,
+    archived: Boolean(c.prefs?.[side]?.archivedAt),
   };
 };
 

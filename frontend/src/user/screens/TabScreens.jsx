@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Package, Gavel, ShoppingBag, Heart, MessageSquare, Wallet, MapPin, FileText, ShieldCheck, Headphones, ChevronRight, BadgeCheck, Languages, LogOut, Inbox, Bookmark,
+  UserX,
 } from 'lucide-react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
 import { AppText, Button, Card, EmptyState } from '../components/ui';
@@ -63,6 +64,7 @@ export const ProfileScreen = () => {
     { icon: <MapPin size={22} color={colors.text} />, title: t('profile.addresses'), sub: t('profile.addressesSub'), onPress: () => navigate('/location') },
     { icon: <FileText size={22} color={colors.text} />, title: t('profile.verification'), sub: t('profile.verificationSub'), onPress: () => navigate('/verification') },
     { icon: <ShieldCheck size={22} color={colors.text} />, title: t('profile.security'), sub: t('profile.securitySub'), onPress: () => navigate('/security') },
+    { icon: <UserX size={22} color={colors.text} />, title: t('chat.blockedTitle'), sub: t('chat.blockedSub'), onPress: () => navigate('/blocked') },
     { icon: <Languages size={22} color={colors.text} />, title: t('profile.language'), sub: currentLang?.nativeName ?? i18n.language, onPress: () => navigate('/language') },
     { icon: <Headphones size={22} color={colors.text} />, title: t('profile.help'), sub: t('profile.helpSub'), onPress: () => navigate('/help') },
   ];

@@ -8,7 +8,7 @@ import { privateFilePath } from '../../../core/services/storage.js';
 import {
   startConversation, sendMessage, listConversations, conversationDetail, listMessages,
   markConversationRead, unreadMessageCount, blockUser, unblockUser, listBlocked,
-  makeOffer, respondToOffer, chatFile,
+  makeOffer, respondToOffer, chatFile, setChatPrefs, sendLocation, archivedCount,
 } from '../chat.service.js';
 
 const router = Router();
@@ -18,7 +18,15 @@ const id = z.string().regex(/^[a-f0-9]{24}$/);
 const idParam = z.object({ id });
 const amount = z.number().positive().max(1_000_000_000_000); // major units, e.g. 42000 rupees
 
-router.get('/', asyncHandler(async (req, res) => ok(res, await listConversations(req.user.id))));
+router.get(
+  '/',
+  validate({ query: z.object({ filter: z.enum(['all', 'buying', 'selling', 'unread']).default('all'), archived: z.enum(['1', 'true', '0', 'false']).optional() }) }),
+  asyncHandler(async (req, res) => {
+    const archived = ['1', 'true'].includes(req.query.archived);
+    const [items, archivedTotal] = await Promise.all([listConversations(req.user.id, { filter: req.query.filter, archived }), archivedCount(req.user.id)]);
+    ok(res, items, { archivedCount: archivedTotal });
+  })
+);
 router.get('/unread-count', asyncHandler(async (req, res) => ok(res, { count: await unreadMessageCount(req.user.id) })));
 
 /** Start (or reopen) a chat about an ad. */
@@ -38,6 +46,22 @@ router.delete('/blocked/:id', validate({ params: idParam }), asyncHandler(async 
   await unblockUser(req.user.id, req.params.id);
   ok(res, { blocked: false });
 }));
+
+/* Mute and archive are each person's own choice for this chat. */
+router.patch(
+  '/:id/prefs',
+  validate({ params: idParam, body: z.object({ mute: z.enum(['1h', '8h', '1w', 'always', 'off']).optional(), archived: z.boolean().optional() }) }),
+  asyncHandler(async (req, res) => ok(res, await setChatPrefs(req.user.id, req.params.id, req.body)))
+);
+
+/* Share a place (from GPS). */
+router.post(
+  '/:id/location',
+  requireActiveUser,
+  limiter({ name: 'chat-location', windowMs: 60_000, max: 10, keyBy: (req) => req.user.id }),
+  validate({ params: idParam, body: z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180), label: z.string().trim().max(200).optional() }) }),
+  asyncHandler(async (req, res) => ok(res, await sendLocation(req.user.id, req.params.id, req.body)))
+);
 
 router.get('/:id', validate({ params: idParam }), asyncHandler(async (req, res) => ok(res, await conversationDetail(req.user.id, req.params.id))));
 

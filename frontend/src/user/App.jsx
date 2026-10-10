@@ -27,6 +27,7 @@ import { PayScreen, PromoteScreen, PlansScreen, PaymentsScreen } from './screens
 import { SavedSearchesScreen, SavedSearchRedirect, SellerScreen } from './screens/GrowthScreens';
 import { HelpScreen, NewCaseScreen, CaseScreen, MyReportsScreen, VerificationScreen, AccountScreen } from './screens/TrustScreens';
 import { ChatsScreen, ChatScreen } from './screens/ChatScreens';
+import { BlockedScreen } from './screens/BlockedScreen';
 import { TabBar } from './components/TabBar';
 import { AccountStatusBanner, AccountStatusScreen, BannedScreen, IntroScreen, ReConsentScreen, introPending, reconsentNeeded } from './screens/FirstRunScreens';
 import { meApi } from './api/endpoints';
@@ -118,6 +119,7 @@ const Navigation = () => (
       <Route path="/verification" element={<VerificationScreen />} />
       <Route path="/account" element={<AccountScreen />} />
       <Route path="/account-status" element={<AccountStatusScreen />} />
+      <Route path="/blocked" element={<BlockedScreen />} />
       <Route path="/banned" element={<BannedScreen />} />
       <Route path="/deals/:id" element={<DealScreen />} />
       <Route path="/leads/received" element={<LeadsScreen initial="received" />} />

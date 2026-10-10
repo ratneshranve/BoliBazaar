@@ -11,6 +11,11 @@ const conversationSchema = new Schema(
     lastMessage: { text: String, senderId: Schema.Types.ObjectId, at: Date },
     unread: { buyer: { type: Number, default: 0 }, seller: { type: Number, default: 0 } },
     lastMessageAt: { type: Date, default: Date.now },
+    // each person's own choices for this chat
+    prefs: {
+      buyer: { mutedUntil: Date, archivedAt: Date },
+      seller: { mutedUntil: Date, archivedAt: Date },
+    },
   },
   { timestamps: true }
 );
@@ -54,7 +59,8 @@ const messageSchema = new Schema(
   {
     conversationId: { type: Schema.Types.ObjectId, ref: 'Conversation', required: true },
     senderId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    kind: { type: String, enum: ['text', 'media', 'offer'], default: 'text' },
+    kind: { type: String, enum: ['text', 'media', 'offer', 'location'], default: 'text' },
+    location: { lat: Number, lng: Number, label: String }, // a shared place (kind = location)
     text: { type: String, maxlength: 1000 },
     attachments: { type: [attachmentSchema], default: undefined },
     offer: offerSchema,
