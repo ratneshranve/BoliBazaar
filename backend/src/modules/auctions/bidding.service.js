@@ -4,6 +4,7 @@ import { nextMinimum, resolveBid, extendedEnd, recomputeState } from './auction.
 import { buyNowOpen } from './auction.summary.js';
 import { createDeal, restriction } from './deal.service.js';
 import { assertMayBid, sendReminders } from './participation.service.js';
+import { pushBidsToAdmins } from './monitor.service.js';
 import { assertNoOverdueCommission } from '../payments/pricing.service.js';
 import { Listing } from '../listings/listing.model.js';
 import { notify } from '../notifications/notification.service.js';
@@ -131,6 +132,7 @@ export const placeBid = async (bidderId, auctionId, { amountMinor, maxMinor, con
 
   const fresh = await Auction.findById(auctionId).lean();
   emitToRoom(`auction:${auctionId}`, 'auction:update', publicState(fresh));
+  pushBidsToAdmins(auctionId).catch((err) => logger.warn('Admin monitor push failed', { err: err.message }));
   if (result.extended) await Listing.updateOne({ _id: result.listingId }, { $set: { expiresAt: result.endAt } });
   if (result.extended) emitToRoom(`auction:${auctionId}`, 'auction:extended', { auctionId: oid(auctionId), endAt: result.endAt });
   if (result.prevLeader && result.prevLeader !== result.newLeader) {
@@ -163,6 +165,7 @@ export const buyNow = async (buyerId, auctionId) => {
   const fresh = await Auction.findById(auctionId).lean();
   emitToRoom(`auction:${auctionId}`, 'auction:update', publicState(fresh));
   emitToRoom(`auction:${auctionId}`, 'auction:ended', { auctionId: oid(auctionId), outcome: 'bought_now' });
+  pushBidsToAdmins(auctionId).catch(() => {});
   const title = await titleOf(fresh.listingId);
   await notify(fresh.sellerId, 'auction.seller_result', { title, result: `bought now for ${formatMoney(fresh.finalMinor, fresh.currency)}` }, { route: `/auctions/${auctionId}` });
   return deal;
@@ -238,6 +241,7 @@ export const voidBid = async (auctionId, bidId, reason) => {
     await Auction.updateOne({ _id: a._id }, { $set: Object.fromEntries(Object.entries(next).map(([k, v]) => [`state.${k}`, v])), $inc: { 'state.version': 1 } });
     const fresh = await Auction.findById(a._id).lean();
     emitToRoom(`auction:${auctionId}`, 'auction:update', publicState(fresh));
+    pushBidsToAdmins(auctionId).catch(() => {});
     if (prevLeader && prevLeader !== oid(next.highestBidderId)) {
       await notify(prevLeader, 'auction.outbid', { title: await titleOf(a.listingId), amount: formatMoney(next.currentMinor, a.currency) }, { route: `/auctions/${auctionId}` });
     }

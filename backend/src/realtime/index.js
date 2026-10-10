@@ -4,6 +4,7 @@ import { env } from '../core/config/env.js';
 import { redis } from '../core/db/redis.js';
 import { logger } from '../core/utils/logger.js';
 import { User } from '../modules/users/user.model.js';
+import { AdminUser } from '../modules/staff/staff.models.js';
 import { withPublicUrls } from '../core/utils/mediaUrl.js';
 
 /**
@@ -30,6 +31,16 @@ export const initRealtime = async (httpServer, { onConnection } = {}) => {
     try {
       const token = socket.handshake.auth?.token;
       if (!token) return next(new Error('AUTH_REQUIRED'));
+      // the admin panel's live auction monitor connects with an admin token
+      if (socket.handshake.auth?.admin) {
+        const p = jwt.verify(token, env.ADMIN_JWT_SECRET);
+        if (p.typ !== 'admin') return next(new Error('TOKEN_INVALID'));
+        const admin = await AdminUser.findById(p.sub).populate('roleId').select('status tokenVersion roleId').lean();
+        if (!admin || admin.status !== 'active' || admin.tokenVersion !== p.tv) return next(new Error('SESSION_REVOKED'));
+        if (!admin.roleId?.isSuper && !admin.roleId?.permissions?.includes('auctions.view')) return next(new Error('FORBIDDEN'));
+        socket.data.adminId = String(admin._id);
+        return next();
+      }
       const payload = jwt.verify(token, env.USER_JWT_SECRET);
       if (payload.typ !== 'user') return next(new Error('TOKEN_INVALID'));
       if (await redis.exists(`revoked:sid:${payload.sid}`)) return next(new Error('SESSION_REVOKED'));
@@ -44,6 +55,10 @@ export const initRealtime = async (httpServer, { onConnection } = {}) => {
   });
 
   io.on('connection', (socket) => {
+    if (socket.data.adminId) {
+      socket.join('admin:auctions');
+      return;
+    }
     socket.join(`user:${socket.data.userId}`);
     onConnection?.(socket, io);
   });

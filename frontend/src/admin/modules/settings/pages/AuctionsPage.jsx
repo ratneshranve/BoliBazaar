@@ -58,6 +58,7 @@ export default function AuctionsSettingsPage() {
           <Num label="Wait between bids by one person (seconds)" value={v.bidIntervalSec} disabled={!edit} onChange={(x) => update({ bidIntervalSec: x })} />
           <Num label="Winner must confirm within (hours)" value={v.paymentWindowHours} disabled={!edit} onChange={(x) => update({ paymentWindowHours: x })} />
           <Num label="Seller's offer stays open for (hours)" value={v.offerWindowHours} disabled={!edit} onChange={(x) => update({ offerWindowHours: x })} />
+          <Num label="Participation fee to register for an auction (0 = free)" value={v.participationFee ?? 0} disabled={!edit} onChange={(x) => update({ participationFee: x })} />
         </div>
 
         <div>

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Gavel, Handshake, Plus, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, CalendarClock, Gavel, Handshake, Plus, Radio, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { call, http, errorMessage } from '@core/api';
 import { useAuth } from '@core/AuthContext';
 import { Badge, Button, DataTable, ErrorBox, Field, Input, Modal, PageHeader, Pagination, Select, Spinner, Textarea } from '@components/ui';
 import ManagedAuctionForm from './ManagedAuctionForm';
+import { LiveMonitorPage, SuspiciousPage } from './MonitorPages';
 
 const TONE = { pending_review: 'amber', rejected: 'red', scheduled: 'blue', live: 'green', suspended: 'amber', ended: 'neutral', cancelled: 'red' };
 const LABEL = { pending_review: 'Pending review', rejected: 'Rejected', scheduled: 'Upcoming', live: 'Live', suspended: 'Suspended', ended: 'Ended', cancelled: 'Cancelled' };
@@ -66,6 +67,11 @@ function AuctionPanel({ id, onClose, onChanged }) {
   const needReason = reason.trim().length < 3;
   const decide = (action) => run(action, () => call(http.post(`/auctions/${id}/decision`, { action, reason: reason.trim() || undefined })), action === 'approve' ? 'Approved' : 'Rejected');
   const control = (action) => run(action, () => call(http.post(`/auctions/${id}/control`, { action, reason: reason.trim(), ...(action === 'extend' ? { minutes: Number(minutes) } : {}) })), `Done: ${action}`);
+  const decideReg = (r, action) => {
+    const why = action === 'reject' ? window.prompt('Why is this registration rejected? (the bidder sees this)') : '';
+    if (action === 'reject' && (!why || why.trim().length < 3)) return;
+    run(`reg-${r.id}`, () => call(http.post(`/auctions/registrations/${r.id}/decide`, { action, reason: why?.trim() || undefined })), action === 'approve' ? 'Registration approved' : 'Registration rejected');
+  };
   const voidBid = (bidId) => {
     const why = window.prompt('Why is this bid being voided? (shown in the audit log)');
     if (!why || why.trim().length < 3) return;
@@ -109,6 +115,54 @@ function AuctionPanel({ id, onClose, onChanged }) {
           </div>
 
           {a.moderation?.reason && <div className="rounded-lg bg-amber-50 p-3 text-amber-900">Last decision: {a.moderation.reason}</div>}
+
+          {(a.registration?.required || a.inspection?.address || a.inspection?.slots?.length > 0) && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-neutral-200 p-4">
+                <div className="mb-1 text-xs uppercase text-neutral-500">Who can bid</div>
+                {a.registration?.required ? (
+                  <div>Registered bidders only · {a.registration.approval === 'manual' ? 'seller approves each one' : 'approved automatically'}{a.registration.feeMinor > 0 ? ` · fee ${fmt(a.registration.feeMinor, a.currency)}` : ''}</div>
+                ) : (
+                  <div>Anyone logged in</div>
+                )}
+              </div>
+              {(a.inspection?.address || a.inspection?.slots?.length > 0) && (
+                <div className="rounded-xl border border-neutral-200 p-4">
+                  <div className="mb-1 flex items-center gap-1 text-xs uppercase text-neutral-500"><CalendarClock className="h-3.5 w-3.5" /> Viewing the item</div>
+                  {a.inspection.address && <div>{a.inspection.address}</div>}
+                  {a.inspection.slots?.map((s, i) => <div key={i} className="text-neutral-600">• {when(s.from)} – {new Date(s.to).toLocaleTimeString()}</div>)}
+                  {a.inspection.note && <div className="text-neutral-500">{a.inspection.note}</div>}
+                </div>
+              )}
+            </div>
+          )}
+
+          {a.registration?.required && (
+            <div>
+              <h3 className="mb-2 font-semibold">Bidder registrations ({a.registrations.length})</h3>
+              <DataTable
+                rows={a.registrations}
+                empty="Nobody has registered yet"
+                columns={[
+                  { key: 'user', header: 'Bidder', render: (r) => r.user?.name || '—' },
+                  { key: 'trust', header: 'Checks', render: (r) => [r.user?.phoneVerified && 'Phone', r.user?.idVerified && 'ID', r.user?.businessVerified && 'Business'].filter(Boolean).join(' · ') || 'None' },
+                  { key: 'since', header: 'Member since', render: (r) => (r.user?.memberSince ? new Date(r.user.memberSince).toLocaleDateString() : '—') },
+                  { key: 'status', header: 'Status', render: (r) => <Badge tone={{ approved: 'green', rejected: 'red', pending: 'amber', awaiting_payment: 'amber' }[r.status] || 'neutral'}>{r.status.replace('_', ' ')}{r.decidedBy ? ` · ${r.decidedBy}` : ''}</Badge> },
+                  {
+                    key: 'act',
+                    header: '',
+                    render: (r) =>
+                      can('auctions.control') && (
+                        <div className="flex gap-1">
+                          {r.status === 'pending' && <Button variant="brand" loading={busy === `reg-${r.id}`} onClick={() => decideReg(r, 'approve')}>Approve</Button>}
+                          {['pending', 'approved'].includes(r.status) && <Button variant="outline" onClick={() => decideReg(r, 'reject')}>Reject</Button>}
+                        </div>
+                      ),
+                  },
+                ]}
+              />
+            </div>
+          )}
 
           {(can('auctions.decide') || can('auctions.control')) && !['ended', 'cancelled'].includes(a.status) && (
             <div className="space-y-3 rounded-xl border border-neutral-200 p-4">
@@ -437,16 +491,32 @@ function StrikesPage() {
   );
 }
 
+/** Suspicious queue; an auction opens in the same panel as the Auctions page (void bids, suspend, extend, cancel). */
+function SuspiciousWithPanel() {
+  const [open, setOpen] = useState(null);
+  const [tick, setTick] = useState(0);
+  return (
+    <>
+      <SuspiciousPage key={tick} onOpen={setOpen} />
+      {open && <AuctionPanel id={open} onClose={() => setOpen(null)} onChanged={() => setTick((n) => n + 1)} />}
+    </>
+  );
+}
+
 export default {
   key: 'auctions',
   section: 'Management',
   nav: [
     { label: 'Auctions', path: '/auctions', icon: Gavel, permission: 'auctions.view' },
+    { label: 'Live Monitor', path: '/auction-monitor', icon: Radio, permission: 'auctions.view' },
+    { label: 'Suspicious Bidding', path: '/auction-suspicious', icon: AlertTriangle, permission: 'auctions.view' },
     { label: 'Auction Deals', path: '/auction-deals', icon: Handshake, permission: 'auctions.view' },
     { label: 'Strikes', path: '/strikes', icon: ShieldAlert, permission: 'auctions.view' },
   ],
   routes: [
     { path: '/auctions', element: <AuctionsPage />, permission: 'auctions.view' },
+    { path: '/auction-monitor', element: <LiveMonitorPage />, permission: 'auctions.view' },
+    { path: '/auction-suspicious', element: <SuspiciousWithPanel />, permission: 'auctions.view' },
     { path: '/auction-deals', element: <DealsPage />, permission: 'auctions.view' },
     { path: '/strikes', element: <StrikesPage />, permission: 'auctions.view' },
   ],

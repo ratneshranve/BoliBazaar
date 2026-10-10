@@ -105,7 +105,7 @@ function AttributeInput({ a, value, onChange }) {
   );
 }
 
-const EMPTY = { title: '', description: '', startingBid: '', reservePrice: '', buyNowPrice: '', increment: '', startAt: '', durationHours: '72', note: '' };
+const EMPTY = { title: '', description: '', startingBid: '', reservePrice: '', buyNowPrice: '', increment: '', startAt: '', durationHours: '72', note: '', registrationRequired: false, registrationApproval: 'manual', inspectionAddress: '', inspectionNote: '', slots: [] };
 
 /**
  * Admin-Managed auction (SOP §6.2): our team lists an item for a seller account and runs it.
@@ -166,6 +166,13 @@ export default function ManagedAuctionForm({ onClose, onCreated }) {
           increment: num(f.increment),
           startAt: f.startAt ? new Date(f.startAt).toISOString() : null,
           durationHours: Number(f.durationHours),
+          registrationRequired: f.registrationRequired,
+          registrationApproval: f.registrationApproval,
+          inspection: {
+            address: f.inspectionAddress.trim() || undefined,
+            note: f.inspectionNote.trim() || undefined,
+            slots: f.slots.filter((s) => s.from && s.to).map((s) => ({ from: new Date(s.from).toISOString(), to: new Date(s.to).toISOString() })),
+          },
         },
       };
       const { data } = await call(http.post('/auctions', body));
@@ -261,6 +268,32 @@ export default function ManagedAuctionForm({ onClose, onCreated }) {
             <Field label="Bid step" hint="Empty = platform table"><Input type="number" min="1" value={f.increment} onChange={(e) => set({ increment: e.target.value })} /></Field>
             <Field label="Starts" hint="Empty = now"><Input type="datetime-local" value={f.startAt} onChange={(e) => set({ startAt: e.target.value })} /></Field>
             <Field label="Runs for (hours) *"><Input type="number" min="1" value={f.durationHours} onChange={(e) => set({ durationHours: e.target.value })} /></Field>
+          </div>
+
+          <div className="grid gap-4 rounded-xl border border-neutral-200 p-4 sm:grid-cols-2">
+            <Field label="Who can bid">
+              <Select value={f.registrationRequired ? f.registrationApproval : 'open'} onChange={(e) => set(e.target.value === 'open' ? { registrationRequired: false } : { registrationRequired: true, registrationApproval: e.target.value })}>
+                <option value="open">Anyone logged in</option>
+                <option value="manual">Registered bidders — we approve each one</option>
+                <option value="auto">Registered bidders — approved automatically</option>
+              </Select>
+            </Field>
+            <Field label="Viewing address" hint="Shown to bidders who may bid">
+              <Input maxLength={300} value={f.inspectionAddress} onChange={(e) => set({ inspectionAddress: e.target.value })} placeholder="e.g. Bank yard, Ring Road, Raipur" />
+            </Field>
+            <div className="space-y-2 sm:col-span-2">
+              <div className="text-sm font-semibold text-slate-700">Viewing times</div>
+              {f.slots.map((s, i) => (
+                <div key={i} className="flex flex-wrap items-center gap-2">
+                  <Input type="datetime-local" value={s.from} onChange={(e) => set({ slots: f.slots.map((x, j) => (j === i ? { ...x, from: e.target.value } : x)) })} className="max-w-56" />
+                  <span>–</span>
+                  <Input type="datetime-local" value={s.to} onChange={(e) => set({ slots: f.slots.map((x, j) => (j === i ? { ...x, to: e.target.value } : x)) })} className="max-w-56" />
+                  <Button variant="ghost" onClick={() => set({ slots: f.slots.filter((_, j) => j !== i) })}>Remove</Button>
+                </div>
+              ))}
+              {f.slots.length < 10 && <Button variant="outline" onClick={() => set({ slots: [...f.slots, { from: '', to: '' }] })}>Add viewing time</Button>}
+              <Input maxLength={300} value={f.inspectionNote} onChange={(e) => set({ inspectionNote: e.target.value })} placeholder="Note for viewers (optional)" />
+            </div>
           </div>
 
           <Field label="Internal note" hint="Why our team runs this auction (shown only in the admin panel and audit log)">

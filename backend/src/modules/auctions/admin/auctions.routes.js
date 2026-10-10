@@ -14,6 +14,7 @@ import { Listing } from '../../listings/listing.model.js';
 import { User } from '../../users/user.model.js';
 import { notify } from '../../notifications/notification.service.js';
 import { decideRegistration } from '../participation.service.js';
+import { monitorSnapshot, suspiciousQueue, markReviewed } from '../monitor.service.js';
 import { auditAdmin } from '../../audit/audit.service.js';
 
 const router = Router();
@@ -25,6 +26,28 @@ const who = async (ids) =>
   new Map((await User.find({ _id: { $in: ids } }).select('name phone.e164').lean()).map((u) => [String(u._id), { id: String(u._id), name: u.name || null, phone: u.phone?.e164 || null }]));
 
 /* ───── deals ───── */
+/* ───── live monitor & suspicious bidding (before /:id) ───── */
+
+router.get('/monitor', requirePermission('auctions.view'), asyncHandler(async (req, res) => ok(res, await monitorSnapshot())));
+
+router.get(
+  '/suspicious',
+  requirePermission('auctions.view'),
+  validate({ query: z.object({ reviewed: z.enum(['0', '1']).default('0') }) }),
+  asyncHandler(async (req, res) => ok(res, await suspiciousQueue({ includeReviewed: req.query.reviewed === '1' })))
+);
+
+router.post(
+  '/suspicious/review',
+  requirePermission('auctions.control'),
+  validate({ body: z.object({ auctionId: id, key: z.string().min(3).max(300), note: z.string().trim().max(300).optional() }) }),
+  asyncHandler(async (req, res) => {
+    await markReviewed(req.admin.id, req.body.auctionId, req.body.key, req.body.note);
+    await auditAdmin(req, { action: 'auction.suspicion_reviewed', entityType: 'Auction', entityId: req.body.auctionId, after: { key: req.body.key }, reason: req.body.note });
+    ok(res, { reviewed: true });
+  })
+);
+
 router.get(
   '/deals',
   requirePermission('auctions.view'),
