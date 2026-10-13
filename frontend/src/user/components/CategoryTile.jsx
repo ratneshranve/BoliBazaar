@@ -2,7 +2,8 @@ import { Image, Pressable, StyleSheet, View } from './primitives';
 import { AppText } from './ui';
 import { colors, spacing } from '@theme/tokens';
 
-/** Round category icon with its name. Icon image is uploaded in Admin › Categories; falls back to the first letter. */
+/** Round category icon with its name. Icon image (transparent, square) is uploaded in Admin › Categories and drawn centred
+ *  at the same size in every circle; falls back to the first letter. */
 export const CategoryTile = ({ category, onPress, size = 72, style }) => (
   <Pressable
     accessibilityLabel={category.name}
@@ -13,8 +14,8 @@ export const CategoryTile = ({ category, onPress, size = 72, style }) => (
       {category.icon ? (
         <Image
           source={{ uri: category.icon }}
-          style={styles.image}
-          resizeMode="cover"
+          style={{ width: Math.round(size * 0.64), height: Math.round(size * 0.64) }}
+          resizeMode="contain"
         />
       ) : (
         <AppText
@@ -40,10 +41,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.divider,
     overflow: 'hidden',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
   },
   label: {
     textAlign: 'center',
