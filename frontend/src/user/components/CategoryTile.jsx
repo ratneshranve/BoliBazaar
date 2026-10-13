@@ -14,7 +14,7 @@ export const CategoryTile = ({ category, onPress, size = 72, style }) => (
       {category.icon ? (
         <Image
           source={{ uri: category.icon }}
-          style={{ width: Math.round(size * 0.64), height: Math.round(size * 0.64) }}
+          style={{ width: Math.round(size * 0.76), height: Math.round(size * 0.76) }}
           resizeMode="contain"
         />
       ) : (

@@ -6,11 +6,16 @@
  *   node src/scripts/seed-category-icons.js                  only categories without an icon
  *   node src/scripts/seed-category-icons.js --force          replace every category's icon
  *   node src/scripts/seed-category-icons.js --preview <dir>  write PNGs to <dir>, no upload / DB change
+ *   node src/scripts/seed-category-icons.js --photos <dir>   use product photos instead: <dir>/<parent>__<slug>.png
+ *                                                            (main category: <slug>.png) shot on a plain white
+ *                                                            background; the white is cut out. Categories without
+ *                                                            a photo keep their icon. Combine with --preview to check.
  *
  * Categories added later (slug not listed below) are skipped and reported; add them to ICONS.
  */
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import sharp from 'sharp';
 import { connectMongo, disconnectMongo } from '../core/db/mongo.js';
 import { storePublicImage } from '../core/services/storage.js';
@@ -179,6 +184,7 @@ const ICONS = {
 const args = process.argv.slice(2);
 const force = args.includes('--force');
 const previewDir = args.includes('--preview') ? path.resolve(args[args.indexOf('--preview') + 1] || 'category-icons') : null;
+const photosDir = args.includes('--photos') ? path.resolve(args[args.indexOf('--photos') + 1]) : null;
 
 const fileStem = (name) => name.toLowerCase().replace(/ /g, '_');
 
@@ -191,6 +197,58 @@ const download = async (name) => {
     if (res.ok) return Buffer.from(await res.arrayBuffer());
   }
   throw new Error(`Icon "${name}" not found in Fluent Emoji`);
+};
+
+/**
+ * Make the white studio background of a product photo transparent. Only near-white pixels connected to the
+ * image border are removed (white parts inside the product stay); edge pixels get partial alpha and their
+ * white fringe is taken out so the cut-out looks clean on any background.
+ */
+const CLEAR = 10; // "distance from white" below this: fully transparent
+const SOLID = 48; // above this: fully opaque
+const cutOutWhite = async (buffer) => {
+  const { data, info } = await sharp(buffer).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { width: w, height: h } = info;
+  const n = w * h;
+  const dist = new Uint8Array(n);
+  for (let i = 0; i < n; i++) dist[i] = 255 - Math.min(data[i * 3], data[i * 3 + 1], data[i * 3 + 2]);
+
+  const background = new Uint8Array(n);
+  const stack = [];
+  const visit = (i) => {
+    if (!background[i] && dist[i] < SOLID) {
+      background[i] = 1;
+      stack.push(i);
+    }
+  };
+  for (let x = 0; x < w; x++) visit(x), visit((h - 1) * w + x);
+  for (let y = 0; y < h; y++) visit(y * w), visit(y * w + w - 1);
+  while (stack.length) {
+    const i = stack.pop();
+    const x = i % w;
+    if (x > 0) visit(i - 1);
+    if (x < w - 1) visit(i + 1);
+    if (i >= w) visit(i - w);
+    if (i < n - w) visit(i + w);
+  }
+
+  const out = Buffer.alloc(n * 4);
+  for (let i = 0; i < n; i++) {
+    const a = background[i] ? Math.min(1, Math.max(0, (dist[i] - CLEAR) / (SOLID - CLEAR))) : 1;
+    for (let c = 0; c < 3; c++) {
+      out[i * 4 + c] = a > 0.02 ? Math.max(0, Math.min(255, Math.round((data[i * 3 + c] - 255 * (1 - a)) / a))) : 0;
+    }
+    out[i * 4 + 3] = Math.round(a * 255);
+  }
+  return sharp(out, { raw: { width: w, height: h, channels: 4 } }).png().toBuffer();
+};
+
+const readPhoto = async (key) => {
+  try {
+    return await fs.readFile(path.join(photosDir, `${key.replace('/', '__')}.png`));
+  } catch {
+    return null;
+  }
 };
 
 /** Trim empty edges, scale to the same box, centre on a transparent square canvas. */
@@ -214,40 +272,55 @@ const run = async () => {
   if (!previewDir && !owner) throw new Error('No super admin found — run npm run seed:admin first');
   if (previewDir) await fs.mkdir(previewDir, { recursive: true });
 
-  const cache = new Map(); // same emoji used twice is downloaded/uploaded once
+  const cache = new Map(); // same picture used twice is processed/uploaded once
   const done = [];
   const skipped = [];
   for (const cat of cats) {
     const key = cat.parentId ? `${slugById.get(String(cat.parentId))}/${cat.slug}` : cat.slug;
-    const emoji = ICONS[key];
-    if (!emoji) {
-      skipped.push(`${key} (no icon mapped)`);
-      continue;
-    }
-    if (!force && !previewDir && cat.icon?.url) {
-      skipped.push(`${key} (already has an icon)`);
-      continue;
+    let source;
+    let load;
+    if (photosDir) {
+      const photo = await readPhoto(key);
+      if (!photo) {
+        skipped.push(`${key} (no photo)`);
+        continue;
+      }
+      source = `photo:${crypto.createHash('sha1').update(photo).digest('hex')}`; // identical files share one upload
+      load = () => cutOutWhite(photo);
+    } else {
+      const emoji = ICONS[key];
+      if (!emoji) {
+        skipped.push(`${key} (no icon mapped)`);
+        continue;
+      }
+      if (!force && !previewDir && cat.icon?.url) {
+        skipped.push(`${key} (already has an icon)`);
+        continue;
+      }
+      source = emoji;
+      load = () => download(emoji);
     }
 
-    if (!cache.has(emoji)) {
-      const png = await normalise(await download(emoji));
+    if (!cache.has(source)) {
+      const png = await normalise(await load());
       if (previewDir) {
-        cache.set(emoji, png);
+        cache.set(source, png);
       } else {
         const stored = await storePublicImage({ buffer: png, size: png.length }, 'category');
         const media = await Media.create({ ownerType: 'admin', ownerId: owner._id, purpose: 'category', visibility: 'public', ...stored });
-        cache.set(emoji, { url: media.url, mediaId: media._id });
+        cache.set(source, { url: media.url, mediaId: media._id });
       }
     }
 
     if (previewDir) {
-      await fs.writeFile(path.join(previewDir, `${key.replace('/', '__')}.png`), cache.get(emoji));
+      await fs.writeFile(path.join(previewDir, `${key.replace('/', '__')}.png`), cache.get(source));
     } else {
-      cat.icon = cache.get(emoji);
+      cat.icon = cache.get(source);
       await cat.save();
     }
-    done.push(`${key} → ${emoji}`);
-    console.log(`✓ ${key} → ${emoji}`);
+    const label = photosDir ? 'photo' : source;
+    done.push(`${key} → ${label}`);
+    console.log(`✓ ${key} → ${label}`);
   }
 
   console.log(`\n${done.length} ${previewDir ? `previewed in ${previewDir}` : 'updated'}, ${skipped.length} skipped`);
