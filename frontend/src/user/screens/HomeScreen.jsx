@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Gavel, Search, ShoppingCart, Tag } from 'lucide-react';
+import { LayoutGrid, Search } from 'lucide-react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
 import { AppText, EmptyState } from '../components/ui';
 import { BrandHeader } from '../components/BrandHeader';
@@ -18,7 +18,6 @@ import { useAppSelector } from '../store';
 export const HomeScreen = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const loggedIn = useAppSelector((s) => s.session.status === 'authenticated');
   const [home, setHome] = useState(null);
   const [failed, setFailed] = useState(false);
 
@@ -40,11 +39,18 @@ export const HomeScreen = () => {
 
   const openBanner = (b) => b.action.type === 'category' && navigate(`/search?categoryId=${b.action.categoryId}`);
 
-  const cards = [
-    { key: 'buy', icon: ShoppingCart, tint: colors.primary, bg: colors.primarySoft, title: t('home.buy'), sub: t('home.buySub'), go: () => navigate('/explore') },
-    { key: 'sell', icon: Tag, tint: colors.sell, bg: colors.sellSoft, title: t('home.sell'), sub: t('home.sellSub'), go: () => navigate(loggedIn ? '/sell' : '/login') },
-    { key: 'auctions', icon: Gavel, tint: colors.auctionBlue, bg: colors.auctionSoft, title: t('home.auctions'), sub: t('home.auctionsSub'), go: () => navigate('/auctions') },
-  ];
+  const categoryColumns = useMemo(() => {
+    if (!home?.categories?.length) return [];
+    const all = [
+      ...home.categories,
+      { id: '__view_all__', isViewAll: true, name: t('common.seeAll') },
+    ];
+    const cols = [];
+    for (let i = 0; i < all.length; i += 2) {
+      cols.push([all[i], all[i + 1]]);
+    }
+    return cols;
+  }, [home?.categories, t]);
 
   return (
     <View style={styles.fill}>
@@ -97,15 +103,60 @@ export const HomeScreen = () => {
           </ScrollView>
         )}
 
-        <View style={styles.cards}>
-          {cards.map(({ key, icon: Icon, tint, bg, title, sub, go }) => (
-            <Pressable key={key} onPress={go} style={[styles.card, { backgroundColor: bg }]}>
-              <Icon size={28} color={tint} />
-              <AppText variant="h3" style={{ marginTop: spacing.sm }}>{title}</AppText>
-              <AppText variant="small" color={colors.textMuted}>{sub}</AppText>
-            </Pressable>
-          ))}
-        </View>
+        {categoryColumns.length > 0 && (
+          <View style={styles.categoriesSection}>
+            <View style={styles.sectionHead}>
+              <AppText variant="h2">{t('home.exploreCategories')}</AppText>
+              <AppText
+                variant="bodyStrong"
+                color={colors.primary}
+                onPress={() => navigate('/explore')}
+              >
+                {t('common.seeAll')} ›
+              </AppText>
+            </View>
+            <ScrollView
+              horizontal
+              contentContainerStyle={styles.categoryScroll}
+            >
+              {categoryColumns.map((col, colIdx) => (
+                <View key={`cat-col-${colIdx}`} style={styles.categoryCol}>
+                  {col.map((c, rowIdx) => {
+                    if (!c) {
+                      return <View key={`cat-empty-${rowIdx}`} style={styles.categoryPlaceholder} />;
+                    }
+                    if (c.isViewAll) {
+                      return (
+                        <Pressable
+                          key="view-all"
+                          accessibilityLabel={t('common.seeAll')}
+                          onPress={() => navigate('/explore')}
+                          style={({ pressed }) => [styles.categoryTile, pressed && { opacity: 0.85 }]}
+                        >
+                          <View style={styles.viewAllCircle}>
+                            <LayoutGrid size={22} color={colors.primary} />
+                          </View>
+                          <AppText variant="small" style={styles.viewAllLabel} numberOfLines={2}>
+                            {t('common.seeAll')}
+                          </AppText>
+                        </Pressable>
+                      );
+                    }
+                    return (
+                      <CategoryTile
+                        key={c.id}
+                        category={c}
+                        size={60}
+                        style={styles.categoryTile}
+                        onPress={() => navigate(c.hasChildren ? `/explore/${c.id}` : `/search?categoryId=${c.id}`)}
+                      />
+                    );
+                  })}
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {[['featured', home?.featured], ['auctions', home?.auctions], ['nearby', home?.nearby], ['latest', home?.latest]].map(
           ([key, list]) =>
@@ -147,22 +198,6 @@ export const HomeScreen = () => {
             </ScrollView>
           </View>
         )}
-
-        {home?.categories.length > 0 && (
-          <View style={{ marginTop: spacing.lg }}>
-            <View style={styles.sectionHead}>
-              <AppText variant="h2">{t('home.exploreCategories')}</AppText>
-              <AppText variant="bodyStrong" color={colors.primary} onPress={() => navigate('/explore')}>
-                {t('common.seeAll')} ›
-              </AppText>
-            </View>
-            <ScrollView horizontal contentContainerStyle={{ gap: spacing.sm, paddingHorizontal: spacing.lg }}>
-              {home.categories.map((c) => (
-                <CategoryTile key={c.id} category={c} onPress={() => navigate(c.hasChildren ? `/explore/${c.id}` : `/search?categoryId=${c.id}`)} />
-              ))}
-            </ScrollView>
-          </View>
-        )}
       </ScrollView>
     </View>
   );
@@ -177,7 +212,27 @@ const styles = StyleSheet.create({
   banner: { width: 320, height: 150, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.surface },
   bannerImg: { width: '100%', height: '100%' },
   bannerText: { position: 'absolute', left: 0, right: 0, bottom: 0, padding: spacing.md, backgroundColor: 'rgba(0,0,0,0.35)' },
-  cards: { flexDirection: 'row', gap: spacing.md, paddingHorizontal: spacing.lg, marginTop: spacing.md },
-  card: { flex: 1, borderRadius: radius.lg, padding: spacing.md, minHeight: 112 },
+  categoriesSection: { marginTop: spacing.md },
+  categoryScroll: { gap: spacing.sm, paddingHorizontal: spacing.lg, paddingBottom: spacing.xs },
+  categoryCol: { gap: spacing.sm, alignItems: 'center' },
+  categoryTile: { width: 76, height: 96, alignItems: 'center' },
+  categoryPlaceholder: { width: 76, height: 96 },
+  viewAllCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  viewAllLabel: {
+    textAlign: 'center',
+    marginTop: spacing.xs,
+    width: '100%',
+    fontWeight: '600',
+    color: colors.primary,
+  },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, marginBottom: spacing.md },
 });
