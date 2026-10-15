@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
   heroWrapper: {
     width: '100%',
     flex: 1,
-    minHeight: 220,
+    minHeight: 0, // shrinks away when the keyboard leaves little room, so the form always stays visible
     maxHeight: 400,
     overflow: 'hidden',
     position: 'relative',

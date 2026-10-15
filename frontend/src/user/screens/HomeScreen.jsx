@@ -55,9 +55,12 @@ export const HomeScreen = () => {
   return (
     <View style={styles.fill}>
       <BrandHeader>
-        <LocationChip />
         <LanguageChip />
       </BrandHeader>
+      {/* on its own line so the brand name is never squeezed */}
+      <View style={{ paddingHorizontal: spacing.lg }}>
+        <LocationChip />
+      </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxxl }}>
         {/* search (opens Explore until listing search ships) */}
