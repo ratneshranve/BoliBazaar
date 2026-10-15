@@ -75,7 +75,7 @@ export const Navigation = ({ TabsLayout, children }) => {
     <NavigationContainer ref={navRef}>
       {children}
       <PushBridge />
-      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: colors.white } }}>
+      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'none', contentStyle: { backgroundColor: colors.white } }}>
         <Stack.Screen name="Page" component={Page} initialParams={{ path: '/' }} />
       </Stack.Navigator>
     </NavigationContainer>
