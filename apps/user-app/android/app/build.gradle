@@ -104,6 +104,18 @@ android {
         manifestPlaceholders = [googleMapsApiKey: project.env.get("GOOGLE_MAPS_API_KEY") ?: ""]
     }
     signingConfigs {
+        // the upload key for release builds lives in android/keystore.properties (never committed)
+        def keystoreFile = rootProject.file("keystore.properties")
+        if (keystoreFile.exists()) {
+            def ks = new Properties()
+            keystoreFile.withInputStream { ks.load(it) }
+            release {
+                storeFile file(ks["storeFile"])
+                storePassword ks["storePassword"]
+                keyAlias ks["keyAlias"]
+                keyPassword ks["keyPassword"]
+            }
+        }
         debug {
             storeFile file('debug.keystore')
             storePassword 'android'
@@ -116,9 +128,8 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            // signed with the upload key when android/keystore.properties is present
+            signingConfig signingConfigs.findByName("release") ?: signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }

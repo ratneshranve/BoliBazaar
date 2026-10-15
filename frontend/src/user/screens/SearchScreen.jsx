@@ -15,6 +15,7 @@ import { categoriesApi, listingsApi } from '../api/endpoints';
 import { useAppSelector } from '../store';
 import { locationQuery } from '../utils/listing';
 import { errorText } from '../i18n';
+import { promptAsync } from '../services/dialogs';
 
 const CONDITIONS = ['new', 'used', 'refurbished'];
 const POSTED = ['1', '7', '30'];
@@ -293,7 +294,7 @@ export const SearchScreen = () => {
   const authed = useAppSelector((s) => s.session.status === 'authenticated');
   const saveSearch = async () => {
     if (!authed) return navigate('/login');
-    const name = window.prompt(t('saved.namePrompt'), params.q || category?.name || '');
+    const name = await promptAsync(t('saved.namePrompt'), params.q || category?.name || '');
     if (!name || name.trim().length < 2) return;
     const { sort: _s, ...q } = query; // eslint-disable-line no-unused-vars
     try {

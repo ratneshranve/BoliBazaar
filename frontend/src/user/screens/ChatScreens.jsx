@@ -14,6 +14,8 @@ import { ReportSheet } from '../components/ReportSheet';
 import { formatPrice, formatChatTime } from '../utils/listing';
 import { useGoBack } from '../utils/goBack';
 import { errorText } from '../i18n';
+import { confirmAsync, openAuthFile, openUrl } from '../services/dialogs';
+import { pickFiles as chooseFiles, releasePreview } from '../services/files';
 
 
 const useRequireLogin = () => {
@@ -121,10 +123,7 @@ const Attachments = ({ m, conversationId, mine }) => {
   const { t } = useTranslation();
   const openFile = async (a) => {
     try {
-      const blob = await chatApi.file(conversationId, a.mediaId);
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank', 'noopener');
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      await openAuthFile(`/chats/${conversationId}/files/${a.mediaId}`);
     } catch (e) {
       Alert.alert(errorText(e));
     }
@@ -136,7 +135,7 @@ const Attachments = ({ m, conversationId, mine }) => {
       {images.length > 0 && (
         <View style={styles.imageGrid}>
           {images.map((a) => (
-            <Pressable key={a.mediaId} accessibilityLabel={t('chat.photo')} onPress={() => window.open(a.url, '_blank', 'noopener')}>
+            <Pressable key={a.mediaId} accessibilityLabel={t('chat.photo')} onPress={() => openUrl(a.url)}>
               <Image source={{ uri: a.url }} style={[styles.chatImage, images.length === 1 && styles.chatImageOne]} />
             </Pressable>
           ))}
@@ -216,8 +215,7 @@ export const ChatScreen = () => {
   const [offerOpen, setOfferOpen] = useState(false);
   const [offerAmount, setOfferAmount] = useState('');
   const [answering, setAnswering] = useState(null);
-  const bottom = useRef(null);
-  const fileInput = useRef(null);
+  const scroller = useRef(null);
   const lastTypingSent = useRef(0);
   const typingTimer = useRef(null);
   const [reporting, setReporting] = useState(false);
@@ -270,10 +268,10 @@ export const ChatScreen = () => {
   }, [authed, id, myId, markRead, navigate, upsert]);
 
   useEffect(() => {
-    bottom.current?.scrollIntoView({ block: 'end' });
+    setTimeout(() => scroller.current?.scrollToEnd?.({ animated: false }), 50);
   }, [messages?.length, typing]);
 
-  useEffect(() => () => pendingFiles.forEach((f) => f.preview && URL.revokeObjectURL(f.preview)), []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => pendingFiles.forEach((f) => releasePreview(f.preview)), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const older = async () => {
     const first = messages[0];
@@ -301,7 +299,7 @@ export const ChatScreen = () => {
       if (kind === 'image' && chatCfg.photosEnabled === false) { Alert.alert(t('chat.photosOff')); continue; }
       if (kind === 'file' && chatCfg.filesEnabled === false) { Alert.alert(t('chat.filesOff')); continue; }
       const key = `${file.name}-${file.size}-${Math.random()}`;
-      setPendingFiles((p) => [...p, { key, name: file.name, kind, preview: isImage ? URL.createObjectURL(file) : null }]);
+      setPendingFiles((p) => [...p, { key, name: file.name, kind, preview: isImage ? file.preview : null }]);
       try {
         const { data } = isImage ? await uploadsApi.image(file, 'chat') : await uploadsApi.document(file, 'chat_file');
         setPendingFiles((p) => p.map((f) => (f.key === key ? { ...f, mediaId: data.id } : f)));
@@ -313,7 +311,7 @@ export const ChatScreen = () => {
   };
   const removeFile = (key) => setPendingFiles((p) => {
     const f = p.find((x) => x.key === key);
-    if (f?.preview) URL.revokeObjectURL(f.preview);
+    releasePreview(f?.preview);
     return p.filter((x) => x.key !== key);
   });
   const uploading = pendingFiles.some((f) => !f.mediaId);
@@ -327,7 +325,7 @@ export const ChatScreen = () => {
       const { data } = await chatApi.send(id, body, mediaIds);
       if (!override) {
         setText('');
-        pendingFiles.forEach((f) => f.preview && URL.revokeObjectURL(f.preview));
+        pendingFiles.forEach((f) => releasePreview(f.preview));
         setPendingFiles([]);
       }
       upsert(data);
@@ -365,7 +363,7 @@ export const ChatScreen = () => {
       const { data } = await chatApi.answerOffer(id, m.id, action, amount);
       upsert(data.offer);
       if (data.counter) upsert(data.counter);
-      if (action === 'accept' && info?.side === 'seller' && listing?.status === 'published' && window.confirm(t('chat.markSoldPrompt'))) {
+      if (action === 'accept' && info?.side === 'seller' && listing?.status === 'published' && (await confirmAsync(t('chat.markSoldPrompt')))) {
         await listingsApi.action(listing.id, 'sold');
         setInfo((i) => ({ ...i, listing: { ...i.listing, status: 'sold' } }));
       }
@@ -391,7 +389,7 @@ export const ChatScreen = () => {
   };
   const [locating, setLocating] = useState(false);
   const shareLocation = async () => {
-    if (!window.confirm(t('chat.shareLocationConfirm'))) return;
+    if (!(await confirmAsync(t('chat.shareLocationConfirm')))) return;
     setLocating(true);
     try {
       const point = await getPosition();
@@ -411,7 +409,7 @@ export const ChatScreen = () => {
 
   const toggleBlock = async () => {
     const blocking = !info.iBlockedThem;
-    if (blocking && !window.confirm(t('chat.confirmBlock', { name: info.peer.name ?? '' }))) return;
+    if (blocking && !(await confirmAsync(t('chat.confirmBlock', { name: info.peer.name ?? '' })))) return;
     try {
       await (blocking ? chatApi.block(info.peer.id) : chatApi.unblock(info.peer.id));
       setInfo({ ...info, iBlockedThem: blocking });
@@ -469,7 +467,7 @@ export const ChatScreen = () => {
         </View>
       )}
 
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.xs }}>
+      <ScrollView ref={scroller} contentContainerStyle={{ padding: spacing.lg, gap: spacing.xs }}>
         <AppText variant="small" color={colors.textMuted} style={{ textAlign: 'center', marginBottom: spacing.sm }} onPress={() => navigate('/page/safety')}>{t('safety.chat')}</AppText>
         {!messages && <ActivityIndicator style={{ minHeight: 'calc(100dvh - 200px)' }} color={colors.primary} />}
         {hasMore && <Button size="md" variant="ghost" title={t('chat.older')} onPress={older} />}
@@ -487,7 +485,7 @@ export const ChatScreen = () => {
             <View key={m.id} style={[styles.bubble, mine ? styles.mine : styles.theirs]}>
               {m.attachments?.length > 0 && <Attachments m={m} conversationId={id} mine={mine} />}
               {m.kind === 'location' && m.location && (
-                <Pressable onPress={() => window.open(`https://www.google.com/maps?q=${m.location.lat},${m.location.lng}`, '_blank', 'noopener')} style={styles.locCard}>
+                <Pressable onPress={() => openUrl(`https://www.google.com/maps?q=${m.location.lat},${m.location.lng}`)} style={styles.locCard}>
                   <MapPin size={22} color={mine ? colors.white : colors.primary} />
                   <View style={{ flex: 1 }}>
                     <AppText variant="bodyStrong" color={mine ? colors.white : colors.text}>{m.location.label || t('chat.sharedLocation')}</AppText>
@@ -502,7 +500,6 @@ export const ChatScreen = () => {
             </View>
           );
         })}
-        <div ref={bottom} />
       </ScrollView>
 
       {reporting && <ReportSheet targetType="user" targetId={info.peer.id} onClose={() => setReporting(false)} />}
@@ -565,19 +562,12 @@ export const ChatScreen = () => {
           )}
           <View style={styles.composer}>
             {(chatCfg.photosEnabled !== false || chatCfg.filesEnabled !== false) && (
-              <>
-                <input
-                  ref={fileInput}
-                  type="file"
-                  multiple
-                  accept={[chatCfg.photosEnabled !== false && 'image/jpeg,image/png,image/webp', chatCfg.filesEnabled !== false && 'application/pdf'].filter(Boolean).join(',')}
-                  style={{ display: 'none' }}
-                  onChange={(e) => { pickFiles(e.target.files); e.target.value = ''; }}
-                />
-                <Pressable accessibilityLabel={t('chat.attach')} onPress={() => fileInput.current?.click()} style={styles.attachBtn}>
-                  <Paperclip size={20} color={colors.textMuted} />
-                </Pressable>
-              </>
+              <Pressable
+                accessibilityLabel={t('chat.attach')}
+                onPress={async () => pickFiles(await chooseFiles({ images: chatCfg.photosEnabled !== false, pdf: chatCfg.filesEnabled !== false }))}
+                style={styles.attachBtn}>
+                <Paperclip size={20} color={colors.textMuted} />
+              </Pressable>
             )}
             <Pressable accessibilityLabel={t('chat.shareLocation')} onPress={shareLocation} disabled={locating} style={styles.attachBtn}>
               {locating ? <ActivityIndicator color={colors.primary} /> : <MapPin size={20} color={colors.textMuted} />}

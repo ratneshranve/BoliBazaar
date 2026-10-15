@@ -11,6 +11,7 @@ import { useAppSelector } from '../store';
 import { formatDate } from '../utils/listing';
 import { usePageMeta } from '../utils/pageMeta';
 import { errorText } from '../i18n';
+import { confirmAsync } from '../services/dialogs';
 
 const Header = ({ title }) => {
   const navigate = useNavigate();
@@ -54,7 +55,7 @@ export const SavedSearchesScreen = () => {
     }
   };
   const remove = async (s) => {
-    if (!window.confirm(t('saved.confirmDelete', { name: s.name }))) return;
+    if (!(await confirmAsync(t('saved.confirmDelete', { name: s.name })))) return;
     try {
       await growthApi.deleteSearch(s.id);
       setItems((list) => list.filter((x) => x.id !== s.id));

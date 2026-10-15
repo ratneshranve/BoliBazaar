@@ -12,7 +12,7 @@ const listeners = new Map(); // event -> Set<fn>
 
 // VITE_API_BASE_URL may be a full address (https://api.example.com/api/v1) or a path on this site (/api/v1,
 // when nginx serves the API under the same domain); a path resolves against the page's own address.
-const origin = () => new URL(env.apiBaseUrl, window.location.origin).origin;
+const origin = () => env.socketUrl || new URL(env.apiBaseUrl, window.location.origin).origin; // the phone app has its own socket address
 
 const attach = (s) => {
   for (const [event, fns] of listeners) for (const fn of fns) s.on(event, fn);

@@ -10,6 +10,7 @@ import { useAppDispatch, useAppSelector, meUpdated } from '../store';
 import { kv } from '../services/storage';
 import { formatDate } from '../utils/listing';
 import { errorText } from '../i18n';
+import { openPage } from '../services/dialogs';
 
 const INTRO_KEY = 'intro.seen';
 
@@ -80,7 +81,7 @@ export const ReConsentScreen = () => {
         <AppText variant="h1">{t('reconsent.title')}</AppText>
         <AppText color={colors.textMuted}>{t('reconsent.body')}</AppText>
         {changed.map((d) => (
-          <Pressable key={d} onPress={() => window.open(`/page/${d}`, '_blank', 'noopener')} style={styles.docRow}>
+          <Pressable key={d} onPress={() => openPage(d)} style={styles.docRow}>
             <AppText variant="bodyStrong" style={{ flex: 1 }}>{t(`reconsent.${d}`)}</AppText>
             <AppText color={colors.primary}>{t('reconsent.read')}</AppText>
           </Pressable>

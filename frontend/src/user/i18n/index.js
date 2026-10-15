@@ -65,7 +65,7 @@ export const ensureLanguage = async (code) => {
 
 export const setLanguage = async (code) => {
   kv.set(KV.language, code); // also sent as Accept-Language so server content is translated
-  document.documentElement.lang = code;
+  if (typeof document !== 'undefined') document.documentElement.lang = code; // website only
   await ensureLanguage(code);
   await i18n.changeLanguage(code);
 };

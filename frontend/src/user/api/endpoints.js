@@ -38,20 +38,20 @@ export const uploadsApi = {
   video: (file, purpose = 'listing') => {
     const form = new FormData();
     form.append('purpose', purpose);
-    form.append('file', file);
+    form.append('file', file.upload ?? file);
     return api('/uploads/video', { method: 'POST', form, idempotencyKey: false });
   },
   image: (file, purpose = 'listing') => {
     const form = new FormData();
     form.append('purpose', purpose);
-    form.append('file', file);
+    form.append('file', file.upload ?? file);
     return api('/uploads/image', { method: 'POST', form, idempotencyKey: false });
   },
   /** Private files (ID documents, evidence): only the owner and reviewing staff can open them. */
   document: (file, purpose = 'kyc') => {
     const form = new FormData();
     form.append('purpose', purpose);
-    form.append('file', file);
+    form.append('file', file.upload ?? file);
     return api('/uploads/document', { method: 'POST', form, idempotencyKey: false });
   },
 };

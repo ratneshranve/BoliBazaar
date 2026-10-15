@@ -19,6 +19,8 @@ import { usePageMeta } from '../utils/pageMeta';
 import { factorOf, formatMinor, formatLeft, syncServerTime, useCountdown } from '../utils/auction';
 import { formatDate } from '../utils/listing';
 import { errorText } from '../i18n';
+import { confirmAsync, promptAsync } from '../services/dialogs';
+import { Gallery } from '../components/Gallery';
 
 const Header = ({ title, right }) => {
   const navigate = useNavigate();
@@ -411,7 +413,7 @@ export const AuctionDetailScreen = () => {
       if (!data.isLeading) Alert.alert(t('auction.outbidByAuto'));
     } catch (e) {
       if (e instanceof ApiError && e.code === 'BID_TOO_HIGH_CONFIRM') {
-        if (window.confirm(t('auction.confirmHigh', { amount: money(Number(amount) * a.factor) }))) return placeBid(true);
+        if (await confirmAsync(t('auction.confirmHigh', { amount: money(Number(amount) * a.factor) }))) return placeBid(true);
       } else {
         if (e instanceof ApiError && e.details?.nextMinimumMinor) setAmount(major(e.details.nextMinimumMinor));
         Alert.alert(errorText(e));
@@ -423,7 +425,7 @@ export const AuctionDetailScreen = () => {
 
   const buyNow = async () => {
     if (!authed) return navigate('/login');
-    if (!window.confirm(t('auction.confirmBuyNow', { amount: money(a.buyNowMinor) }))) return;
+    if (!(await confirmAsync(t('auction.confirmBuyNow', { amount: money(a.buyNowMinor) })))) return;
     try {
       const { data } = await auctionsApi.buyNow(id);
       navigate(`/deals/${data.id}`);
@@ -434,7 +436,7 @@ export const AuctionDetailScreen = () => {
   };
 
   const sellerAction = async (fn, confirmText) => {
-    if (confirmText && !window.confirm(confirmText)) return;
+    if (confirmText && !(await confirmAsync(confirmText))) return;
     try {
       const r = await fn();
       if (r?.data?.id && r.data.source === 'offer') Alert.alert(t('auction.offerSent'));
@@ -464,9 +466,7 @@ export const AuctionDetailScreen = () => {
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxxl }}>
         <View style={styles.gallery}>
           {photos.length ? (
-            <div style={{ display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', height: '100%' }}>
-              {photos.map((u) => <img key={u} src={u} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', flex: '0 0 100%', scrollSnapAlign: 'start' }} />)}
-            </div>
+            <Gallery photos={photos} />
           ) : (
             <View style={styles.noImg}><ImageOff size={40} color={colors.textSubtle} /></View>
           )}
@@ -758,7 +758,7 @@ export const DealScreen = () => {
   const act = async (action, ask) => {
     let reason;
     if (ask) {
-      reason = window.prompt(ask);
+      reason = await promptAsync(ask);
       if (!reason) return;
     }
     try {

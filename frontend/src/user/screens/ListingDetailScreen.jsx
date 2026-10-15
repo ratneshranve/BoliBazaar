@@ -13,6 +13,8 @@ import { useAppSelector } from '../store';
 import { formatPrice, formatDate } from '../utils/listing';
 import { formatDistance } from '../utils/distance';
 import { errorText } from '../i18n';
+import { openUrl, shareLink } from '../services/dialogs';
+import { Gallery } from '../components/Gallery';
 
 const Pill = ({ label, tone = 'neutral' }) => (
   <View style={[styles.pill, tone === 'blue' && { backgroundColor: colors.auctionSoft }, tone === 'green' && { backgroundColor: colors.sellSoft }, tone === 'amber' && { backgroundColor: colors.warmSoft }]}>
@@ -62,8 +64,8 @@ const PhoneBox = ({ ad, authed, onLogin }) => {
             <AppText variant="h3" style={{ flex: 1 }}>{shown.phone}</AppText>
           </View>
           <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
-            <Button size="md" variant="sell" title={t('listing.call')} onPress={() => window.open(`tel:${shown.phone}`, '_self')} />
-            {shown.whatsappUrl && <Button size="md" variant="outline" title="WhatsApp" onPress={() => window.open(shown.whatsappUrl, '_blank', 'noopener')} />}
+            <Button size="md" variant="sell" title={t('listing.call')} onPress={() => openUrl(`tel:${shown.phone}`)} />
+            {shown.whatsappUrl && <Button size="md" variant="outline" title="WhatsApp" onPress={() => openUrl(shown.whatsappUrl)} />}
           </View>
         </>
       ) : (
@@ -188,16 +190,7 @@ export const ListingDetailScreen = () => {
   };
 
   const share = async () => {
-    const url = window.location.href;
-    try {
-      if (navigator.share) await navigator.share({ title: ad.title, url });
-      else {
-        await navigator.clipboard.writeText(url);
-        Alert.alert(t('listing.share'), url);
-      }
-    } catch {
-      /* cancelled */
-    }
+    if ((await shareLink({ title: ad.title, path: `/listing/${ad.id}` })) === 'copied') Alert.alert(t('listing.share'), t('listing.linkCopied'));
   };
 
   const act = async (name) => {
@@ -239,12 +232,7 @@ export const ListingDetailScreen = () => {
         {/* gallery */}
         <View style={styles.galleryWrap}>
           {slides > 0 ? (
-            <div ref={gallery} onScroll={onScroll} style={{ display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', height: '100%' }}>
-              {photos.map((u) => (
-                <img key={u} src={u} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', flex: '0 0 100%', scrollSnapAlign: 'start' }} />
-              ))}
-              {ad.video && <video src={ad.video} controls preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'contain', flex: '0 0 100%', scrollSnapAlign: 'start', background: '#000' }} />}
-            </div>
+            <Gallery photos={photos} video={ad.video} onIndex={setSlide} />
           ) : (
             <View style={[styles.noImg]}><ImageOff size={40} color={colors.textSubtle} /></View>
           )}

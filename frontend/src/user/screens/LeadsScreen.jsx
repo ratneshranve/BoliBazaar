@@ -9,6 +9,7 @@ import { leadsApi } from '../api/endpoints';
 import { useAppSelector } from '../store';
 import { formatDate } from '../utils/listing';
 import { errorText } from '../i18n';
+import { confirmAsync } from '../services/dialogs';
 
 const TONE = { new: colors.warning, seen: colors.textMuted, shortlisted: colors.sell, declined: colors.danger, withdrawn: colors.textMuted };
 
@@ -56,7 +57,7 @@ export const LeadsScreen = ({ initial = 'received' }) => {
   };
 
   const withdraw = async (lead) => {
-    if (!window.confirm(t('leads.confirmWithdraw'))) return;
+    if (!(await confirmAsync(t('leads.confirmWithdraw')))) return;
     try {
       await leadsApi.withdraw(lead.id);
       setItems((prev) => prev.map((x) => (x.id === lead.id ? { ...x, status: 'withdrawn' } : x)));

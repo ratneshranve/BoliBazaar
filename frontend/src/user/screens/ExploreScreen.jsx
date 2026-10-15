@@ -108,18 +108,8 @@ const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: colors.white },
   crumb: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
   scroll: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.xxxl },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    rowGap: 20,
-    columnGap: 6,
-    width: '100%',
-    alignItems: 'start',
-    justifyItems: 'center',
-  },
-  gridTile: {
-    width: '100%',
-    maxWidth: '100%',
-  },
+  // four columns (a wrapping row works the same on the website and the phone)
+  grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 20, width: '100%', alignItems: 'flex-start' },
+  gridTile: { width: '25%', paddingHorizontal: 3, alignItems: 'center' },
   all: { padding: spacing.md, borderRadius: 12, backgroundColor: colors.primarySoft, marginBottom: spacing.lg },
 });

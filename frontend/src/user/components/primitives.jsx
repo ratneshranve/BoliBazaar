@@ -143,9 +143,14 @@ export const TextInput = forwardRef(function TextInput({
 });
 
 export const ScrollView = forwardRef(function ScrollView({ style, contentContainerStyle, children, horizontal }, ref) {
+  const setRef = (el) => {
+    if (el) el.scrollToEnd = () => (el.scrollTop = el.scrollHeight); // same call as React Native
+    if (typeof ref === 'function') ref(el);
+    else if (ref) ref.current = el;
+  };
   return (
     <div
-      ref={ref}
+      ref={setRef}
       style={{
         ...base,
         // vertical: fill the space left and scroll inside it; horizontal: a strip as tall as its content

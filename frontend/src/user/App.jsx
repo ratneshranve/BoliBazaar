@@ -1,51 +1,25 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Outlet, Route, Routes, useNavigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { ActivityIndicator, View } from './components/primitives';
 import { missingEnv } from './config/env';
 import { store, useAppDispatch, useAppSelector, fetchBootstrap, restoreSession, maintenanceDetected, sessionExpired, setLocation, fetchUnread, notificationArrived, meUpdated } from './store';
 import { connectRealtime, disconnectRealtime, onRealtime } from './services/realtime';
 import { registerPushToken } from './services/push';
+import { onAppForeground, applyBranding } from './services/lifecycle';
 import { setClientHooks } from './api/client';
 import i18n, { savedLanguage, setLanguage, ensureLanguage } from './i18n';
 import { ConfigErrorScreen, LanguageScreen, MaintenanceScreen, OfflineScreen, UpdateScreen } from './screens/GateScreens';
-import { LoginScreen, OtpScreen, ProfileSetupScreen } from './screens/AuthScreens';
-import { ProfileScreen } from './screens/TabScreens';
-import { AuctionsScreen, AuctionDetailScreen, MyAuctionsScreen, DealsScreen, DealScreen } from './screens/AuctionScreens';
-import { SellScreen } from './screens/SellScreen';
-import { SearchScreen } from './screens/SearchScreen';
-import { ListingDetailScreen } from './screens/ListingDetailScreen';
-import { MyListingsScreen, FavouritesScreen } from './screens/MyListingsScreen';
-import { HomeScreen } from './screens/HomeScreen';
-import { ExploreScreen } from './screens/ExploreScreen';
-import { LocationScreen } from './screens/LocationScreen';
-import { SecurityScreen } from './screens/SecurityScreen';
-import { PageScreen } from './screens/PageScreen';
-import { NotificationsScreen } from './screens/NotificationsScreen';
-import { LeadsScreen } from './screens/LeadsScreen';
-import { PayScreen, PromoteScreen, PlansScreen, PaymentsScreen } from './screens/PaymentScreens';
-import { SavedSearchesScreen, SavedSearchRedirect, SellerScreen } from './screens/GrowthScreens';
-import { HelpScreen, NewCaseScreen, CaseScreen, MyReportsScreen, VerificationScreen, AccountScreen } from './screens/TrustScreens';
-import { ChatsScreen, ChatScreen } from './screens/ChatScreens';
-import { BlockedScreen } from './screens/BlockedScreen';
+import { Navigation } from './Navigation';
 import { TabBar } from './components/TabBar';
-import { AccountStatusBanner, AccountStatusScreen, BannedScreen, IntroScreen, ReConsentScreen, introPending, reconsentNeeded } from './screens/FirstRunScreens';
+import { AccountStatusBanner, IntroScreen, ReConsentScreen, introPending, reconsentNeeded } from './screens/FirstRunScreens';
 import { meApi } from './api/endpoints';
 import { colors } from '@theme/tokens';
 
-/** Change language later from Profile (same list as the first-run chooser) */
-const LanguageRoute = () => {
-  const navigate = useNavigate();
-  return <LanguageScreen onDone={() => navigate(-1)} />;
-};
-
-/** Screens with the bottom tab bar (same as the app's MainTabs). */
-const MainTabs = () => (
+/** Screens with the bottom tab bar. */
+const TabsLayout = ({ children }) => (
   <View style={{ flex: 1, minHeight: 0 }}>
     <AccountStatusBanner />
-    <View style={{ flex: 1, minHeight: 0 }}>
-      <Outlet />
-    </View>
+    <View style={{ flex: 1, minHeight: 0 }}>{children}</View>
     <TabBar />
   </View>
 );
@@ -74,60 +48,6 @@ const RealtimeBridge = () => {
   return null;
 };
 
-const Navigation = () => (
-  <BrowserRouter>
-    <RealtimeBridge />
-    <Routes>
-      <Route element={<MainTabs />}>
-        <Route path="/" element={<HomeScreen />} />
-        <Route path="/explore" element={<ExploreScreen />} />
-        <Route path="/explore/:id" element={<ExploreScreen />} />
-        <Route path="/sell" element={<SellScreen />} />
-        <Route path="/sell/:id" element={<SellScreen />} />
-        <Route path="/auctions" element={<AuctionsScreen />} />
-        <Route path="/profile" element={<ProfileScreen />} />
-      </Route>
-      <Route path="/login" element={<LoginScreen />} />
-      <Route path="/otp" element={<OtpScreen />} />
-      <Route path="/profile-setup" element={<ProfileSetupScreen />} />
-      <Route path="/security" element={<SecurityScreen />} />
-      <Route path="/page/:slug" element={<PageScreen />} />
-      <Route path="/language" element={<LanguageRoute />} />
-      <Route path="/location" element={<LocationScreen />} />
-      <Route path="/search" element={<SearchScreen />} />
-      <Route path="/listing/:id" element={<ListingDetailScreen />} />
-      <Route path="/my-listings" element={<MyListingsScreen />} />
-      <Route path="/favourites" element={<FavouritesScreen />} />
-      <Route path="/notifications" element={<NotificationsScreen />} />
-      <Route path="/chats" element={<ChatsScreen />} />
-      <Route path="/chat/:id" element={<ChatScreen />} />
-      <Route path="/auctions/:id" element={<AuctionDetailScreen />} />
-      <Route path="/auctions/:auctionId/edit" element={<SellScreen />} />
-      <Route path="/my-auctions" element={<MyAuctionsScreen />} />
-      <Route path="/deals" element={<DealsScreen />} />
-      <Route path="/pay" element={<PayScreen />} />
-      <Route path="/promote/:id" element={<PromoteScreen />} />
-      <Route path="/plans" element={<PlansScreen />} />
-      <Route path="/payments" element={<PaymentsScreen />} />
-      <Route path="/saved-searches" element={<SavedSearchesScreen />} />
-      <Route path="/saved-searches/:id" element={<SavedSearchRedirect />} />
-      <Route path="/u/:publicId" element={<SellerScreen />} />
-      <Route path="/help" element={<HelpScreen />} />
-      <Route path="/help/new" element={<NewCaseScreen />} />
-      <Route path="/help/cases/:id" element={<CaseScreen />} />
-      <Route path="/reports" element={<MyReportsScreen />} />
-      <Route path="/verification" element={<VerificationScreen />} />
-      <Route path="/account" element={<AccountScreen />} />
-      <Route path="/account-status" element={<AccountStatusScreen />} />
-      <Route path="/blocked" element={<BlockedScreen />} />
-      <Route path="/banned" element={<BannedScreen />} />
-      <Route path="/deals/:id" element={<DealScreen />} />
-      <Route path="/leads/received" element={<LeadsScreen initial="received" />} />
-      <Route path="/leads/sent" element={<LeadsScreen initial="sent" />} />
-    </Routes>
-  </BrowserRouter>
-);
-
 const Gate = () => {
   const dispatch = useAppDispatch();
   const { status, maintenance, bootstrap, updateDismissed } = useAppSelector((s) => s.app);
@@ -151,10 +71,8 @@ const Gate = () => {
     });
     dispatch(fetchBootstrap());
     dispatch(restoreSession());
-    // Re-check maintenance/update gates when the tab becomes visible again.
-    const onVisible = () => document.visibilityState === 'visible' && dispatch(fetchBootstrap());
-    document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
+    // Re-check maintenance/update gates when the user comes back to the app.
+    return onAppForeground(() => dispatch(fetchBootstrap()));
   }, [dispatch]);
 
   // A logged-in user's saved place applies on this device until they pick another.
@@ -170,13 +88,7 @@ const Gate = () => {
     }
   }, [me, currentLocation, defaultRadius]);
 
-  useEffect(() => {
-    const b = bootstrap?.branding;
-    document.title = b?.appName || 'App';
-    // Tab icon comes from Admin › Settings › Branding (icon, else logo)
-    const icon = b?.icon?.url || b?.logo?.url;
-    if (icon) document.querySelector('link[rel="icon"]')?.setAttribute('href', icon);
-  }, [bootstrap]);
+  useEffect(() => applyBranding(bootstrap?.branding), [bootstrap]);
 
   if (status === 'booting' || session === 'unknown') {
     return (
@@ -192,7 +104,11 @@ const Gate = () => {
   if (!languageValid && langs.length > 1) return <LanguageScreen onDone={() => setLangTick((n) => n + 1)} />;
   if (introPending(bootstrap)) return <IntroScreen onDone={() => setLangTick((n) => n + 1)} />;
   if (session === 'authenticated' && reconsentNeeded(me, bootstrap?.legal)) return <ReConsentScreen />;
-  return <Navigation />;
+  return (
+    <Navigation TabsLayout={TabsLayout}>
+      <RealtimeBridge />
+    </Navigation>
+  );
 };
 
 export default function App() {

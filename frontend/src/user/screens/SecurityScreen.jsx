@@ -7,6 +7,7 @@ import { AppText, Button, Card, Field } from '../components/ui';
 import { colors, radius, spacing } from '@theme/tokens';
 import { meApi } from '../api/endpoints';
 import { errorText } from '../i18n';
+import { confirmAsync } from '../services/dialogs';
 import { meUpdated, useAppDispatch, useAppSelector } from '../store';
 
 /** Optional email: enter address → a code is emailed → enter code → saved as verified. Never used for login. */
@@ -43,8 +44,8 @@ const EmailCard = () => {
       setSentTo(null);
       setEmail('');
     });
-  const remove = () => {
-    if (!window.confirm(t('security.removeEmailConfirm'))) return;
+  const remove = async () => {
+    if (!(await confirmAsync(t('security.removeEmailConfirm')))) return;
     run(async () => dispatch(meUpdated((await meApi.removeEmail()).data)));
   };
   const cancel = () => {

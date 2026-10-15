@@ -9,6 +9,9 @@ import { trustApi, uploadsApi } from '../api/endpoints';
 import { useAppDispatch, useAppSelector, logoutThunk } from '../store';
 import { formatDate } from '../utils/listing';
 import { errorText } from '../i18n';
+import { confirmAsync } from '../services/dialogs';
+import { saveTextFile } from '../services/dialogs';
+import { pickFiles } from '../services/files';
 
 const Header = ({ title }) => {
   const navigate = useNavigate();
@@ -162,14 +165,14 @@ export const CaseScreen = () => {
   const [c, setC] = useState(null);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
-  const bottom = useRef(null);
+  const scroller = useRef(null);
 
   const load = useCallback(() => trustApi.getCase(id).then(({ data }) => setC(data)).catch((e) => Alert.alert(errorText(e))), [id]);
   useEffect(() => {
     if (authed) load();
   }, [authed, load]);
   useEffect(() => {
-    bottom.current?.scrollIntoView({ block: 'end' });
+    setTimeout(() => scroller.current?.scrollToEnd?.({ animated: false }), 50);
   }, [c?.messages.length]);
 
   const reply = async () => {
@@ -185,7 +188,7 @@ export const CaseScreen = () => {
     }
   };
   const close = async () => {
-    if (!window.confirm(t('help.confirmClose'))) return;
+    if (!(await confirmAsync(t('help.confirmClose')))) return;
     try {
       setC((await trustApi.closeCase(id)).data);
     } catch (e) {
@@ -201,7 +204,7 @@ export const CaseScreen = () => {
         <AppText variant="small" color={colors.textMuted}>{c.caseNo} · {t(`help.type_${c.type}`)}</AppText>
         <AppText variant="caption" color={CASE_TONE[c.status]}>{t(`help.status_${c.status}`)}{['open', 'in_progress'].includes(c.status) ? ` · ${t('help.answerBy', { date: new Date(c.resolveBy).toLocaleString(i18n.language) })}` : ''}</AppText>
       </View>
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm }}>
+      <ScrollView ref={scroller} contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm }}>
         {c.messages.map((m) => (
           <View key={m.id} style={[styles.bubble, m.by === 'user' ? styles.mine : m.by === 'system' ? styles.system : styles.theirs]}>
             {m.by === 'admin' && <AppText variant="small" color={colors.primary}>{t('help.supportTeam')}</AppText>}
@@ -209,7 +212,6 @@ export const CaseScreen = () => {
             <AppText variant="small" color={m.by === 'user' ? 'rgba(255,255,255,0.8)' : colors.textSubtle}>{new Date(m.at).toLocaleString(i18n.language)}</AppText>
           </View>
         ))}
-        <div ref={bottom} />
       </ScrollView>
       {c.status !== 'closed' ? (
         <View style={{ padding: spacing.md, gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.divider }}>
@@ -304,8 +306,7 @@ function VerifyForm({ type, onDone }) {
       </View>
       {type === 'business' && <TextInput value={businessName} onChangeText={setBusinessName} maxLength={120} placeholder={t('verify.businessName')} style={styles.input} />}
       <TextInput value={number} onChangeText={setNumber} maxLength={30} placeholder={t('verify.docNumber')} style={styles.input} />
-      <Button size="md" variant="outline" title={t('verify.upload')} onPress={() => input.current?.click()} />
-      <input ref={input} type="file" accept="application/pdf,image/jpeg,image/png" multiple style={{ display: 'none' }} onChange={(e) => { upload(e.target.files); e.target.value = ''; }} />
+      <Button size="md" variant="outline" title={t('verify.upload')} onPress={async () => upload(await pickFiles({ images: true, pdf: true }))} />
       {files.map((f) => <AppText key={f.id} variant="caption" color={colors.sell}>✓ {f.name}</AppText>)}
       <AppText variant="caption" color={colors.textMuted}>{t('verify.privacy')}</AppText>
       <Button title={t('verify.submit')} loading={busy} disabled={!files.length || (type === 'business' && businessName.trim().length < 2)} onPress={send} />
@@ -385,18 +386,13 @@ export const AccountScreen = () => {
   const download = async () => {
     try {
       const { data } = await trustApi.exportData();
-      const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `my-data-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+      await saveTextFile(`my-data-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data, null, 2));
     } catch (e) {
       Alert.alert(errorText(e));
     }
   };
   const remove = async () => {
-    if (!window.confirm(t('account.confirmDelete', { days: d.graceDays }))) return;
+    if (!(await confirmAsync(t('account.confirmDelete', { days: d.graceDays })))) return;
     try {
       const { data } = await trustApi.requestDeletion();
       Alert.alert(t('account.scheduled', { date: new Date(data.deleteAfter).toLocaleDateString(i18n.language) }));

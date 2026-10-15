@@ -9,6 +9,7 @@ import { auctionsApi } from '../api/endpoints';
 import { useAppSelector } from '../store';
 import { formatMinor } from '../utils/auction';
 import { errorText } from '../i18n';
+import { confirmAsync, openPage, promptAsync } from '../services/dialogs';
 
 const when = (iso, lang) => new Date(iso).toLocaleString(lang, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
@@ -70,7 +71,7 @@ export const RegistrationBox = ({ a, onChange }) => {
     }
   };
   const withdraw = async () => {
-    if (!window.confirm(t('auction.regWithdrawConfirm'))) return;
+    if (!(await confirmAsync(t('auction.regWithdrawConfirm')))) return;
     try {
       await auctionsApi.withdrawRegistration(a.id);
       onChange();
@@ -110,7 +111,7 @@ export const RegistrationBox = ({ a, onChange }) => {
           <Checkbox checked={agree} onChange={setAgree} label={
             <AppText variant="caption">
               {t('auction.regAccept')}{' '}
-              <AppText variant="caption" color={colors.primary} onPress={() => window.open('/page/auctions-guide', '_blank', 'noopener')}>{t('auction.regRules')}</AppText>
+              <AppText variant="caption" color={colors.primary} onPress={() => openPage('auctions-guide')}>{t('auction.regRules')}</AppText>
             </AppText>
           } />
           <Button title={fee ? t('auction.regButtonFee', { amount: fee }) : t('auction.regButton')} loading={busy} disabled={!agree} onPress={go} style={{ backgroundColor: colors.auction }} />
@@ -163,7 +164,7 @@ export const SellerRegistrations = ({ a, onChange }) => {
   }, [a.id, a.registration?.waitingCount]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!a.isSeller || !a.registration?.required) return null;
   const decide = async (r, action) => {
-    const reason = action === 'reject' ? window.prompt(t('auction.regRejectReason')) : undefined;
+    const reason = action === 'reject' ? await promptAsync(t('auction.regRejectReason')) : undefined;
     if (action === 'reject' && !reason?.trim()) return;
     try {
       await auctionsApi.decideRegistration(r.id, action, reason?.trim());

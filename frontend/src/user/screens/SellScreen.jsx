@@ -12,6 +12,11 @@ import { auctionsApi, categoriesApi, listingsApi, paymentsApi, uploadsApi } from
 import { ApiError } from '../api/client';
 import { useAppSelector } from '../store';
 import { errorText } from '../i18n';
+import { confirmAsync } from '../services/dialogs';
+import { restartAt } from '../services/dialogs';
+import { pickImages, pickVideo } from '../services/files';
+import { VideoPlayer } from '../components/VideoPlayer';
+import { DateTimeField } from '../components/DateTimeField';
 
 const PRICE_TYPES = ['fixed', 'negotiable', 'on_request', 'free'];
 const CONDITIONS = ['new', 'used', 'refurbished'];
@@ -22,18 +27,6 @@ const NO_SHIPPING = { delivery: false, coverage: '', feeType: '', fee: '', note:
 /** Duration presets in hours (1, 3, 5, 7 and 10 days). */
 const DURATIONS = [24, 72, 120, 168, 240];
 const MAX_QUESTIONS = 5;
-/** Length of a picked video file, read in the browser. */
-const videoSeconds = (file) =>
-  new Promise((resolve) => {
-    const v = document.createElement('video');
-    v.preload = 'metadata';
-    v.onloadedmetadata = () => {
-      URL.revokeObjectURL(v.src);
-      resolve(v.duration);
-    };
-    v.onerror = () => resolve(null);
-    v.src = URL.createObjectURL(file);
-  });
 const EMPTY_AUCTION = { startingBid: '', reservePrice: '', buyNowPrice: '', increment: '', startAt: '', durationHours: 72, registrationRequired: false, registrationApproval: 'auto', inspection: { address: '', note: '', slots: [] } };
 
 /** Date → value for <input type="datetime-local"> in the viewer's own time zone. */
@@ -251,7 +244,7 @@ export const SellScreen = () => {
   }, [category, form, auction, shipping, place, photos, video, screening]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const removeDraft = async (d) => {
-    if (!window.confirm(t('sell.deleteDraftConfirm'))) return;
+    if (!(await confirmAsync(t('sell.deleteDraftConfirm')))) return;
     await listingsApi.deleteDraft(d.id).catch(() => {});
     setDrafts((x) => x.filter((y) => y.id !== d.id));
   };
@@ -263,9 +256,9 @@ export const SellScreen = () => {
     const maxMb = uploadLimits?.maxVideoMb ?? 50;
     const maxSec = uploadLimits?.maxVideoSeconds ?? 60;
     if (file.size > maxMb * 1024 * 1024) return setFormError(t('sell.videoTooBig', { mb: maxMb }));
-    const secs = await videoSeconds(file);
+    const secs = file.duration;
     if (secs && secs > maxSec + 0.5) return setFormError(t('sell.videoTooLong', { seconds: maxSec }));
-    setVideo({ url: URL.createObjectURL(file), uploading: true });
+    setVideo({ url: file.preview, uploading: true });
     try {
       const { data } = await uploadsApi.video(file);
       setVideo({ url: data.url, mediaId: data.id });
@@ -279,7 +272,7 @@ export const SellScreen = () => {
     const room = maxPhotos - photos.length;
     for (const file of Array.from(files).slice(0, Math.max(0, room))) {
       const key = `${Date.now()}-${Math.random()}`;
-      setPhotos((p) => [...p, { key, url: URL.createObjectURL(file), uploading: true }]);
+      setPhotos((p) => [...p, { key, url: file.preview, uploading: true }]);
       try {
         const { data } = await uploadsApi.image(file);
         setPhotos((p) => p.map((x) => (x.key === key ? { key, url: data.url, mediaId: data.id } : x)));
@@ -370,7 +363,7 @@ export const SellScreen = () => {
         {done.status === 'payment_pending' && <Button title={t('myListings.payFee')} onPress={() => navigate(`/pay?purpose=listing_fee&refId=${done.id}`, { replace: true })} style={{ alignSelf: 'stretch' }} />}
         <View style={{ alignSelf: 'stretch', gap: spacing.sm, marginTop: spacing.lg }}>
           <Button title={done.auction ? t('auction.view') : t('sell.viewAd')} onPress={() => navigate(done.auction ? `/auctions/${done.id}` : `/listing/${done.id}`, { replace: true })} />
-          {!editing && <Button variant="outline" title={t('sell.postAnother')} onPress={() => window.location.assign('/sell')} />}
+          {!editing && <Button variant="outline" title={t('sell.postAnother')} onPress={() => restartAt('/sell')} />}
         </View>
       </View>
     );
@@ -432,13 +425,12 @@ export const SellScreen = () => {
                   </View>
                 ))}
                 {photos.length < maxPhotos && (
-                  <Pressable onPress={() => fileInput.current?.click()} style={[styles.photo, styles.addPhoto]}>
+                  <Pressable onPress={async () => addPhotos(await pickImages())} style={[styles.photo, styles.addPhoto]}>
                     <ImagePlus size={24} color={colors.primary} />
                     <AppText variant="small" color={colors.primary}>{t('sell.addPhoto')}</AppText>
                   </Pressable>
                 )}
               </View>
-              <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" multiple style={{ display: 'none' }} onChange={(e) => { addPhotos(e.target.files); e.target.value = ''; }} />
             </Section>
 
             {/* video (one per ad, unless the category turns it off) */}
@@ -447,17 +439,16 @@ export const SellScreen = () => {
                 <AppText variant="caption" color={colors.textMuted}>{t('sell.videoHint', { seconds: uploadLimits?.maxVideoSeconds ?? 60, mb: uploadLimits?.maxVideoMb ?? 50 })}</AppText>
                 {video ? (
                   <View style={styles.videoBox}>
-                    <video src={video.url} controls preload="metadata" style={{ width: '100%', maxHeight: 220, borderRadius: 12, background: '#000' }} />
+                    <VideoPlayer uri={video.url} style={{ maxHeight: 220, borderRadius: 12 }} />
                     {video.uploading && <View style={styles.photoBusy}><ActivityIndicator color={colors.white} /></View>}
                     {!video.uploading && <Pressable accessibilityLabel={t('sell.removeVideo')} onPress={() => setVideo(null)} style={styles.photoX}><X size={14} color={colors.white} /></Pressable>}
                   </View>
                 ) : (
-                  <Pressable onPress={() => videoInput.current?.click()} style={[styles.picker, { borderStyle: 'dashed', borderColor: colors.primary }]}>
+                  <Pressable onPress={async () => addVideo(await pickVideo())} style={[styles.picker, { borderStyle: 'dashed', borderColor: colors.primary }]}>
                     <Video size={20} color={colors.primary} />
                     <AppText variant="bodyStrong" color={colors.primary}>{t('sell.addVideo')}</AppText>
                   </Pressable>
                 )}
-                <input ref={videoInput} type="file" accept="video/mp4,video/webm,video/quicktime" style={{ display: 'none' }} onChange={(e) => { addVideo(e.target.files?.[0]); e.target.value = ''; }} />
               </Section>
             )}
 
@@ -492,7 +483,7 @@ export const SellScreen = () => {
                 </View>
                 {!!aErr('durationHours') && <AppText variant="caption" color={colors.danger}>{aErr('durationHours')}</AppText>}
                 <AppText variant="bodyStrong" style={{ marginTop: spacing.sm }}>{t('auction.startAt')}</AppText>
-                <input type="datetime-local" value={auction.startAt} onChange={(e) => setA({ startAt: e.target.value })} style={{ height: 48, border: `1px solid ${aErr('startAt') ? colors.danger : colors.border}`, borderRadius: 10, padding: '0 12px', fontSize: 16 }} />
+                <DateTimeField value={auction.startAt} onChange={(v) => setA({ startAt: v })} label={t('auction.startAt')} invalid={Boolean(aErr('startAt'))} />
                 <AppText variant="caption" color={aErr('startAt') ? colors.danger : colors.textMuted}>{aErr('startAt') || t('auction.startAtHint')}</AppText>
                 {!!commission && <AppText variant="caption" color={colors.text} style={{ marginTop: spacing.sm }}>{commission}</AppText>}
               </Section>
@@ -524,9 +515,9 @@ export const SellScreen = () => {
                 <Field value={auction.inspection.address} onChangeText={(v) => setA({ inspection: { ...auction.inspection, address: v } })} maxLength={300} placeholder={t('auction.inspectionAddress')} />
                 {auction.inspection.slots.map((s, i) => (
                   <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
-                    <input type="datetime-local" value={s.from} onChange={(e) => setA({ inspection: { ...auction.inspection, slots: auction.inspection.slots.map((x, j) => (j === i ? { ...x, from: e.target.value } : x)) } })} style={styles.dt} aria-label={t('auction.slotFrom')} />
+                    <DateTimeField value={s.from} onChange={(v) => setA({ inspection: { ...auction.inspection, slots: auction.inspection.slots.map((x, j) => (j === i ? { ...x, from: v } : x)) } })} style={styles.dt} label={t('auction.slotFrom')} />
                     <AppText>–</AppText>
-                    <input type="datetime-local" value={s.to} onChange={(e) => setA({ inspection: { ...auction.inspection, slots: auction.inspection.slots.map((x, j) => (j === i ? { ...x, to: e.target.value } : x)) } })} style={styles.dt} aria-label={t('auction.slotTo')} />
+                    <DateTimeField value={s.to} onChange={(v) => setA({ inspection: { ...auction.inspection, slots: auction.inspection.slots.map((x, j) => (j === i ? { ...x, to: v } : x)) } })} style={styles.dt} label={t('auction.slotTo')} />
                     <Pressable accessibilityLabel={t('auction.removeSlot')} onPress={() => setA({ inspection: { ...auction.inspection, slots: auction.inspection.slots.filter((_, j) => j !== i) } })}><Trash2 size={18} color={colors.textMuted} /></Pressable>
                   </View>
                 ))}
@@ -643,7 +634,7 @@ const styles = StyleSheet.create({
   photoBusy: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' },
   cover: { position: 'absolute', left: 4, bottom: 4, backgroundColor: colors.primary, borderRadius: 8, paddingHorizontal: 6 },
   photoX: { position: 'absolute', right: 4, top: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
-  dt: { height: 44, border: `1px solid ${colors.border}`, borderRadius: 10, padding: '0 10px', fontSize: 15, flex: 1, minWidth: 180 },
+  dt: { height: 44, flex: 1, minWidth: 160 },
   videoBox: { position: 'relative', borderRadius: 12, overflow: 'hidden' },
   draftRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md },
   catRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider },

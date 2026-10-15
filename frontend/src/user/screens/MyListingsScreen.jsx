@@ -9,6 +9,7 @@ import { colors, radius, spacing } from '@theme/tokens';
 import { listingsApi } from '../api/endpoints';
 import { formatPrice, formatDate } from '../utils/listing';
 import { errorText } from '../i18n';
+import { confirmAsync } from '../services/dialogs';
 
 const TABS = ['drafts', 'active', 'payment_pending', 'pending_review', 'paused', 'rejected', 'expired', 'sold'];
 
@@ -53,7 +54,7 @@ export const MyListingsScreen = () => {
   const act = async (id, name) => {
     try {
       if (name === 'delete') {
-        if (!window.confirm(t('myListings.confirmDelete'))) return;
+        if (!(await confirmAsync(t('myListings.confirmDelete')))) return;
         await listingsApi.remove(id);
       } else await listingsApi.action(id, name);
       load(1);
@@ -74,7 +75,7 @@ export const MyListingsScreen = () => {
       <AppText variant="small" color={colors.textMuted}>{t('sell.draftSaved', { time: new Date(d.updatedAt).toLocaleString(i18n.language) })}</AppText>
       <View style={styles.actions}>
         <Button size="md" title={t('sell.continueDraft')} onPress={() => navigate(`/sell?draft=${d.id}`)} />
-        <Button size="md" variant="ghost" title={t('myListings.delete')} onPress={async () => { if (!window.confirm(t('sell.deleteDraftConfirm'))) return; await listingsApi.deleteDraft(d.id).catch(() => {}); load(1); }} />
+        <Button size="md" variant="ghost" title={t('myListings.delete')} onPress={async () => { if (!(await confirmAsync(t('sell.deleteDraftConfirm')))) return; await listingsApi.deleteDraft(d.id).catch(() => {}); load(1); }} />
       </View>
     </View>
   );

@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from './primitives';
 import { AppText, Checkbox, Field } from './ui';
 import { colors, radius, spacing } from '@theme/tokens';
+import { DateTimeField } from './DateTimeField';
 
 const Chip = ({ label, active, onPress }) => (
   <Pressable onPress={onPress} style={[styles.chip, active && styles.chipOn]}>
@@ -57,8 +58,7 @@ export const DynamicFields = ({ fields, values, errors, onChange }) => {
           <View key={f.key}>
             <AppText variant="bodyStrong" style={{ marginBottom: spacing.sm }}>{label}</AppText>
             {f.type === 'date' ? (
-              // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-              <input type="date" value={v || ''} onChange={(e) => onChange(f.key, e.target.value || undefined)} style={styles.date} />
+              <DateTimeField mode="date" label={label} value={v || ''} onChange={(x) => onChange(f.key, x || undefined)} invalid={Boolean(errors?.[f.key])} />
             ) : (
               <Field
                 value={v === undefined || v === null ? '' : String(v)}

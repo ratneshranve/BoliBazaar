@@ -13,6 +13,7 @@ import { openCheckout } from '../services/checkout';
 import { formatMinor } from '../utils/auction';
 import { formatDate } from '../utils/listing';
 import { errorText } from '../i18n';
+import { openAuthFile } from '../services/dialogs';
 
 const Header = ({ title }) => {
   const navigate = useNavigate();
@@ -224,16 +225,10 @@ const STATUS_TONE = { paid: colors.sell, failed: colors.danger, refunded: colors
 
 /** The invoice needs the login token, so fetch it and open it as a page of its own. */
 const openInvoice = async (id) => {
-  const w = window.open('', '_blank');
   try {
-    const res = await fetch(`${env.apiBaseUrl}/payments/${id}/invoice`, { headers: { Authorization: `Bearer ${getAccessToken()}` } });
-    if (!res.ok) throw new Error();
-    const url = URL.createObjectURL(new Blob([await res.text()], { type: 'text/html' }));
-    if (w) w.location.href = url;
-    else window.location.href = url;
-  } catch {
-    w?.close();
-    Alert.alert('Could not open the invoice');
+    await openAuthFile(`/payments/${id}/invoice`);
+  } catch (e) {
+    Alert.alert(errorText(e));
   }
 };
 

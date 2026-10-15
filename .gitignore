@@ -42,3 +42,6 @@ tmp/
 branch_structure.json
 temp_auto_push.bat
 temp_interactive_push.bat
+
+# Android release signing (upload key) — keep backups outside git
+apps/user-app/android/keystore.properties
