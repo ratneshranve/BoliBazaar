@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LayoutGrid, Search } from 'lucide-react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
+import { ActivityIndicator, Image, Platform, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
 import { AppText, EmptyState } from '../components/ui';
 import { BrandHeader } from '../components/BrandHeader';
 import { LocationChip } from '../components/LocationChip';
@@ -57,10 +57,12 @@ export const HomeScreen = () => {
       <BrandHeader>
         <LanguageChip />
       </BrandHeader>
-      {/* on its own line so the brand name is never squeezed */}
-      <View style={{ paddingHorizontal: spacing.lg }}>
-        <LocationChip />
-      </View>
+      {/* website: on its own line so the brand name is never squeezed (the app's header carries the chip itself) */}
+      {Platform.OS === 'web' && (
+        <View style={{ paddingHorizontal: spacing.lg }}>
+          <LocationChip />
+        </View>
+      )}
 
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxxl }}>
         {/* search (opens Explore until listing search ships) */}
