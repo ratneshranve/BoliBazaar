@@ -73,7 +73,12 @@ export const setLanguage = async (code) => {
 export const errorText = (err) => {
   const code = err instanceof ApiError ? err.code : 'UNKNOWN_ERROR';
   const key = `errors.${code}`;
-  return i18n.exists(key) ? i18n.t(key) : err instanceof ApiError ? err.message : i18n.t('errors.UNKNOWN_ERROR');
+  if (err instanceof ApiError && code === 'UNKNOWN_ERROR') return `${i18n.t('errors.UNKNOWN_ERROR')} (HTTP ${err.status})`; // the server's answer was not understood
+  if (i18n.exists(key)) return i18n.t(key);
+  if (err instanceof ApiError) return err.message;
+  // not a server answer: something inside the app failed — show the reason so it can be fixed quickly
+  const reason = err?.message ? ` (${String(err.message).slice(0, 80)})` : '';
+  return `${i18n.t('errors.UNKNOWN_ERROR')}${reason}`;
 };
 
 export default i18n;

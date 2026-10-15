@@ -1,3 +1,4 @@
+import { uuid } from '../utils/uuid';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LocateFixed, MapPin, Search } from 'lucide-react';
@@ -9,7 +10,7 @@ import { placesApi } from '../api/endpoints';
 import { errorText } from '../i18n';
 import { getPosition } from '../services/geolocation';
 
-const newToken = () => crypto.randomUUID().replace(/-/g, '');
+const newToken = () => uuid().replace(/-/g, '');
 
 /**
  * Pick a place on the map: search any place (Google), use GPS, or drag the pin.

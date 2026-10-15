@@ -1,3 +1,4 @@
+import { uuid } from '../utils/uuid';
 import { env } from '../config/env';
 import { secureTokens, kv, KV } from '../services/storage';
 import { getDeviceId, deviceMeta, timezone } from '../services/device';
@@ -31,7 +32,7 @@ export const clearTokens = async () => {
 export const hasSession = () => Boolean(tokens?.refreshToken);
 export const getAccessToken = () => tokens?.accessToken ?? null;
 
-export const newIdempotencyKey = () => crypto.randomUUID();
+export const newIdempotencyKey = () => uuid();
 
 const baseHeaders = async () => {
   const meta = deviceMeta();

@@ -1,10 +1,11 @@
+import { uuid } from '../utils/uuid';
 import { kv } from './storage';
 
 /** Stable id for this browser. */
 export const getDeviceId = async () => {
   let id = kv.getString('device.id');
   if (!id) {
-    id = `web-${crypto.randomUUID()}`;
+    id = `web-${uuid()}`;
     kv.set('device.id', id);
   }
   return id;
