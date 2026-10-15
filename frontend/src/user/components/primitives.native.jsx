@@ -103,7 +103,8 @@ export const View = forwardRef(function View({ style, children, ...rest }, ref) 
 
 export function Text({ style, children, ...rest }) {
   return (
-    <RNText style={withFont({ color: '#111827', fontSize: 15, ...toNative(style) })} {...rest}>
+    // same size as the website on every phone: the phone's own font-size setting is not applied
+    <RNText allowFontScaling={false} style={withFont({ color: '#111827', fontSize: 15, ...toNative(style) })} {...rest}>
       {children}
     </RNText>
   );
@@ -119,7 +120,7 @@ export function Pressable({ style, children, ...rest }) {
 
 export const TextInput = forwardRef(function TextInput({ style, multiline, ...rest }, ref) {
   const s = withFont({ color: '#111827', fontSize: 16, paddingVertical: 0, paddingHorizontal: 0, ...toNative(style) });
-  return <RNTextInput ref={ref} multiline={multiline} textAlignVertical={multiline ? 'top' : 'center'} underlineColorAndroid="transparent" style={s} {...rest} />;
+  return <RNTextInput ref={ref} allowFontScaling={false} multiline={multiline} textAlignVertical={multiline ? 'top' : 'center'} underlineColorAndroid="transparent" style={s} {...rest} />;
 });
 
 export const ScrollView = forwardRef(function ScrollView({ style, contentContainerStyle, children, horizontal, ...rest }, ref) {

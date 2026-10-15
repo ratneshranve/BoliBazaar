@@ -70,12 +70,17 @@ export const setLanguage = async (code) => {
   await i18n.changeLanguage(code);
 };
 
+/** True for the errors our API client throws (also when instanceof is unreliable). */
+const isApiError = (err) => err instanceof ApiError || err?.name === 'ApiError';
+
 export const errorText = (err) => {
-  const code = err instanceof ApiError ? err.code : 'UNKNOWN_ERROR';
+  const known = isApiError(err);
+  const code = known ? err.code : 'UNKNOWN_ERROR';
+  console.warn('[app error]', err?.name, code, err?.status, err?.message); // visible in the phone log while testing
   const key = `errors.${code}`;
-  if (err instanceof ApiError && code === 'UNKNOWN_ERROR') return `${i18n.t('errors.UNKNOWN_ERROR')} (HTTP ${err.status})`; // the server's answer was not understood
-  if (i18n.exists(key)) return i18n.t(key);
-  if (err instanceof ApiError) return err.message;
+  if (known && code === 'UNKNOWN_ERROR') return `${i18n.t('errors.UNKNOWN_ERROR')} (HTTP ${err.status})`; // the server's answer was not understood
+  if (known && i18n.exists(key)) return i18n.t(key);
+  if (known) return err.message;
   // not a server answer: something inside the app failed — show the reason so it can be fixed quickly
   const reason = err?.message ? ` (${String(err.message).slice(0, 80)})` : '';
   return `${i18n.t('errors.UNKNOWN_ERROR')}${reason}`;
