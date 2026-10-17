@@ -38,7 +38,10 @@ const userSchema = new Schema(
     timezone: String,
     homeLocation: locationRefSchema,
     savedLocations: [
-      new Schema({ label: { type: String, maxlength: 40 }, location: locationRefSchema, radiusKm: Number }, { timestamps: true }),
+      new Schema(
+        { label: { type: String, maxlength: 40 }, kind: { type: String, enum: ['home', 'work', 'other'], default: 'other' }, details: { type: String, maxlength: 200 }, location: locationRefSchema, radiusKm: Number },
+        { timestamps: true }
+      ),
     ],
 
     seller: {

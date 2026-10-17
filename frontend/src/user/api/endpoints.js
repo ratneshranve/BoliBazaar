@@ -123,6 +123,10 @@ export const meApi = {
   removeEmail: () => api('/me/email', { method: 'DELETE' }),
   setPrivacy: (body) => api('/me/privacy', { method: 'PATCH', body }),
   accountStatus: () => api('/me/account-status'),
+  locations: () => api('/me/locations'),
+  addLocation: (body) => api('/me/locations', { method: 'POST', body }),
+  updateLocation: (id, body) => api(`/me/locations/${id}`, { method: 'PATCH', body }),
+  deleteLocation: (id) => api(`/me/locations/${id}`, { method: 'DELETE' }),
   acceptConsents: (consents) => api('/me/consents', { method: 'POST', body: { consents } }),
 };
 

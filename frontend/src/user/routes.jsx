@@ -9,7 +9,7 @@ import { ListingDetailScreen } from './screens/ListingDetailScreen';
 import { MyListingsScreen, FavouritesScreen } from './screens/MyListingsScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { ExploreScreen } from './screens/ExploreScreen';
-import { LocationScreen } from './screens/LocationScreen';
+import { LocationScreen, AddressMapScreen } from './screens/LocationScreen';
 import { SecurityScreen } from './screens/SecurityScreen';
 import { PageScreen } from './screens/PageScreen';
 import { NotificationsScreen } from './screens/NotificationsScreen';
@@ -46,6 +46,8 @@ export const routes = [
   { path: '/page/:slug', element: <PageScreen /> },
   { path: '/language', element: <LanguageRoute /> },
   { path: '/location', element: <LocationScreen /> },
+  { path: '/location/new', element: <AddressMapScreen /> },
+  { path: '/location/:id/edit', element: <AddressMapScreen /> },
   { path: '/search', element: <SearchScreen /> },
   { path: '/listing/:id', element: <ListingDetailScreen /> },
   { path: '/my-listings', element: <MyListingsScreen /> },

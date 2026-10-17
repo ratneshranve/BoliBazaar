@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { validate } from '../../../core/middleware/common.js';
 import { requireUser } from '../../../core/middleware/auth.js';
-import { asyncHandler, ok } from '../../../core/utils/http.js';
+import { asyncHandler, ok, created } from '../../../core/utils/http.js';
 import { ApiError } from '../../../core/utils/ApiError.js';
 import { User } from '../user.model.js';
 import { Media } from '../../uploads/media.model.js';
@@ -95,6 +95,70 @@ router.patch(
     await applyProfile(user, req.body, req.user.id);
     await user.save();
     ok(res, meDto(user));
+  })
+);
+
+/* ───── Saved addresses (Home / Work / Other): a map point + label + house/flat details ───── */
+const MAX_SAVED = 10;
+const savedDto = (a) => ({
+  id: String(a._id),
+  label: a.label,
+  kind: a.kind || 'other',
+  details: a.details || '',
+  place: {
+    label: a.location?.label,
+    name: a.location?.name,
+    placeId: a.location?.placeId,
+    lat: a.location?.geo?.coordinates?.[1],
+    lng: a.location?.geo?.coordinates?.[0],
+    address: a.location?.address || {},
+  },
+});
+const savedBody = z.object({
+  label: z.string().trim().min(1).max(40),
+  kind: z.enum(['home', 'work', 'other']).default('other'),
+  details: z.string().trim().max(200).optional(),
+  place: placeInput,
+});
+
+router.get('/locations', asyncHandler(async (req, res) => ok(res, (await loadMe(req.user.id)).savedLocations.map(savedDto))));
+
+router.post(
+  '/locations',
+  validate({ body: savedBody }),
+  asyncHandler(async (req, res) => {
+    const user = await loadMe(req.user.id);
+    if (user.savedLocations.length >= MAX_SAVED) throw ApiError.badRequest('SAVED_LIMIT', `You can save up to ${MAX_SAVED} addresses`);
+    const { place, ...rest } = req.body;
+    user.savedLocations.push({ ...rest, location: await toLocationRef(place) });
+    await user.save();
+    created(res, savedDto(user.savedLocations[user.savedLocations.length - 1]));
+  })
+);
+
+router.patch(
+  '/locations/:id',
+  validate({ body: savedBody }),
+  asyncHandler(async (req, res) => {
+    const user = await loadMe(req.user.id);
+    const item = user.savedLocations.id(req.params.id);
+    if (!item) throw ApiError.notFound('ADDRESS_NOT_FOUND');
+    const { place, ...rest } = req.body;
+    Object.assign(item, { details: '', ...rest }, { location: await toLocationRef(place) });
+    await user.save();
+    ok(res, savedDto(item));
+  })
+);
+
+router.delete(
+  '/locations/:id',
+  asyncHandler(async (req, res) => {
+    const user = await loadMe(req.user.id);
+    const item = user.savedLocations.id(req.params.id);
+    if (!item) throw ApiError.notFound('ADDRESS_NOT_FOUND');
+    item.deleteOne();
+    await user.save();
+    ok(res, { deleted: true });
   })
 );
 
