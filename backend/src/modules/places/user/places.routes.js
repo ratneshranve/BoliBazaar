@@ -12,8 +12,11 @@ const token = z.string().regex(/^[A-Za-z0-9_-]{8,64}$/).optional();
 router.get(
   '/autocomplete',
   limiter({ name: 'places-ac', windowMs: 60_000, max: 90 }),
-  validate({ query: z.object({ q: z.string().trim().min(2).max(100), sessionToken: token }) }),
-  asyncHandler(async (req, res) => ok(res, await autocomplete(req.query.q, { sessionToken: req.query.sessionToken, lang: req.ctx.lang })))
+  validate({ query: z.object({ q: z.string().trim().min(2).max(100), sessionToken: token, lat: z.coerce.number().min(-90).max(90).optional(), lng: z.coerce.number().min(-180).max(180).optional() }) }),
+  asyncHandler(async (req, res) => {
+    const { q, sessionToken, lat, lng } = req.query;
+    ok(res, await autocomplete(q, { sessionToken, lang: req.ctx.lang, near: lat != null && lng != null ? { lat, lng } : null }));
+  })
 );
 
 /** Coordinates and address for a chosen suggestion. */
@@ -27,7 +30,7 @@ router.get(
 /** GPS fix or dragged map pin → readable place. */
 router.get(
   '/reverse',
-  limiter({ name: 'places-reverse', windowMs: 60_000, max: 30 }),
+  limiter({ name: 'places-reverse', windowMs: 60_000, max: 60 }) /* the map pin looks up each spot it stops at */,
   validate({ query: z.object({ lat: z.coerce.number().min(-90).max(90), lng: z.coerce.number().min(-180).max(180) }) }),
   asyncHandler(async (req, res) => ok(res, await reverseGeocode(req.query.lat, req.query.lng, { lang: req.ctx.lang })))
 );

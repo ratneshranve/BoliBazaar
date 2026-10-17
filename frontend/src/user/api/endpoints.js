@@ -87,7 +87,8 @@ export const trustApi = {
 
 /** Places come from Google via our server: search a name/PIN, or turn a GPS point / map pin into an address. */
 export const placesApi = {
-  autocomplete: (q, sessionToken) => api('/places/autocomplete', { auth: false, query: { q, sessionToken } }),
+  /** `near` ({ lat, lng }, optional) puts the closest places first and returns their distance. */
+  autocomplete: (q, sessionToken, near) => api('/places/autocomplete', { auth: false, query: { q, sessionToken, ...(near ? { lat: near.lat, lng: near.lng } : {}) } }),
   details: (placeId, sessionToken) => api(`/places/details/${encodeURIComponent(placeId)}`, { auth: false, query: { sessionToken } }),
   reverse: (lat, lng) => api('/places/reverse', { auth: false, query: { lat, lng } }),
 };
