@@ -418,8 +418,8 @@ export const SearchScreen = () => {
         {items && items.length > 0 && view === 'list' && (
           <View style={styles.grid}>
             {[...ads.sponsoredListings, ...items.filter((x) => !ads.sponsoredListings.some((s) => s.id === x.id))].map((l) => (
-              <View key={l.id} style={{ width: 'calc(50% - 6px)' }}>
-                <ListingCard listing={l} />
+              <View key={l.id} style={{ width: '100%' }}>
+                <ListingCard listing={l} horizontal />
               </View>
             ))}
           </View>

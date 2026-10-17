@@ -35,11 +35,68 @@ export const FavouriteButton = ({ listing, onChange, size = 20 }) => {
 };
 
 /** Ad card used in grids and rails. `width` makes it a fixed-width rail item. */
-export const ListingCard = ({ listing, width, onFavouriteChange }) => {
+export const ListingCard = ({ listing, width, onFavouriteChange, horizontal }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const unit = useAppSelector((s) => s.app.bootstrap?.location?.distanceUnit);
   const typeTag = listing.listingType !== 'sell' ? t(`listing.type_${listing.listingType}`) : null;
+
+  const price = listing.auction ? (
+    <AppText variant="h3" color={colors.auction}>
+      {formatMinor(listing.auction.currentMinor ?? listing.auction.startingMinor, listing.price.currency, listing.price.factor, i18n.language)}
+      <AppText variant="small" color={colors.textMuted}> {listing.auction.currentMinor != null ? t('auction.currentBid') : t('auction.startingBid')}</AppText>
+    </AppText>
+  ) : (
+    <AppText variant="h3" color={colors.primary}>{formatPrice(listing.price, t, i18n.language)}</AppText>
+  );
+  const where = `${listing.place ?? ''}${listing.distanceKm != null ? ` · ${formatDistance(listing.distanceKm, unit)}` : ''}`;
+  const pills = [
+    listing.sponsored && { k: 'sp', label: t('ads.sponsored'), bg: colors.text, fg: colors.white },
+    ...(listing.badges ?? []).map((b) => ({ k: b, label: t(`badge.${b}`), bg: b === 'top' ? colors.primary : b === 'promoted' ? colors.brand : colors.warm, fg: colors.white })),
+    typeTag && { k: 'type', label: typeTag, bg: colors.brandSoft, fg: colors.brand },
+  ].filter(Boolean);
+
+  if (horizontal) {
+    return (
+      <Pressable accessibilityLabel={listing.title} onPress={() => {
+        if (listing.adId) adsApi.click(listing.adId).catch(() => {});
+        navigate(listing.auction ? `/auctions/${listing.auction.id}` : `/listing/${listing.id}`);
+      }} style={[styles.card, styles.hCard]}>
+        <View style={styles.hImg}>
+          {listing.cover ? (
+            <Image source={{ uri: listing.cover }} style={styles.img} resizeMode="cover" />
+          ) : (
+            <View style={[styles.img, styles.noImg]}>
+              <ImageOff size={28} color={colors.textSubtle} />
+            </View>
+          )}
+          <View style={styles.heartPos}>
+            <FavouriteButton listing={listing} onChange={onFavouriteChange} size={18} />
+          </View>
+        </View>
+        <View style={styles.hBody}>
+          {pills.length > 0 && (
+            <View style={styles.hPills}>
+              {pills.map((p) => (
+                <View key={p.k} style={[styles.tagPill, { backgroundColor: p.bg }]}>
+                  <AppText variant="small" color={p.fg} style={{ fontWeight: '700' }}>{p.label}</AppText>
+                </View>
+              ))}
+            </View>
+          )}
+          {price}
+          {listing.highlights.length > 0 && (
+            <AppText variant="caption" color={colors.textMuted} numberOfLines={1}>{listing.highlights.join(' - ')}</AppText>
+          )}
+          <AppText variant="bodyStrong" numberOfLines={2} style={{ marginTop: 4 }}>{listing.title}</AppText>
+          <View style={[styles.row, { marginTop: 'auto', paddingTop: 6 }]}>
+            <MapPin size={12} color={colors.textMuted} />
+            <AppText variant="small" color={colors.textMuted} numberOfLines={1} style={{ flex: 1 }}>{where}</AppText>
+          </View>
+        </View>
+      </Pressable>
+    );
+  }
 
   return (
     <Pressable accessibilityLabel={listing.title} onPress={() => {
@@ -112,5 +169,9 @@ const styles = StyleSheet.create({
   tagPill: { backgroundColor: colors.auctionBlue, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2 },
   heartPos: { position: 'absolute', right: spacing.sm, top: spacing.sm },
   heart: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center' },
+  hCard: { flexDirection: 'row', width: '100%', minHeight: 132 },
+  hImg: { width: 128, alignSelf: 'stretch', backgroundColor: colors.surface },
+  hBody: { flex: 1, minWidth: 0, padding: spacing.md, gap: 2 },
+  hPills: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 2 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 });
