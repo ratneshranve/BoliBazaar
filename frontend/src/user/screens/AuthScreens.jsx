@@ -305,7 +305,7 @@ export const ProfileSetupScreen = () => {
 const styles = StyleSheet.create({
   cardTitle: { fontSize: 26, lineHeight: 32, fontWeight: '700', color: '#0F172A' },
   titleBoli: { fontSize: 26, lineHeight: 32, fontWeight: '700', color: '#A61B36', display: 'inline' },
-  titleBazaar: { fontSize: 26, lineHeight: 32, fontWeight: '700', color: '#1E3A8A', display: 'inline' },
+  titleBazaar: { fontSize: 26, lineHeight: 32, fontWeight: '700', color: colors.brand, display: 'inline' },
   cardSubtitle: { fontSize: 14, color: '#64748B', marginTop: 4, marginBottom: 18 },
 
   phoneBox: {

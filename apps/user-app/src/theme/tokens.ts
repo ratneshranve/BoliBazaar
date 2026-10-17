@@ -3,14 +3,17 @@
  * Structural styling only — brand name/logo/images always come from the API.
  */
 export const colors = {
-  primary: '#B0102F',
-  primaryDark: '#8E0C26',
-  primarySoft: '#FDECEF',
-  sell: '#16A34A',
-  sellSoft: '#E8F7EE',
-  auction: '#1E3A8A',
-  auctionBlue: '#1D4ED8',
-  auctionSoft: '#EAF1FB',
+  primary: '#A41030',
+  primaryDark: '#820C26',
+  primarySoft: '#FBE9ED',
+  sell: '#0E9F6E',
+  sellSoft: '#E5F6EF',
+  auction: '#00509A',
+  auctionBlue: '#0058A4',
+  auctionSoft: '#E6F0FA',
+  // the two logo colours: crimson (primary) + blue (brand), and the green divider line
+  brand: '#00509A',
+  brandSoft: '#E6F0FA',
   warm: '#F97316',
   warmSoft: '#FFF4E8',
   live: '#DC2626',

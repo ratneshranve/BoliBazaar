@@ -92,8 +92,8 @@ const styles = StyleSheet.create({
     lineHeight: 12,
   },
   fab: {
-    width: 60, height: 60, borderRadius: 30, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
-    marginTop: -30, borderWidth: 4, borderColor: colors.white, shadowColor: colors.primary, shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 6,
+    width: 60, height: 60, borderRadius: 30, backgroundColor: colors.brand, alignItems: 'center', justifyContent: 'center',
+    marginTop: -30, borderWidth: 4, borderColor: colors.white, shadowColor: colors.brand, shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 6,
   },
   underline: { position: 'absolute', bottom: -6, width: 44, height: 3, borderRadius: 2, backgroundColor: colors.primary },
 });

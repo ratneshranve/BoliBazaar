@@ -99,6 +99,9 @@
   "explore": {
     "title": "Explore",
     "allCategories": "All categories",
+    "categories": "Categories",
+    "viewAll": "View All",
+    "sellCta": "Have something to sell? List here",
     "noListings": "Ads in this category will appear here soon.",
     "noCategories": "No categories available yet."
   },
