@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Briefcase, ChevronRight, Home, LocateFixed, MapPin, Navigation, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from '../components/primitives';
 import { AppText, Button } from '../components/ui';
-import { MapPicker } from '../components/MapPicker';
+import { PinMap } from '../components/PinMap';
 import { colors, radius, spacing } from '@theme/tokens';
 import { chooseLocation, useAppDispatch, useAppSelector } from '../store';
 import { formatDistance } from '../utils/distance';
@@ -201,6 +201,17 @@ export const AddressMapScreen = () => {
       .finally(() => setLoading(false));
   }, [id]);
 
+  // a new address starts at your current position (if allowed); otherwise at your last place
+  useEffect(() => {
+    if (id) return;
+    if (current?.lat != null) setPicked(current);
+    getPosition()
+      .then(({ lat, lng }) => placeAt(lat, lng, t))
+      .then(setPicked)
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (q.trim().length < 2) return setSuggestions([]);
     const timer = setTimeout(() => {
@@ -294,7 +305,7 @@ export const AddressMapScreen = () => {
       <Header title={id ? t('location.editTitle') : t('location.addTitle')} onBack={() => navigate(-1)} />
 
       <View style={{ height: 280 }}>
-        <MapPicker lat={center.lat} lng={center.lng} height={280} onMove={onPinMoved} fallback={<View style={{ height: 280, backgroundColor: colors.surface }} />} />
+        <PinMap lat={center.lat} lng={center.lng} height={280} onMove={onPinMoved} />
         <View style={styles.searchWrap}>
           <View style={styles.searchBar}>
             <Search size={18} color={colors.textMuted} />
