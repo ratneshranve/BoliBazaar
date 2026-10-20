@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { adsApi, growthApi } from '../api/endpoints';
+import { adsApi } from '../api/endpoints';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ArrowUpDown, Bookmark, LayoutGrid, Map as MapIcon, Mic, Search, SearchX, SlidersHorizontal, Tag, X } from 'lucide-react';
-import { ResultsMap } from '../components/ResultsMap';
+import { ArrowLeft, ArrowUpDown, Check, Mic, Search, SearchX, SlidersHorizontal, Tag, X } from 'lucide-react';
 import { listenOnce, voiceSupported } from '../services/voice';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
 import { AppText, Button, EmptyState, Field } from '../components/ui';
@@ -15,7 +14,6 @@ import { categoriesApi, listingsApi } from '../api/endpoints';
 import { useAppSelector } from '../store';
 import { locationQuery } from '../utils/listing';
 import { errorText } from '../i18n';
-import { promptAsync } from '../services/dialogs';
 
 const CONDITIONS = ['new', 'used', 'refurbished'];
 const POSTED = ['1', '7', '30'];
@@ -84,7 +82,7 @@ function FiltersSheet({ category, params, onApply, onClose }) {
       footer={
         <View style={{ flexDirection: 'row', gap: spacing.md }}>
           <Button title={t('search.reset')} variant="outline" onPress={reset} style={{ flex: 1 }} />
-          <Button title={t('search.apply')} onPress={apply} style={{ flex: 2 }} />
+          <Button title={t('search.apply')} variant="primary" onPress={apply} style={{ flex: 2 }} />
         </View>
       }>
       <View>
@@ -194,7 +192,6 @@ export const SearchScreen = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
   const [sheet, setSheet] = useState(null); // 'sort' | 'filters'
-  const [view, setView] = useState('list'); // list | map
   const [suggestions, setSuggestions] = useState(null); // { categories, terms } while typing
   const [focused, setFocused] = useState(false);
   const [listening, setListening] = useState(false);
@@ -291,19 +288,7 @@ export const SearchScreen = () => {
     setLoadingMore(false);
   };
 
-  const authed = useAppSelector((s) => s.session.status === 'authenticated');
-  const saveSearch = async () => {
-    if (!authed) return navigate('/login');
-    const name = await promptAsync(t('saved.namePrompt'), params.q || category?.name || '');
-    if (!name || name.trim().length < 2) return;
-    const { sort: _s, ...q } = query; // eslint-disable-line no-unused-vars
-    try {
-      await growthApi.saveSearch({ name: name.trim(), query: Object.fromEntries(Object.entries(q).filter(([, v]) => v !== undefined && v !== '')), alerts: true });
-      Alert.alert(t('saved.saved'));
-    } catch (e) {
-      Alert.alert(errorText(e));
-    }
-  };
+
 
   const sort = params.sort || 'newest';
   const activeFilters = ['priceMin', 'priceMax', 'condition', 'delivery', 'listingType', 'filters', 'postedWithin', 'sellerType', 'verified', 'withPhotos'].filter((k) => params[k]).length;
@@ -366,35 +351,107 @@ export const SearchScreen = () => {
       </View>
 
       <View style={styles.bar}>
-        <LocationChip />
-        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-          <Pressable accessibilityLabel={view === 'map' ? t('search.listView') : t('search.mapView')} onPress={() => setView(view === 'map' ? 'list' : 'map')} style={styles.tool}>
-            {view === 'map' ? <LayoutGrid size={16} color={colors.text} /> : <MapIcon size={16} color={colors.text} />}
+        <LocationChip maxWidth={110} />
+        <View style={styles.toolsGroup}>
+          <Pressable
+            accessibilityLabel={t('search.sort')}
+            onPress={() => setSheet('sort')}
+            style={[styles.tool, sort !== 'newest' && styles.toolActive]}
+          >
+            <ArrowUpDown size={14} color={sort !== 'newest' ? colors.primary : colors.text} />
+            <AppText variant="caption" style={styles.toolText} color={sort !== 'newest' ? colors.primary : colors.text}>
+              {t('search.sort')}
+            </AppText>
+            {sort !== 'newest' && <View style={styles.activeDot} />}
           </Pressable>
-          <Pressable onPress={() => setSheet('sort')} style={styles.tool}>
-            <ArrowUpDown size={16} color={colors.text} />
-            <AppText variant="bodyStrong">{t('search.sort')}</AppText>
-          </Pressable>
-          <Pressable accessibilityLabel={t('saved.save')} onPress={saveSearch} style={styles.tool}>
-            <Bookmark size={16} color={colors.text} />
-          </Pressable>
-          <Pressable onPress={() => setSheet('filters')} style={styles.tool}>
-            <SlidersHorizontal size={16} color={colors.text} />
-            <AppText variant="bodyStrong">{t('search.filters')}{activeFilters ? ` (${activeFilters})` : ''}</AppText>
+
+          <Pressable
+            accessibilityLabel={t('search.filters')}
+            onPress={() => setSheet('filters')}
+            style={[styles.tool, activeFilters > 0 && styles.toolActive]}
+          >
+            <SlidersHorizontal size={14} color={activeFilters > 0 ? colors.primary : colors.text} />
+            <AppText variant="caption" style={styles.toolText} color={activeFilters > 0 ? colors.primary : colors.text}>
+              {t('search.filters')}
+            </AppText>
+            {activeFilters > 0 && (
+              <View style={styles.filterBadge}>
+                <AppText variant="caption" color={colors.white} style={styles.filterBadgeText}>
+                  {activeFilters}
+                </AppText>
+              </View>
+            )}
           </Pressable>
         </View>
       </View>
 
-      {category && (
-        <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.sm, flexDirection: 'row' }}>
-          <Pressable onPress={() => patch({ categoryId: undefined, filters: undefined, listingType: undefined })} style={[styles.chip, styles.chipOn, { flexDirection: 'row', alignItems: 'center', gap: spacing.xs }]}>
-            <AppText variant="bodyStrong" color={colors.white}>{category.name}</AppText>
-            <X size={14} color={colors.white} />
+      {(category || activeFilters > 0 || sort !== 'newest') && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.activeFiltersRow}>
+          {category && (
+            <Pressable onPress={() => patch({ categoryId: undefined, filters: undefined, listingType: undefined })} style={styles.activeFilterChip}>
+              <AppText variant="caption" color={colors.primary} style={{ fontWeight: '600' }}>{category.name}</AppText>
+              <X size={12} color={colors.primary} />
+            </Pressable>
+          )}
+          {sort !== 'newest' && (
+            <Pressable onPress={() => patch({ sort: undefined })} style={styles.activeFilterChip}>
+              <AppText variant="caption" color={colors.primary} style={{ fontWeight: '600' }}>{t(`search.sort_${sort}`)}</AppText>
+              <X size={12} color={colors.primary} />
+            </Pressable>
+          )}
+          {params.priceMin && (
+            <Pressable onPress={() => patch({ priceMin: undefined })} style={styles.activeFilterChip}>
+              <AppText variant="caption" color={colors.primary} style={{ fontWeight: '600' }}>₹{params.priceMin}+</AppText>
+              <X size={12} color={colors.primary} />
+            </Pressable>
+          )}
+          {params.priceMax && (
+            <Pressable onPress={() => patch({ priceMax: undefined })} style={styles.activeFilterChip}>
+              <AppText variant="caption" color={colors.primary} style={{ fontWeight: '600' }}>≤ ₹{params.priceMax}</AppText>
+              <X size={12} color={colors.primary} />
+            </Pressable>
+          )}
+          {params.condition && (
+            <Pressable onPress={() => patch({ condition: undefined })} style={styles.activeFilterChip}>
+              <AppText variant="caption" color={colors.primary} style={{ fontWeight: '600' }}>{t(`listing.condition_${params.condition}`)}</AppText>
+              <X size={12} color={colors.primary} />
+            </Pressable>
+          )}
+          {params.verified && (
+            <Pressable onPress={() => patch({ verified: undefined })} style={styles.activeFilterChip}>
+              <AppText variant="caption" color={colors.primary} style={{ fontWeight: '600' }}>{t('search.verifiedOnly')}</AppText>
+              <X size={12} color={colors.primary} />
+            </Pressable>
+          )}
+          {params.withPhotos && (
+            <Pressable onPress={() => patch({ withPhotos: undefined })} style={styles.activeFilterChip}>
+              <AppText variant="caption" color={colors.primary} style={{ fontWeight: '600' }}>{t('search.withPhotos')}</AppText>
+              <X size={12} color={colors.primary} />
+            </Pressable>
+          )}
+          <Pressable
+            onPress={() => patch({
+              categoryId: undefined,
+              priceMin: undefined,
+              priceMax: undefined,
+              condition: undefined,
+              delivery: undefined,
+              listingType: undefined,
+              filters: undefined,
+              postedWithin: undefined,
+              sellerType: undefined,
+              verified: undefined,
+              withPhotos: undefined,
+              sort: undefined,
+            })}
+            style={styles.clearAllBtn}
+          >
+            <AppText variant="caption" color={colors.textMuted} style={{ textDecorationLine: 'underline', fontWeight: '500' }}>{t('search.reset')}</AppText>
           </Pressable>
-        </View>
+        </ScrollView>
       )}
 
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxxl }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 10, paddingTop: spacing.md, paddingBottom: spacing.xxxl }}>
         {!items && !error && (
           <View style={{ minHeight: 'calc(100dvh - 200px)', alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color={colors.primary} /></View>
         )}
@@ -412,10 +469,7 @@ export const SearchScreen = () => {
             </View>
           </Pressable>
         )}
-        {items && items.length > 0 && view === 'map' && (
-          <ResultsMap items={items} center={current?.lat !== undefined ? { lat: current.lat, lng: current.lng } : null} />
-        )}
-        {items && items.length > 0 && view === 'list' && (
+        {items && items.length > 0 && (
           <View style={styles.grid}>
             {[...ads.sponsoredListings, ...items.filter((x) => !ads.sponsoredListings.some((s) => s.id === x.id))].map((l) => (
               <View key={l.id} style={{ width: '100%' }}>
@@ -431,19 +485,30 @@ export const SearchScreen = () => {
 
       {sheet === 'sort' && (
         <Sheet title={t('search.sort')} onClose={() => setSheet(null)}>
-          <View style={{ gap: spacing.sm }}>
-            {SORTS.map((s) => (
-              <Chip
-                key={s}
-                label={s === 'nearest' && !current ? `${t('search.sort_nearest')} — ${t('search.nearestNeedsLocation')}` : t(`search.sort_${s}`)}
-                active={sort === s}
-                onPress={() => {
-                  if (s === 'nearest' && !current) return navigate('/location');
-                  patch({ sort: s === 'newest' ? undefined : s });
-                  setSheet(null);
-                }}
-              />
-            ))}
+          <View style={{ gap: spacing.xs, paddingBottom: spacing.sm }}>
+            {SORTS.map((s) => {
+              const active = sort === s;
+              return (
+                <Pressable
+                  key={s}
+                  onPress={() => {
+                    if (s === 'nearest' && !current) return navigate('/location');
+                    patch({ sort: s === 'newest' ? undefined : s });
+                    setSheet(null);
+                  }}
+                  style={[styles.sortRow, active && styles.sortRowActive]}
+                >
+                  <AppText
+                    variant="bodyStrong"
+                    color={active ? colors.primary : colors.text}
+                    style={{ flex: 1 }}
+                  >
+                    {s === 'nearest' && !current ? `${t('search.sort_nearest')} — ${t('search.nearestNeedsLocation')}` : t(`search.sort_${s}`)}
+                  </AppText>
+                  {active && <Check size={18} color={colors.primary} />}
+                </Pressable>
+              );
+            })}
           </View>
         </Sheet>
       )}
@@ -463,11 +528,100 @@ export const SearchScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  sponsor: { borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: colors.divider, marginBottom: spacing.md },
+  sponsor: { borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: colors.divider, marginBottom: spacing.md },
   fill: { flex: 1, backgroundColor: colors.white },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingTop: spacing.md },
-  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
-  tool: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border },
+  bar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+  },
+  toolsGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  tool: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+  },
+  toolActive: {
+    borderColor: colors.primary,
+    backgroundColor: `${colors.primary}0D`,
+  },
+  toolText: {
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  activeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
+  },
+  filterBadge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  filterBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    lineHeight: 12,
+  },
+  activeFiltersRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+  },
+  activeFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    backgroundColor: `${colors.primary}12`,
+    borderWidth: 1,
+    borderColor: `${colors.primary}30`,
+  },
+  clearAllBtn: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 5,
+  },
+  sortRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+  },
+  sortRowActive: {
+    backgroundColor: `${colors.primary}0A`,
+  },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white },
   chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },

@@ -1,19 +1,73 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { LayoutGrid, Search } from 'lucide-react';
-import { ActivityIndicator, Image, Platform, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
+import { Search } from 'lucide-react';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
 import { AppText, EmptyState } from '../components/ui';
 import { BrandHeader } from '../components/BrandHeader';
 import { LocationChip } from '../components/LocationChip';
 import { LanguageChip } from '../components/LanguageChip';
-import { CategoryTile } from '../components/CategoryTile';
+import { CategoryTile, ViewAllTile } from '../components/CategoryTile';
+import { BannerCarousel } from '../components/BannerCarousel';
 import { ListingCard } from '../components/ListingCard';
 import { locationQuery } from '../utils/listing';
 import { colors, radius, spacing, shadow } from '@theme/tokens';
 import { adsApi, homeApi } from '../api/endpoints';
 import { AuctionCard } from './AuctionScreens';
 import { useAppSelector } from '../store';
+
+const HomeBanners = ({ banners, adBanners, onOpenBanner }) => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  const items = useMemo(() => {
+    const list = [];
+    if (adBanners?.length) {
+      adBanners.forEach((b) => list.push({ ...b, isAd: true }));
+    }
+    if (banners?.length) {
+      banners.forEach((b) => list.push({ ...b, isAd: false }));
+    }
+    return list;
+  }, [banners, adBanners]);
+
+  if (!items.length) return null;
+
+  return (
+    <View style={styles.bannerSection}>
+      <BannerCarousel
+        items={items}
+        keyOf={(b) => (b.isAd ? `ad-${b.id}` : `banner-${b.id}`)}
+        renderItem={(b) => (
+          <Pressable
+            onPress={() => {
+              if (b.isAd) {
+                adsApi.click(b.id).catch(() => {});
+                if (b.route) navigate(b.route);
+              } else {
+                onOpenBanner(b);
+              }
+            }}
+            style={styles.banner}
+          >
+            <Image source={{ uri: b.image }} style={styles.bannerImg} resizeMode="cover" />
+            {b.isAd && (
+              <View style={styles.adLabel}>
+                <AppText variant="small" color={colors.white}>{t('ads.ad')}</AppText>
+              </View>
+            )}
+            {(b.title || b.subtitle) && (
+              <View style={styles.bannerText}>
+                {!!b.title && <AppText variant="h3" color={colors.white}>{b.title}</AppText>}
+                {!!b.subtitle && <AppText variant="caption" color={colors.white}>{b.subtitle}</AppText>}
+              </View>
+            )}
+          </Pressable>
+        )}
+      />
+    </View>
+  );
+};
 
 export const HomeScreen = () => {
   const { t, i18n } = useTranslation();
@@ -55,19 +109,14 @@ export const HomeScreen = () => {
   return (
     <View style={styles.fill}>
       <BrandHeader>
+        <LocationChip />
         <LanguageChip />
       </BrandHeader>
-      {/* website: on its own line so the brand name is never squeezed (the app's header carries the chip itself) */}
-      {Platform.OS === 'web' && (
-        <View style={{ paddingHorizontal: spacing.lg }}>
-          <LocationChip />
-        </View>
-      )}
 
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxxl }}>
         {/* search (opens Explore until listing search ships) */}
         <Pressable accessibilityLabel={t('home.searchPlaceholder')} onPress={() => navigate('/search')} style={styles.search}>
-          <Search size={20} color={colors.textMuted} />
+          <Search size={20} color={colors.brand} />
           <AppText color={colors.textSubtle} numberOfLines={1} style={{ flex: 1 }}>
             {t('home.searchPlaceholder')}
           </AppText>
@@ -80,32 +129,12 @@ export const HomeScreen = () => {
         )}
         {failed && <EmptyState title={t('common.somethingWrong')} />}
 
-        {(home?.banners.length > 0 || home?.adBanners?.length > 0) && (
-          <ScrollView horizontal contentContainerStyle={{ gap: spacing.md, paddingHorizontal: spacing.lg, paddingBottom: spacing.sm }}>
-            {home.adBanners?.map((b) => (
-              <Pressable key={`ad-${b.id}`} onPress={() => { adsApi.click(b.id).catch(() => {}); if (b.route) navigate(b.route); }} style={styles.banner}>
-                <Image source={{ uri: b.image }} style={styles.bannerImg} resizeMode="cover" />
-                <View style={styles.adLabel}><AppText variant="small" color={colors.white}>{t('ads.ad')}</AppText></View>
-                {(b.title || b.subtitle) && (
-                  <View style={styles.bannerText}>
-                    {!!b.title && <AppText variant="h3" color={colors.white}>{b.title}</AppText>}
-                    {!!b.subtitle && <AppText variant="caption" color={colors.white}>{b.subtitle}</AppText>}
-                  </View>
-                )}
-              </Pressable>
-            ))}
-            {home.banners.map((b) => (
-              <Pressable key={b.id} onPress={() => openBanner(b)} style={styles.banner}>
-                <Image source={{ uri: b.image }} style={styles.bannerImg} resizeMode="cover" />
-                {(b.title || b.subtitle) && (
-                  <View style={styles.bannerText}>
-                    {!!b.title && <AppText variant="h3" color={colors.white}>{b.title}</AppText>}
-                    {!!b.subtitle && <AppText variant="caption" color={colors.white}>{b.subtitle}</AppText>}
-                  </View>
-                )}
-              </Pressable>
-            ))}
-          </ScrollView>
+        {(home?.banners?.length > 0 || home?.adBanners?.length > 0) && (
+          <HomeBanners
+            banners={home.banners}
+            adBanners={home.adBanners}
+            onOpenBanner={openBanner}
+          />
         )}
 
         {categoryColumns.length > 0 && (
@@ -131,21 +160,7 @@ export const HomeScreen = () => {
                       return <View key={`cat-empty-${rowIdx}`} style={styles.categoryPlaceholder} />;
                     }
                     if (c.isViewAll) {
-                      return (
-                        <Pressable
-                          key="view-all"
-                          accessibilityLabel={t('common.seeAll')}
-                          onPress={() => navigate('/explore')}
-                          style={({ pressed }) => [styles.categoryTile, pressed && { opacity: 0.85 }]}
-                        >
-                          <View style={styles.viewAllCircle}>
-                            <LayoutGrid size={22} color={colors.primary} />
-                          </View>
-                          <AppText variant="small" style={styles.viewAllLabel} numberOfLines={2}>
-                            {t('common.seeAll')}
-                          </AppText>
-                        </Pressable>
-                      );
+                      return <ViewAllTile key="view-all" label={t('common.seeAll')} size={60} style={styles.categoryTile} onPress={() => navigate('/explore')} />;
                     }
                     return (
                       <CategoryTile
@@ -169,7 +184,11 @@ export const HomeScreen = () => {
               <View key={key} style={{ marginTop: spacing.lg }}>
                 <View style={styles.sectionHead}>
                   <AppText variant="h2">{t(`homeRails.${key}`)}</AppText>
-                  <AppText variant="bodyStrong" color={colors.primary} onPress={() => navigate(key === 'auctions' ? '/auctions' : `/search${key === 'nearby' ? '?sort=nearest' : ''}`)}>
+                  <AppText
+                    variant="bodyStrong"
+                    color={colors.primary}
+                    onPress={() => navigate(key === 'auctions' ? '/auctions' : `/search${key === 'nearby' ? '?sort=nearest' : ''}`)}
+                  >
                     {t('common.seeAll')} ›
                   </AppText>
                 </View>
@@ -214,7 +233,11 @@ const styles = StyleSheet.create({
   bizImg: { width: 150, height: 96, borderRadius: radius.lg },
   fill: { flex: 1, backgroundColor: colors.white },
   search: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginHorizontal: spacing.lg, marginVertical: spacing.md, paddingHorizontal: spacing.lg, minHeight: 52, borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, ...shadow.card },
-  banner: { width: 320, height: 150, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.surface },
+  bannerSection: {
+    marginHorizontal: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  banner: { width: '100%', height: 150, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.surface, position: 'relative' },
   bannerImg: { width: '100%', height: '100%' },
   bannerText: { position: 'absolute', left: 0, right: 0, bottom: 0, padding: spacing.md, backgroundColor: 'rgba(0,0,0,0.35)' },
   categoriesSection: { marginTop: spacing.md },
@@ -222,22 +245,5 @@ const styles = StyleSheet.create({
   categoryCol: { gap: spacing.sm, alignItems: 'center' },
   categoryTile: { width: 76, height: 96, alignItems: 'center' },
   categoryPlaceholder: { width: 76, height: 96 },
-  viewAllCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: colors.primarySoft,
-    borderWidth: 1,
-    borderColor: colors.divider,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  viewAllLabel: {
-    textAlign: 'center',
-    marginTop: spacing.xs,
-    width: '100%',
-    fontWeight: '600',
-    color: colors.primary,
-  },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, marginBottom: spacing.md },
 });

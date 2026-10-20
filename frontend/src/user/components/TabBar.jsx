@@ -39,7 +39,7 @@ export const TabBar = () => {
               <View style={styles.fab}>
                 <Icon size={30} color={colors.white} strokeWidth={2.5} />
               </View>
-              <AppText variant="small" color={focused ? colors.primary : colors.textMuted} style={{ marginTop: 2 }}>
+              <AppText variant="small" color={focused ? colors.primary : colors.textMuted} style={{ marginTop: 2, fontWeight: focused ? '700' : '500' }}>
                 {t(tab.label)}
               </AppText>
             </Pressable>

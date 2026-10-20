@@ -32,3 +32,12 @@ body.user-shell html {
 @media (min-width: 480px) {
   #phone { box-shadow: 0 0 0 1px #d1d5db, 0 20px 60px rgba(0, 0, 0, 0.18); }
 }
+
+.banner-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.banner-scroll::-webkit-scrollbar {
+  display: none;
+}
+

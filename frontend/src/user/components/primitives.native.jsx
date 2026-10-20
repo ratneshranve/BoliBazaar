@@ -32,8 +32,29 @@ const flatten = (style) => {
 const WEB_ONLY = new Set([
   'cursor', 'whiteSpace', 'overflowWrap', 'wordBreak', 'userSelect', 'transition', 'outline', 'objectFit',
   'overflowX', 'overflowY', 'boxSizing', 'scrollSnapType', 'scrollSnapAlign', 'gridTemplateColumns', 'textOverflow',
-  'WebkitLineClamp', 'WebkitBoxOrient', 'listStyle', 'textDecoration', 'background',
+  'WebkitLineClamp', 'WebkitBoxOrient', 'listStyle', 'textDecoration', 'scrollBehavior', 'scrollbarWidth',
+  'msOverflowStyle', 'scrollSnapStop', 'animation', 'filter', 'backdropFilter',
 ]);
+
+/** CSS shorthands the phone spells differently: flex "0 0 auto", background colour/gradient, inset. */
+const shorthand = (key, value, out) => {
+  if (key === 'flex' && typeof value === 'string') {
+    const [grow, shrink, basis] = value.trim().split(/\s+/);
+    if (grow === 'none') return Object.assign(out, { flexGrow: 0, flexShrink: 0 });
+    if (grow === 'auto') return Object.assign(out, { flexGrow: 1, flexShrink: 1 });
+    out.flexGrow = Number(grow) || 0;
+    if (shrink !== undefined) out.flexShrink = Number(shrink) || 0;
+    if (basis && basis !== 'auto') out.flexBasis = /%$/.test(basis) ? basis : parseFloat(basis) || 0;
+    return out;
+  }
+  if (key === 'background' && typeof value === 'string') {
+    if (/gradient\(/.test(value)) out.backgroundImage = value;
+    else out.backgroundColor = value;
+    return out;
+  }
+  if (key === 'inset') return Object.assign(out, { top: value, right: value, bottom: value, left: value });
+  return null;
+};
 
 const screenH = () => Dimensions.get('window').height;
 
@@ -65,6 +86,7 @@ const toNative = (style) => {
     if (v === undefined || WEB_ONLY.has(k)) continue;
     if (k === 'display' && !['flex', 'none'].includes(v)) continue;
     if (k === 'position' && !['absolute', 'relative'].includes(v)) continue;
+    if (shorthand(k, v, out)) continue;
     convert(k, v, out);
   }
   return out;

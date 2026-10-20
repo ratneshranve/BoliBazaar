@@ -5,11 +5,25 @@ export const AppText = ({ variant = 'body', color, style, ...rest }) => (
   <Text {...rest} style={[typography[variant], { color: color ?? colors.text }, style]} />
 );
 
-const buttonBg = { primary: colors.primary, auction: colors.primary, sell: colors.sell, outline: colors.white, ghost: 'transparent' };
+const buttonBg = {
+  primary: colors.primary,
+  brand: colors.brand,
+  auction: colors.primary,
+  sell: colors.sell,
+  secondary: colors.brand,
+  outline: colors.white,
+  ghost: 'transparent',
+};
 
 export const Button = ({ title, onPress, variant = 'primary', loading, disabled, icon, iconRight, style, size = 'lg' }) => {
-  const filled = variant === 'primary' || variant === 'auction' || variant === 'sell';
+  const isBrandOutline = variant === 'outline-brand';
+  const isOutline = variant === 'outline' || isBrandOutline;
+  const filled = !isOutline && variant !== 'ghost';
   const inactive = disabled || loading;
+  const textColor = isBrandOutline ? colors.brand : filled ? colors.white : variant === 'ghost' ? colors.brand : colors.primary;
+
+  const bgStyle = { backgroundColor: buttonBg[variant] || colors.primary };
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -18,18 +32,20 @@ export const Button = ({ title, onPress, variant = 'primary', loading, disabled,
       style={({ pressed }) => [
         styles.btn,
         size === 'md' && styles.btnMd,
-        { backgroundColor: buttonBg[variant] },
-        variant === 'outline' && styles.btnOutline,
-        pressed && { opacity: 0.85 },
+        size === 'sm' && styles.btnSm,
+        bgStyle,
+        isOutline && styles.btnOutline,
+        isBrandOutline && { borderColor: colors.brand },
+        pressed && { opacity: 0.88, transform: [{ scale: 0.99 }] },
         inactive && { opacity: 0.5 },
         style,
       ]}>
       {loading ? (
-        <ActivityIndicator color={filled ? colors.white : colors.primary} />
+        <ActivityIndicator color={textColor} />
       ) : (
         <View style={styles.btnRow}>
           {icon}
-          <AppText variant="bodyStrong" color={filled ? colors.white : colors.primary}>
+          <AppText variant="bodyStrong" color={textColor}>
             {title}
           </AppText>
           {iconRight}
@@ -82,6 +98,7 @@ export const Checkbox = ({ checked, onChange, label }) => (
 const styles = StyleSheet.create({
   btn: { minHeight: 52, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.lg },
   btnMd: { minHeight: 42 },
+  btnSm: { minHeight: 34, paddingHorizontal: spacing.md, borderRadius: radius.sm },
   btnOutline: { borderWidth: 1, borderColor: colors.border },
   btnRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   field: {

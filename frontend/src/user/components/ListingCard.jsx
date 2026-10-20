@@ -161,7 +161,7 @@ export const ListingCard = ({ listing, width, onFavouriteChange, horizontal }) =
 };
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.white, borderRadius: radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: colors.divider, ...shadow.card },
+  card: { backgroundColor: colors.white, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: colors.divider, ...shadow.card },
   imgWrap: { height: 130, backgroundColor: colors.surface },
   img: { width: '100%', height: '100%' },
   noImg: { alignItems: 'center', justifyContent: 'center' },

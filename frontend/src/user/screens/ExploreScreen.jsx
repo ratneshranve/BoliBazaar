@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ChevronRight, PackageOpen } from 'lucide-react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
 import { AppText, EmptyState } from '../components/ui';
-import { CategoryTile } from '../components/CategoryTile';
+import { CategoryTile, ViewAllTile } from '../components/CategoryTile';
 import { colors, spacing } from '@theme/tokens';
 import { categoriesApi } from '../api/endpoints';
 
@@ -99,12 +99,7 @@ export const ExploreScreen = () => {
               {items.map((c) => (
                 <CategoryTile key={c.id} category={c} size={72} style={styles.gridTile} onPress={() => open(c)} />
               ))}
-              <Pressable accessibilityLabel={t('explore.viewAll')} onPress={() => navigate(`/search?categoryId=${current.id}`)} style={[styles.gridTile, { alignItems: 'center' }]}>
-                <View style={styles.viewAll}>
-                  <ChevronRight size={28} color={colors.brand} />
-                </View>
-                <AppText variant="small" style={styles.viewAllLabel}>{t('explore.viewAll')}</AppText>
-              </Pressable>
+              <ViewAllTile label={t('explore.viewAll')} size={72} style={styles.gridTile} onPress={() => navigate(`/search?categoryId=${current.id}`)} />
             </View>
 
             <Pressable onPress={() => navigate('/sell')} style={styles.sell}>
@@ -123,7 +118,7 @@ const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: colors.white },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider },
   body: { flex: 1, flexDirection: 'row', minHeight: 0 },
-  rail: { flex: '0 0 auto', width: 92, backgroundColor: colors.brandSoft },
+  rail: { flex: '0 0 auto', width: 92, backgroundColor: colors.surface },
   railItem: { alignItems: 'center', paddingVertical: spacing.md, paddingHorizontal: 6, borderBottomWidth: 1, borderBottomColor: colors.white },
   railActive: { backgroundColor: colors.white },
   railBar: { position: 'absolute', left: 0, top: 10, bottom: 10, width: 4, borderTopRightRadius: 4, borderBottomRightRadius: 4, backgroundColor: colors.primary },
@@ -136,8 +131,6 @@ const styles = StyleSheet.create({
   // three columns, same on website and phone
   grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 18, width: '100%', alignItems: 'flex-start' },
   gridTile: { width: '33.333%', alignItems: 'center' },
-  viewAll: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.brandSoft, alignItems: 'center', justifyContent: 'center' },
-  viewAllLabel: { textAlign: 'center', marginTop: spacing.xs, fontWeight: '600', color: colors.brand },
   sell: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.xxl, padding: spacing.md, borderRadius: 10, backgroundColor: colors.primarySoft, borderLeftWidth: 4, borderLeftColor: colors.primary },
   sellDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },
 });
