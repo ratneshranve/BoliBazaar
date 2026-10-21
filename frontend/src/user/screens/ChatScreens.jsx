@@ -80,7 +80,7 @@ export const ChatsScreen = () => {
         </View>
       )}
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm, paddingBottom: spacing.xxxl }}>
-        {!items && <ActivityIndicator style={{ minHeight: 'calc(100dvh - 200px)' }} color={colors.primary} />}
+        {!items && <ActivityIndicator style={{ minHeight: 'calc(100dvh - 200px)' }} color={colors.brand} />}
         {items?.length === 0 && <EmptyState icon={<MessageSquare size={44} color={colors.textMuted} />} title={archived ? t('chat.noArchived') : t('chat.empty')} body={archived ? undefined : t('chat.emptyBody')} />}
         {items?.map((c) => (
           <Pressable key={c.id} onPress={() => navigate(`/chat/${c.id}`)} style={styles.row}>
@@ -570,7 +570,7 @@ export const ChatScreen = () => {
               </Pressable>
             )}
             <Pressable accessibilityLabel={t('chat.shareLocation')} onPress={shareLocation} disabled={locating} style={styles.attachBtn}>
-              {locating ? <ActivityIndicator color={colors.primary} /> : <MapPin size={20} color={colors.textMuted} />}
+              {locating ? <ActivityIndicator color={colors.brand} /> : <MapPin size={20} color={colors.textMuted} />}
             </Pressable>
             <TextInput
               value={text}
@@ -594,12 +594,12 @@ const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: colors.white, minHeight: 0 },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.divider },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.divider },
-  badge: { minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  badge: { minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: colors.brand, alignItems: 'center', justifyContent: 'center' },
   adBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.divider },
   adThumb: { width: 44, height: 44, borderRadius: radius.md },
   offerPanel: { padding: spacing.md, gap: spacing.sm, backgroundColor: colors.primarySoft, borderBottomWidth: 1, borderBottomColor: colors.divider },
   bubble: { maxWidth: '78%', padding: spacing.md, borderRadius: radius.lg, gap: spacing.xs },
-  mine: { alignSelf: 'flex-end', backgroundColor: colors.primary },
+  mine: { alignSelf: 'flex-end', backgroundColor: colors.brand },
   theirs: { alignSelf: 'flex-start', backgroundColor: colors.surface },
   imageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   chatImage: { width: 110, height: 110, borderRadius: radius.md },
@@ -618,11 +618,11 @@ const styles = StyleSheet.create({
   composer: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md },
   composerNote: { padding: spacing.lg, alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.divider },
   filters: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.sm, flexWrap: 'wrap' },
-  chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipOn: { backgroundColor: colors.brand, borderColor: colors.brand },
   archivedLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, padding: spacing.lg },
   menuRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.divider },
   locCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minWidth: 200, paddingVertical: spacing.xs },
   attachBtn: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },
   input: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: spacing.lg, paddingVertical: 10, fontSize: 16 },
-  sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.brand, alignItems: 'center', justifyContent: 'center' },
 });

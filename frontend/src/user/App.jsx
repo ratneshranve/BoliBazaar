@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Provider } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, View } from './components/primitives';
 import { missingEnv } from './config/env';
 import { store, useAppDispatch, useAppSelector, fetchBootstrap, restoreSession, maintenanceDetected, sessionExpired, setLocation, fetchUnread, notificationArrived, meUpdated } from './store';
@@ -53,16 +54,29 @@ const Gate = () => {
   const { status, maintenance, bootstrap, updateDismissed } = useAppSelector((s) => s.app);
   const session = useAppSelector((s) => s.session.status);
   const [, setLangTick] = useState(0);
+  useTranslation(); // redraw when the language changes (also from Profile › Language)
   const langs = bootstrap?.languages?.items ?? [];
   const saved = savedLanguage();
-  const languageValid = Boolean(saved && langs.some((l) => l.code === saved));
+  const offered = (code) => Boolean(code && langs.some((l) => l.code === code));
+  const languageValid = offered(saved);
+  const me = useAppSelector((s) => s.session.me);
+  const accountLanguage = offered(me?.language) ? me.language : null;
 
   // One enabled language → no chooser, just use it. A saved translated language → load its strings.
+  // Signed in on a new device → the language chosen on the account, without asking again.
   useEffect(() => {
     if (status !== 'ready') return;
-    if (!languageValid && langs.length === 1) setLanguage(langs[0].code).then(() => setLangTick((n) => n + 1));
+    if (!languageValid && accountLanguage) setLanguage(accountLanguage).then(() => setLangTick((n) => n + 1));
+    else if (!languageValid && langs.length === 1) setLanguage(langs[0].code).then(() => setLangTick((n) => n + 1));
     else if (languageValid) ensureLanguage(saved).then(() => i18n.changeLanguage(saved));
-  }, [status, languageValid, langs.length, saved]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [status, languageValid, accountLanguage, langs.length, saved]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // the language chosen on this device (e.g. before logging in) is kept on the account
+  useEffect(() => {
+    if (session === 'authenticated' && me && languageValid && me.language !== saved) {
+      meApi.update({ language: saved }).then(({ data }) => dispatch(meUpdated(data))).catch(() => {});
+    }
+  }, [session, me?.language, languageValid, saved]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     setClientHooks({
@@ -76,7 +90,6 @@ const Gate = () => {
   }, [dispatch]);
 
   // A logged-in user's saved place applies on this device until they pick another.
-  const me = useAppSelector((s) => s.session.me);
   const currentLocation = useAppSelector((s) => s.location.current);
   const defaultRadius = bootstrap?.location?.defaultRadiusKm;
   useEffect(() => {
@@ -101,7 +114,7 @@ const Gate = () => {
   if (maintenance?.enabled) return <MaintenanceScreen />;
   if (bootstrap?.update.required) return <UpdateScreen required />;
   if (bootstrap?.update.available && !updateDismissed) return <UpdateScreen required={false} />;
-  if (!languageValid && langs.length > 1) return <LanguageScreen onDone={() => setLangTick((n) => n + 1)} />;
+  if (!languageValid && !accountLanguage && langs.length > 1) return <LanguageScreen onDone={() => setLangTick((n) => n + 1)} />;
   if (introPending(bootstrap)) return <IntroScreen onDone={() => setLangTick((n) => n + 1)} />;
   if (session === 'authenticated' && reconsentNeeded(me, bootstrap?.legal)) return <ReConsentScreen />;
   return (

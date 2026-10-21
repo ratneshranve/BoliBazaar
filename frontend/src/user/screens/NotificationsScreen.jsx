@@ -79,27 +79,7 @@ export const NotificationsScreen = () => {
       <View style={styles.header}>
         <Pressable accessibilityLabel={t('common.back')} onPress={() => navigate(-1)}><ArrowLeft size={24} color={colors.text} /></Pressable>
         <AppText variant="h3" style={{ flex: 1 }}>{t('notifications.title')}</AppText>
-        <Pressable onPress={() => setShowPrefs((v) => !v)}><AppText variant="bodyStrong" color={colors.primary}>{t('notifications.settings')}</AppText></Pressable>
       </View>
-
-      {showPrefs && prefs && (
-        <View style={styles.prefs}>
-          <AppText variant="caption" color={colors.textMuted}>{t('notifications.pushHelp')}</AppText>
-          <AppText variant="caption" color={colors.textMuted}>{t('notifications.emailHelp')}</AppText>
-          <View style={styles.prefRow}>
-            <View style={{ flex: 1 }} />
-            <AppText variant="small" color={colors.textMuted} style={styles.prefCol}>{t('notifications.push')}</AppText>
-            <AppText variant="small" color={colors.textMuted} style={styles.prefCol}>{t('notifications.emailCol')}</AppText>
-          </View>
-          {GROUPS.map((g) => (
-            <View key={g} style={styles.prefRow}>
-              <AppText style={{ flex: 1 }}>{t(`notifications.group_${g}`)}</AppText>
-              <View style={styles.prefCol}><Switch activeColor={colors.primary} value={prefs[g]?.push !== false} onValueChange={(on) => toggle(g, 'push', on)} /></View>
-              <View style={styles.prefCol}>{g !== 'chat' && <Switch activeColor={colors.primary} value={prefs[g]?.email !== false} onValueChange={(on) => toggle(g, 'email', on)} />}</View>
-            </View>
-          ))}
-        </View>
-      )}
 
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm, paddingBottom: spacing.xxxl }}>
         {items?.some((n) => !n.readAt) && <Button size="md" variant="outline" title={t('notifications.markAll')} onPress={readAll} />}

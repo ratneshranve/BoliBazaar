@@ -6,6 +6,8 @@ import { Category } from '../categories/category.model.js';
 import { User } from '../users/user.model.js';
 import { getSettingValue } from '../settings/settings.service.js';
 import { notify } from '../notifications/notification.service.js';
+import { Auction } from '../auctions/auction.model.js';
+import { snapshotRules } from '../auctions/auction.util.js';
 import { participationPaid } from '../auctions/participation.service.js';
 import { ApiError } from '../../core/utils/ApiError.js';
 import { logger } from '../../core/utils/logger.js';
@@ -74,7 +76,26 @@ const fulfilPlan = async (p) => {
 
 const fulfilCommission = (p) => Commission.updateOne({ _id: p.refId, status: 'due' }, { $set: { status: 'paid', paidAt: new Date(), paymentId: p._id } });
 
-const FULFIL = { listing_fee: fulfilListingFee, promotion: fulfilPromotion, plan: fulfilPlan, commission: fulfilCommission, participation_fee: participationPaid };
+const fulfilAuctionCommission = async (p) => {
+  const a = await Auction.findOne({ _id: p.refId, status: 'payment_pending' });
+  if (!a) return;
+  const now = new Date();
+  const cfg = await getSettingValue('auctions');
+  a.rules = snapshotRules(cfg, a.currency);
+  if (a.startAt < now) a.startAt = now;
+  a.endAt = new Date(a.startAt.getTime() + a.durationMs);
+  a.originalEndAt = a.endAt;
+  a.status = a.startAt > now ? 'scheduled' : 'live';
+  await a.save();
+  await Listing.updateOne(
+    { _id: a.listingId },
+    { $set: { status: 'published', publishedAt: now, expiresAt: a.endAt } }
+  );
+  const listing = await Listing.findById(a.listingId).select('title').lean();
+  await notify(a.sellerId, 'auction.approved', { title: listing?.title }, { route: `/auctions/${a._id}` });
+};
+
+const FULFIL = { listing_fee: fulfilListingFee, promotion: fulfilPromotion, plan: fulfilPlan, commission: fulfilCommission, auction_commission: fulfilAuctionCommission, participation_fee: participationPaid };
 
 /** created → paid exactly once, then deliver what was bought. Safe to call again (webhook + verify both do). */
 const markPaid = async (paymentDocId, gatewayPaymentId) => {

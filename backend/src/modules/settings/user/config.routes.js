@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { asyncHandler, ok } from '../../../core/utils/http.js';
 import { getPublicSettings, getSettingValue } from '../settings.service.js';
 import { legalVersions } from '../../cms/page.service.js';
-import { languageInfo } from '../../i18n/catalogue.js';
+import { languagesForApp } from '../../i18n/catalogue.js';
 import { translateForReader } from '../../categories/category.service.js';
 
 /** Intro slides in the reader's language (written in English in admin). */
@@ -63,13 +63,7 @@ router.get(
       onboarding: await onboardingFor(s.onboarding.value, req.ctx.lang),
       uploads: await getSettingValue('storage').then((st) => ({ maxImageMb: st.maxImageMb, maxVideoMb: st.maxVideoMb ?? 50, maxVideoSeconds: st.maxVideoSeconds ?? 60 })),
       legal: await legalVersions(),
-      languages: {
-        default: s.languages.value.default,
-        items: s.languages.value.enabled.map((code) => {
-          const info = languageInfo(code);
-          return { code, name: info.name, nativeName: info.nativeName, rtl: Boolean(info.rtl) };
-        }),
-      },
+      languages: await languagesForApp(s.languages.value),
       maintenance,
       update,
       versions: {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ChevronRight, PackageOpen } from 'lucide-react';
+import { ArrowLeft, PackageOpen } from 'lucide-react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
 import { AppText, EmptyState } from '../components/ui';
 import { CategoryTile, ViewAllTile } from '../components/CategoryTile';
@@ -102,11 +102,14 @@ export const ExploreScreen = () => {
               <ViewAllTile label={t('explore.viewAll')} size={72} style={styles.gridTile} onPress={() => navigate(`/search?categoryId=${current.id}`)} />
             </View>
 
-            <Pressable onPress={() => navigate('/sell')} style={styles.sell}>
-              <View style={styles.sellDot} />
-              <AppText variant="bodyStrong" style={{ flex: 1 }}>{t('explore.sellCta')}</AppText>
-              <ChevronRight size={20} color={colors.text} />
-            </Pressable>
+            <View style={styles.brandFooter}>
+              <View style={styles.brandFooterLine} />
+              <AppText style={styles.brandFooterText}>
+                <AppText style={{ color: colors.primary, fontWeight: '800' }}>Boli</AppText>
+                <AppText style={{ color: colors.brand, fontWeight: '800' }}>Bazaar</AppText>
+              </AppText>
+              <View style={styles.brandFooterLine} />
+            </View>
           </ScrollView>
         </View>
       )}
@@ -125,12 +128,29 @@ const styles = StyleSheet.create({
   railIcon: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white, borderWidth: 1.5, borderColor: 'transparent' },
   railLabel: { textAlign: 'center', marginTop: 6, fontWeight: '500', width: '100%' },
   pane: { flex: 1 },
-  paneContent: { padding: spacing.lg, paddingBottom: spacing.xxxl },
+  paneContent: { padding: spacing.lg, paddingBottom: 80 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg },
   titleLine: { flex: 1, height: 1, backgroundColor: colors.border },
   // three columns, same on website and phone
   grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 18, width: '100%', alignItems: 'flex-start' },
   gridTile: { width: '33.333%', alignItems: 'center' },
-  sell: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.xxl, padding: spacing.md, borderRadius: 10, backgroundColor: colors.primarySoft, borderLeftWidth: 4, borderLeftColor: colors.primary },
-  sellDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },
+  brandFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+    marginTop: spacing.xxl,
+    paddingVertical: spacing.lg,
+  },
+  brandFooterLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+    maxWidth: 44,
+  },
+  brandFooterText: {
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
 });

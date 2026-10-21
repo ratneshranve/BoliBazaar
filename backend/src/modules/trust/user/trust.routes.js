@@ -7,6 +7,7 @@ import { asyncHandler, ok } from '../../../core/utils/http.js';
 import { REPORT_TARGETS, CASE_TYPES, VERIFICATION_TYPES } from '../trust.model.js';
 import { createReport, myReports, createCase, myCases, getMyCase, userReply, userCloseCase, submitVerification, myVerification } from '../trust.service.js';
 import { requestDeletion, cancelDeletion, deletionBlockers, exportMyData, DELETION_GRACE_DAYS } from '../account.service.js';
+import { translateForReader } from '../../categories/category.service.js';
 
 const router = Router();
 // only these paths need a login (this router is mounted at the API root)
@@ -62,7 +63,10 @@ router.get('/account/export', asyncHandler(async (req, res) => {
   res.setHeader('Content-Disposition', `attachment; filename="my-data-${new Date().toISOString().slice(0, 10)}.json"`);
   ok(res, await exportMyData(req.user.id));
 }));
-router.get('/account/deletion', asyncHandler(async (req, res) => ok(res, { graceDays: DELETION_GRACE_DAYS, blockers: await deletionBlockers(req.user.id), pending: req.user.status === 'pending_deletion' })));
+router.get('/account/deletion', asyncHandler(async (req, res) => {
+  const blockers = await translateForReader(await deletionBlockers(req.user.id), req.ctx.lang);
+  ok(res, { graceDays: DELETION_GRACE_DAYS, blockers, pending: req.user.status === 'pending_deletion' });
+}));
 router.post('/account/deletion', asyncHandler(async (req, res) => ok(res, await requestDeletion(req.user.id))));
 router.delete('/account/deletion', asyncHandler(async (req, res) => {
   await cancelDeletion(req.user.id);

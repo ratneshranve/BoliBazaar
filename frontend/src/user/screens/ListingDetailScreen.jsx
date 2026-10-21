@@ -331,7 +331,7 @@ export const ListingDetailScreen = () => {
 
           {!ad.isOwner && ad.status === 'published' && ['job', 'service'].includes(ad.listingType) && <LeadBox ad={ad} authed={status === 'authenticated'} onLogin={() => navigate('/login')} />}
           {!ad.isOwner && ad.status === 'published' && <PhoneBox ad={ad} authed={status === 'authenticated'} onLogin={() => navigate('/login')} />}
-          {!ad.isOwner && ad.status === 'published' && <Button title={t('chat.chatWithSeller')} variant={['job', 'service'].includes(ad.listingType) ? 'outline' : 'primary'} loading={opening} onPress={startChat} />}
+          {!ad.isOwner && ad.status === 'published' && <Button title={t('chat.chatWithSeller')} variant={['job', 'service'].includes(ad.listingType) ? 'outline' : 'brand'} loading={opening} onPress={startChat} />}
           {ad.isOwner && ['job', 'service'].includes(ad.listingType) && <Button title={t('leads.viewReceived')} variant="outline" onPress={() => navigate(`/leads/received?listing=${ad.id}`)} />}
 
           {!ad.isOwner && (

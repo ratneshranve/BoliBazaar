@@ -5,7 +5,7 @@ import { escapeRegex } from '../../core/utils/http.js';
 import { Category, LISTING_TYPES, ATTRIBUTE_TYPES } from './category.model.js';
 import { ApiError } from '../../core/utils/ApiError.js';
 import { logger } from '../../core/utils/logger.js';
-import { enabledLanguageCodes, translateTexts } from '../i18n/translate.service.js';
+import { resolveLanguage, translateTexts } from '../i18n/translate.service.js';
 import { Media } from '../uploads/media.model.js';
 import { mediaUrlInput } from '../../core/utils/mediaUrl.js';
 
@@ -286,8 +286,9 @@ export const adminCategoryPage = async ({ level, parentId, q, status, page, limi
 export const translateForReader = async (texts, lang) => {
   if (!lang || lang === 'en') return texts;
   try {
-    if (!(await enabledLanguageCodes()).includes(lang)) return texts;
-    return await translateTexts(texts, lang);
+    const target = await resolveLanguage(lang);
+    if (!target || target === 'en') return texts;
+    return await translateTexts(texts, target);
   } catch (err) {
     logger.warn('Translation unavailable, serving English', { lang, err: err.message });
     return texts;

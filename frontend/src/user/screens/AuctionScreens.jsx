@@ -97,8 +97,8 @@ export const AuctionCard = ({ listing }) => {
       <Pressable onPress={open} style={{ padding: spacing.sm, gap: 2 }}>
         <AppText variant="bodyStrong" numberOfLines={1}>{listing.title}</AppText>
         <AppText variant="small" color={colors.textMuted} numberOfLines={1}>{[listing.categoryName, listing.place].filter(Boolean).join(' • ')}</AppText>
-        <AppText variant="small" color={colors.primary} style={{ marginTop: spacing.xs }}>{a.currentMinor != null ? t('auction.currentBid') : t('auction.startingBid')}</AppText>
-        <AppText style={styles.bigPrice} color={colors.primary} numberOfLines={1}>{money(a.currentMinor ?? a.startingMinor)}</AppText>
+        <AppText variant="small" color={colors.brand} style={{ marginTop: spacing.xs }}>{a.currentMinor != null ? t('auction.currentBid') : t('auction.startingBid')}</AppText>
+        <AppText style={styles.bigPrice} color={colors.brand} numberOfLines={1}>{money(a.currentMinor ?? a.startingMinor)}</AppText>
         <View style={styles.stats}>
           <View style={{ flex: 1 }}>
             <AppText variant="small" color={colors.textMuted}>{t('auction.totalBids')}</AppText>
@@ -113,7 +113,7 @@ export const AuctionCard = ({ listing }) => {
         </View>
       </Pressable>
       <View style={{ paddingHorizontal: spacing.sm, paddingBottom: spacing.sm }}>
-        <Button size="md" title={a.status === 'live' ? t('auction.bidNow') : t('auction.view')} icon={<Gavel size={16} color={colors.white} />} onPress={open} />
+        <Button size="md" variant="auction" title={a.status === 'live' ? t('auction.bidNow') : t('auction.view')} icon={<Gavel size={16} color={colors.white} />} onPress={open} />
       </View>
     </View>
   );
@@ -198,10 +198,10 @@ export const AuctionsScreen = () => {
         {/* hero */}
         <View style={styles.hero}>
           <View style={{ flex: 1, gap: spacing.xs, zIndex: 1 }}>
-            <AppText variant="small" color={colors.primary} style={{ letterSpacing: 1.5, fontWeight: '700' }}>{t('auction.heroEyebrow')}</AppText>
+            <AppText variant="small" color={colors.brand} style={{ letterSpacing: 1.5, fontWeight: '700' }}>{t('auction.heroEyebrow')}</AppText>
             <AppText style={styles.heroTitle}>
               <AppText style={styles.heroTitle} color={colors.primary}>{t('auction.heroBid')} </AppText>
-              <AppText style={styles.heroTitle} color={colors.auction}>{t('auction.heroWin')}</AppText>
+              <AppText style={styles.heroTitle} color={colors.brand}>{t('auction.heroWin')}</AppText>
               {'\n'}
               {t('auction.heroDeals')}
             </AppText>
@@ -212,7 +212,7 @@ export const AuctionsScreen = () => {
               </Pressable>
               {enabled && (
                 <Pressable onPress={() => navigate(authed ? '/sell?type=auction' : '/login')} style={[styles.heroBtn, styles.heroBtnGhost]}>
-                  <AppText variant="caption" color={colors.primary} style={{ fontWeight: '700' }}>{t('auction.create')}</AppText>
+                  <AppText variant="caption" color={colors.brand} style={{ fontWeight: '700' }}>{t('auction.create')}</AppText>
                 </Pressable>
               )}
             </View>
@@ -229,17 +229,17 @@ export const AuctionsScreen = () => {
         {/* categories */}
         <ScrollView horizontal contentContainerStyle={{ gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm }}>
           <Pressable onPress={() => setCategoryId('')} style={styles.catItem}>
-            <View style={[styles.catCircle, !categoryId && { backgroundColor: colors.primary }]}>
+            <View style={[styles.catCircle, !categoryId && { backgroundColor: colors.brand }]}>
               <LayoutGrid size={26} color={!categoryId ? colors.white : colors.text} />
             </View>
-            <AppText variant="small" color={!categoryId ? colors.primary : colors.text}>{t('auction.all')}</AppText>
+            <AppText variant="small" color={!categoryId ? colors.brand : colors.text}>{t('auction.all')}</AppText>
           </Pressable>
           {cats.map((c) => (
             <Pressable key={c.id} onPress={() => setCategoryId(c.id === categoryId ? '' : c.id)} style={styles.catItem}>
-              <View style={[styles.catCircle, categoryId === c.id && { borderWidth: 2, borderColor: colors.primary }]}>
+              <View style={[styles.catCircle, categoryId === c.id && { borderWidth: 2, borderColor: colors.brand }]}>
                 {c.icon ? <Image source={{ uri: c.icon }} style={{ width: 34, height: 34 }} resizeMode="contain" /> : <AppText variant="h3">{c.name.charAt(0)}</AppText>}
               </View>
-              <AppText variant="small" numberOfLines={2} style={{ textAlign: 'center' }} color={categoryId === c.id ? colors.primary : colors.text}>{c.name}</AppText>
+              <AppText variant="small" numberOfLines={2} style={{ textAlign: 'center' }} color={categoryId === c.id ? colors.brand : colors.text}>{c.name}</AppText>
             </Pressable>
           ))}
         </ScrollView>
@@ -252,8 +252,8 @@ export const AuctionsScreen = () => {
             <ChevronDown size={14} color={colors.textMuted} />
           </Pressable>
           <Pressable onPress={() => setSheet('price')} style={[styles.chip, priceActive && styles.chipOn]}>
-            <Tag size={16} color={priceActive ? colors.primary : colors.text} />
-            <AppText variant="caption" style={{ fontWeight: '600' }} color={priceActive ? colors.primary : colors.text}>{t('auction.price')}</AppText>
+            <Tag size={16} color={priceActive ? colors.brand : colors.text} />
+            <AppText variant="caption" style={{ fontWeight: '600' }} color={priceActive ? colors.brand : colors.text}>{t('auction.price')}</AppText>
             <ChevronDown size={14} color={colors.textMuted} />
           </Pressable>
           {tab !== 'ending' && (
@@ -269,13 +269,13 @@ export const AuctionsScreen = () => {
         <View style={styles.segment}>
           {TABS.map((x) => (
             <Pressable key={x.key} onPress={() => setTab(x.key)} style={[styles.segBtn, tab === x.key && styles.segOn]}>
-              <AppText variant="bodyStrong" color={tab === x.key ? colors.white : colors.text}>{t(`auction.tab_${x.key}`)}</AppText>
+              <AppText variant="bodyStrong" color={tab === x.key ? colors.white : colors.brand}>{t(`auction.tab_${x.key}`)}</AppText>
             </Pressable>
           ))}
         </View>
 
         <View style={{ paddingHorizontal: spacing.lg }}>
-          {!items && <ActivityIndicator style={{ minHeight: 'calc(100dvh - 200px)' }} color={colors.primary} />}
+          {!items && <ActivityIndicator style={{ minHeight: 'calc(100dvh - 200px)' }} color={colors.brand} />}
           {items?.length === 0 && <EmptyState icon={<Gavel size={44} color={colors.textMuted} />} title={t(`auction.empty_${tab}`)} />}
           <View style={styles.grid}>
             {items?.map((l) => (
@@ -300,7 +300,7 @@ export const AuctionsScreen = () => {
         <Sheet title={t('auction.sortBy')} onClose={() => setSheet(null)}>
           {SORTS.map((k) => (
             <Pressable key={k} onPress={() => { setSort(k); setSheet(null); }} style={styles.sortRow}>
-              <AppText variant="bodyStrong" color={sort === k ? colors.primary : colors.text}>{t(`auction.sort_${k}`)}</AppText>
+              <AppText variant="bodyStrong" color={sort === k ? colors.brand : colors.text}>{t(`auction.sort_${k}`)}</AppText>
             </Pressable>
           ))}
         </Sheet>
@@ -320,7 +320,7 @@ function PriceSheet({ value, onApply, onClose }) {
       footer={
         <View style={{ flexDirection: 'row', gap: spacing.sm }}>
           <Button size="md" variant="outline" title={t('auction.clear')} onPress={() => onApply({ min: '', max: '' })} style={{ flex: 1 }} />
-          <Button size="md" title={t('auction.apply')} onPress={() => onApply({ min, max })} style={{ flex: 1 }} />
+          <Button size="md" variant="auction" title={t('auction.apply')} onPress={() => onApply({ min, max })} style={{ flex: 1 }} />
         </View>
       }>
       <View style={{ flexDirection: 'row', gap: spacing.sm }}>
@@ -554,11 +554,17 @@ export const AuctionDetailScreen = () => {
           {a.isSeller && (
             <Card style={{ gap: spacing.sm }}>
               <AppText variant="bodyStrong">{t('auction.yourAuction')} · {t(`auction.status_${a.status}`)}</AppText>
+              {a.status === 'payment_pending' && (
+                <View style={{ gap: spacing.xs, marginVertical: spacing.xs }}>
+                  <AppText color={colors.warning}>{t('sell.success_auction_payment')}</AppText>
+                  <Button size="md" title={t('sell.payCommission')} onPress={() => navigate(`/pay?purpose=auction_commission&refId=${id}&next=${encodeURIComponent(`/auctions/${id}`)}`)} style={{ backgroundColor: colors.auction }} />
+                </View>
+              )}
               {a.rejectReason && <AppText color={colors.danger}>{t('myListings.reason', { reason: a.rejectReason })}</AppText>}
               {a.reserveMinor != null && <AppText variant="caption" color={colors.textMuted}>{t('auction.yourReserve', { amount: money(a.reserveMinor) })}</AppText>}
               <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
-                {['pending_review', 'rejected'].includes(a.status) && <Button size="md" variant="outline" title={t('myListings.edit')} onPress={() => navigate(`/auctions/${id}/edit`)} />}
-                {['pending_review', 'rejected', 'scheduled', 'live'].includes(a.status) && a.bidCount === 0 && (
+                {['payment_pending', 'pending_review', 'rejected'].includes(a.status) && <Button size="md" variant="outline" title={t('myListings.edit')} onPress={() => navigate(`/auctions/${id}/edit`)} />}
+                {['payment_pending', 'pending_review', 'rejected', 'scheduled', 'live'].includes(a.status) && a.bidCount === 0 && (
                   <Button size="md" variant="ghost" title={t('auction.cancel')} onPress={() => sellerAction(() => auctionsApi.cancel(id), t('auction.confirmCancel'))} />
                 )}
                 {a.canOffer && <Button size="md" title={t('auction.offerNext')} onPress={() => sellerAction(() => auctionsApi.offer(id), t('auction.confirmOffer'))} />}
@@ -670,7 +676,7 @@ export const MyAuctionsScreen = () => {
           <EmptyState
             icon={<Gavel size={44} color={colors.textMuted} />}
             title={t(`auction.mineEmpty_${role}`)}
-            action={role === 'selling' ? <Button title={t('auction.create')} onPress={() => navigate('/sell?type=auction')} /> : <Button title={t('auction.browse')} onPress={() => navigate('/auctions')} />}
+            action={role === 'selling' ? <Button title={t('auction.create')} onPress={() => navigate('/sell?type=auction')} /> : <Button variant="auction" title={t('auction.browse')} onPress={() => navigate('/auctions')} />}
           />
         )}
         {items?.map((a) => (
@@ -687,7 +693,12 @@ export const MyAuctionsScreen = () => {
               ) : role === 'watching' ? (
                 <AppText variant="small" color={colors.textMuted}>{t(`auction.status_${a.status}`)}</AppText>
               ) : (
-                <AppText variant="small" color={colors.textMuted}>{t(`auction.status_${a.status}`)}{a.outcome ? ` · ${t(OUTCOME_KEY[a.outcome])}` : ''}</AppText>
+                <View style={{ gap: 2 }}>
+                  <AppText variant="small" color={a.status === 'payment_pending' ? colors.warning : colors.textMuted}>{t(`auction.status_${a.status}`)}{a.outcome ? ` · ${t(OUTCOME_KEY[a.outcome])}` : ''}</AppText>
+                  {a.status === 'payment_pending' && (
+                    <Button size="sm" title={t('sell.payCommission')} onPress={() => navigate(`/pay?purpose=auction_commission&refId=${a.id}&next=${encodeURIComponent(`/auctions/${a.id}`)}`)} style={{ backgroundColor: colors.auction, alignSelf: 'flex-start', marginTop: 4 }} />
+                  )}
+                </View>
               )}
             </View>
           </Pressable>
@@ -829,7 +840,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.divider },
   tabs: { flexDirection: 'row', gap: spacing.sm, padding: spacing.lg, flexWrap: 'wrap' },
   tab: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border },
-  tabOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  tabOn: { backgroundColor: colors.brand, borderColor: colors.brand },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   card: { borderRadius: radius.lg, borderWidth: 1, borderColor: colors.divider, overflow: 'hidden', backgroundColor: colors.white, boxShadow: '0 4px 14px rgba(17,24,39,0.06)' },
   cardImg: { height: 128, backgroundColor: colors.surface },
@@ -840,17 +851,17 @@ const styles = StyleSheet.create({
   bigPrice: { fontSize: 19, lineHeight: 24, fontWeight: '800' },
   hero: { flexDirection: 'row', alignItems: 'center', margin: spacing.lg, marginTop: spacing.sm, padding: spacing.lg, borderRadius: 20, background: 'linear-gradient(135deg, #FDECEF 0%, #FFF6F7 60%, #F3E8EC 100%)', overflow: 'hidden', minHeight: 170 },
   heroTitle: { fontSize: 30, lineHeight: 34, fontWeight: '800', fontFamily: 'Georgia, serif', color: colors.text },
-  heroBtn: { backgroundColor: colors.primary, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: 8 },
-  heroBtnGhost: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.primary },
+  heroBtn: { backgroundColor: colors.brand, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: 8 },
+  heroBtnGhost: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.brand },
   heroImg: { width: 130, height: 140, position: 'absolute', right: 0, bottom: 0 },
   search: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginHorizontal: spacing.lg, paddingHorizontal: spacing.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.divider, backgroundColor: colors.white, boxShadow: '0 4px 14px rgba(17,24,39,0.05)' },
   catItem: { alignItems: 'center', gap: 4, width: 64 },
   catCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.md, paddingVertical: 8, borderRadius: radius.pill, backgroundColor: colors.surface, maxWidth: 170 },
-  chipOn: { backgroundColor: colors.primarySoft },
+  chipOn: { backgroundColor: colors.brandSoft, borderWidth: 1, borderColor: colors.brand },
   segment: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
-  segBtn: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.divider, backgroundColor: colors.white },
-  segOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  segBtn: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: radius.pill, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.white },
+  segOn: { backgroundColor: colors.brand, borderColor: colors.brand },
   sortRow: { paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider },
   priceInput: { flex: 1, height: 48, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: spacing.md, fontSize: 16 },
   noImg: { flex: 1, alignItems: 'center', justifyContent: 'center' },

@@ -3,6 +3,7 @@
     "continue": "Continue",
     "retry": "Retry",
     "cancel": "Cancel",
+    "delete": "Delete",
     "save": "Save",
     "done": "Done",
     "loading": "Loading…",
@@ -12,7 +13,8 @@
     "seeAll": "View all",
     "offline": "You're offline",
     "somethingWrong": "Something went wrong",
-    "comingSoon": "This section will be available soon."
+    "comingSoon": "This section will be available soon.",
+    "ok": "OK"
   },
   "page": {
     "unavailable": "This page is not available yet."
@@ -44,7 +46,10 @@
   },
   "language": {
     "title": "Choose your language",
-    "subtitle": "You can change this later in Settings"
+    "subtitle": "You can change this later in Settings",
+    "search": "Search languages",
+    "noMatch": "No language matches your search",
+    "loadFailed": "Couldn't load this language. Check your internet connection and try again."
   },
   "auth": {
     "loginTitle": "Log in or sign up",
@@ -102,6 +107,9 @@
     "categories": "Categories",
     "viewAll": "View All",
     "sellCta": "Have something to sell? List here",
+    "sellTitle": "Have something to sell?",
+    "sellSubtitle": "List it here & get buyers fast",
+    "postAd": "Post Ad",
     "noListings": "Ads in this category will appear here soon.",
     "noCategories": "No categories available yet."
   },
@@ -182,7 +190,14 @@
     "guestBody": "Log in to post ads, bid, chat and save items.",
     "login": "Log in",
     "leads": "Applications & enquiries",
-    "leadsSub": "Jobs and services"
+    "leadsSub": "Jobs and services",
+    "changePhoto": "Change photo",
+    "nameLabel": "Full name",
+    "namePlaceholder": "Enter your name",
+    "nameTooShort": "Name must be at least 2 characters",
+    "aboutLabel": "About you",
+    "aboutPlaceholder": "Tell buyers and sellers a bit about yourself",
+    "phoneLabel": "Phone number"
   },
   "security": {
     "title": "Account & Security",
@@ -384,7 +399,12 @@
     "reviewNote": "Changes to this ad will be reviewed again before it goes live.",
     "pickLeaf": "Pick the most specific category",
     "required": "Required",
-    "success_auction": "Your auction was sent for review. We will notify you once it is approved.",
+    "success_auction": "Your auction is created!",
+    "success_auction_live": "Your auction is live! Bidders can now view and participate.",
+    "success_auction_payment": "Your auction is created! Complete the platform commission payment to publish it immediately.",
+    "payCommission": "Pay Commission",
+    "auctionCommissionNotice": "Platform commission to create this auction",
+    "auctionCommissionHint": "Paid to admin via Razorpay. Your auction is activated immediately once payment is verified without waiting for approval.",
     "success_payment": "You have used your free ads. Pay the posting fee to put this ad live.",
     "prohibitedLink": "What you cannot sell",
     "delivery": "Delivery",
@@ -415,7 +435,11 @@
     "draftAutosaved": "Draft saved",
     "deleteDraft": "Delete draft",
     "deleteDraftConfirm": "Delete this draft?",
-    "continueDraft": "Continue"
+    "continueDraft": "Continue",
+    "commissionPercent": "{{percent}}% of the starting bid",
+    "commissionFixed": "Fixed fee: {{amount}}",
+    "commissionMin": "minimum {{amount}}",
+    "commissionMax": "maximum {{amount}}"
   },
   "myListings": {
     "title": "My Listings",
@@ -594,6 +618,7 @@
     "bidsCount_other": "{{count}} bids",
     "biddersCount_one": "{{count}} bidder",
     "biddersCount_other": "{{count}} bidders",
+    "status_payment_pending": "Payment pending",
     "status_pending_review": "Waiting for review",
     "status_rejected": "Not approved",
     "status_scheduled": "Upcoming",
@@ -826,6 +851,7 @@
     "successHint_promotion": "Your ad is now promoted.",
     "successHint_plan": "Your plan is active.",
     "successHint_commission": "Thank you — the commission is paid.",
+    "successHint_auction_commission": "Your commission has been paid and your auction is now active!",
     "includedInPlan": "Included in your plan — nothing to pay.",
     "useIncluded": "Use included promotion",
     "successHint_participation_fee": "You're registered. Once approved, you can bid."
@@ -983,7 +1009,11 @@
     "confirmDelete": "Delete your account? You have {{days}} days to change your mind.",
     "scheduled": "Your account will be deleted on {{date}}.",
     "pending": "Your account is scheduled for deletion.",
-    "keep": "Keep my account"
+    "keep": "Keep my account",
+    "scheduledTitle": "Deletion scheduled",
+    "pendingBody": "Your account is set to be deleted. Do you want to cancel the deletion and keep your account?",
+    "blockedTitle": "You can't delete your account yet",
+    "confirmTitle": "Delete account?"
   },
   "safety": {
     "tip": "Stay safe: meet in a public place, check the item before paying, and never pay in advance to someone you have not met.",

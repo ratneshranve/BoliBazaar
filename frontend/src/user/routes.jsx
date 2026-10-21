@@ -24,7 +24,7 @@ import { AccountStatusScreen, BannedScreen } from './screens/FirstRunScreens';
 /** Change language later from Profile (same list as the first-run chooser) */
 const LanguageRoute = () => {
   const navigate = useNavigate();
-  return <LanguageScreen onDone={() => navigate(-1)} />;
+  return <LanguageScreen onDone={() => navigate(-1)} onBack={() => navigate(-1)} />;
 };
 
 /**

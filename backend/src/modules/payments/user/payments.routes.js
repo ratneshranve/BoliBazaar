@@ -36,6 +36,7 @@ router.get(
       freePlan: { name: m.freePlanName, freeAdsPer30Days: m.listingFee.freeAdsPer30Days, listingFeeOn: m.listingFee.enabled },
       myPlan: plan ? { code: plan.planCode, name: plan.planName, endAt: plan.endAt, extraFreeAds: plan.extraFreeAds, credits: plan.credits || {} } : null,
       auctionCommission: commissionText(await commissionRuleFor([]), currency),
+      auctionCommissionRule: await commissionRuleFor([]),
       paymentsAvailable: integrations.razorpay.configured,
     });
   })

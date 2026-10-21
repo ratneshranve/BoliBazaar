@@ -3,7 +3,7 @@ import { Auction, Bid, Deal } from './auction.model.js';
 import { incrementFor, nextMinimum } from './auction.rules.js';
 import { summaryOf, buyNowOpen } from './auction.summary.js';
 import { restriction } from './deal.service.js';
-import { assertNoOverdueCommission, commissionRuleFor, commissionText } from '../payments/pricing.service.js';
+import { assertNoOverdueCommission, commissionRuleFor, commissionText, calculateAuctionCommission } from '../payments/pricing.service.js';
 import { checkContent } from '../trust/moderation.service.js';
 import { publicState } from './bidding.service.js';
 import { oid, snapshotRules, formatMoney, HOUR_MS } from './auction.util.js';
@@ -75,8 +75,45 @@ export const createAuction = async (sellerId, input) => {
   const { rules, fields } = await auctionFields(input.auction);
   const listing = await createAuctionItem(sellerId, itemOf(input));
   try {
-    const rest = fields;
-    const a = await Auction.create({ listingId: listing._id, sellerId, status: 'pending_review', rules, ...rest });
+    const item = await Listing.findById(listing._id).select('categoryPath').lean();
+    const { feeMinor } = await calculateAuctionCommission(item?.categoryPath, fields.startingMinor, fields.currency);
+    const now = new Date();
+
+    if (feeMinor > 0) {
+      // Platform commission required: created with payment_pending status
+      const a = await Auction.create({
+        listingId: listing._id,
+        sellerId,
+        status: 'payment_pending',
+        rules,
+        ...fields,
+      });
+      await Listing.updateOne({ _id: listing._id }, { $set: { status: 'payment_pending' } });
+      return {
+        ...sellerView(a, listing),
+        status: 'payment_pending',
+        commissionMinor: feeMinor,
+        paymentPending: true,
+      };
+    }
+
+    // No commission required: auto create and activate immediately! No admin approval required!
+    if (fields.startAt < now) fields.startAt = now;
+    const endAt = new Date(fields.startAt.getTime() + fields.durationMs);
+    const a = await Auction.create({
+      listingId: listing._id,
+      sellerId,
+      status: fields.startAt > now ? 'scheduled' : 'live',
+      rules,
+      ...fields,
+      startAt: fields.startAt,
+      endAt,
+      originalEndAt: endAt,
+    });
+    await Listing.updateOne(
+      { _id: listing._id },
+      { $set: { status: 'published', publishedAt: now, expiresAt: endAt } }
+    );
     return sellerView(a, listing);
   } catch (err) {
     await Listing.deleteOne({ _id: listing._id });
@@ -90,18 +127,18 @@ const mine = async (sellerId, id) => {
   return a;
 };
 
-/** Change an auction that has not been approved yet (it goes back for review). */
+/** Change an auction that has not been approved yet. */
 export const updateAuction = async (sellerId, id, input) => {
   const a = await mine(sellerId, id);
-  if (!['pending_review', 'rejected'].includes(a.status)) throw ApiError.badRequest('AUCTION_LOCKED', 'An approved auction cannot be edited — add a note instead');
+  if (!['payment_pending', 'pending_review', 'rejected'].includes(a.status)) throw ApiError.badRequest('AUCTION_LOCKED', 'An active auction cannot be edited — add a note instead');
   const listing = await Listing.findById(a.listingId);
   if (String(listing.categoryId) !== input.categoryId) throw ApiError.badRequest('CATEGORY_LOCKED', 'Create a new auction to change the category');
   const { rules, fields } = await auctionFields(input.auction);
   await updateAuctionItem(listing, sellerId, itemOf(input));
   const rest = fields;
-  Object.assign(a, rest, { rules, status: 'pending_review', moderation: undefined });
+  Object.assign(a, rest, { rules, status: a.status, moderation: undefined });
   await a.save();
-  await Listing.updateOne({ _id: listing._id }, { $set: { status: 'pending_review' }, $unset: { moderation: 1 } });
+  await Listing.updateOne({ _id: listing._id }, { $set: { status: a.status }, $unset: { moderation: 1 } });
   return sellerView(a, listing);
 };
 
@@ -140,7 +177,7 @@ export const createManagedAuction = async (adminId, { sellerId, note, ...input }
 /** The seller may cancel until the first bid. After that only the admin can. */
 export const cancelBySeller = async (sellerId, id) => {
   const a = await mine(sellerId, id);
-  if (!['pending_review', 'rejected', 'scheduled', 'live'].includes(a.status)) throw ApiError.badRequest('INVALID_STATE', 'This auction can no longer be cancelled');
+  if (!['payment_pending', 'pending_review', 'rejected', 'scheduled', 'live'].includes(a.status)) throw ApiError.badRequest('INVALID_STATE', 'This auction can no longer be cancelled');
   if (a.state.bidCount > 0) throw ApiError.badRequest('HAS_BIDS', 'This auction already has bids — contact support to cancel it');
   const res = await Auction.updateOne({ _id: a._id, 'state.bidCount': 0, status: a.status }, { $set: { status: 'cancelled' }, $inc: { 'state.version': 1 } });
   if (!res.modifiedCount) throw ApiError.conflict('AUCTION_CHANGED', 'Someone just bid — please refresh');
@@ -175,7 +212,7 @@ export const auctionDetail = async (id, viewerId) => {
   const a = await Auction.findById(id).lean();
   if (!a) throw ApiError.notFound('AUCTION_NOT_FOUND');
   const isSeller = viewerId && oid(a.sellerId) === oid(viewerId);
-  if (!isSeller && ['pending_review', 'rejected', 'cancelled'].includes(a.status)) throw ApiError.notFound('AUCTION_NOT_FOUND');
+  if (!isSeller && ['payment_pending', 'pending_review', 'rejected', 'cancelled'].includes(a.status)) throw ApiError.notFound('AUCTION_NOT_FOUND');
 
   const tiers = a.rules.incrementTiers;
   let me = null;
@@ -224,7 +261,7 @@ export const auctionDetail = async (id, viewerId) => {
 /** Bid history with aliases only ("Bidder 2"), newest first. */
 export const bidHistory = async (id, viewerId, { limit = 50 } = {}) => {
   const a = await Auction.findById(id).select('status sellerId').lean();
-  if (!a || (['pending_review', 'rejected'].includes(a.status) && oid(a.sellerId) !== oid(viewerId))) throw ApiError.notFound('AUCTION_NOT_FOUND');
+  if (!a || (['payment_pending', 'pending_review', 'rejected'].includes(a.status) && oid(a.sellerId) !== oid(viewerId))) throw ApiError.notFound('AUCTION_NOT_FOUND');
   const bids = await Bid.find({ auctionId: id, status: 'valid' }).sort({ _id: -1 }).limit(limit).lean();
   return bids.map((b) => ({ id: oid(b._id), alias: b.alias, amountMinor: b.amountMinor, kind: b.kind, at: b.createdAt, mine: Boolean(viewerId && oid(b.bidderId) === oid(viewerId)) }));
 };
@@ -357,11 +394,12 @@ export const adminList = async ({ status, q, page, limit }) => {
   if (status) f.status = status;
   if (q) f.listingId = { $in: await Listing.find({ listingType: 'auction', $or: [{ title: new RegExp(escapeRegex(q), 'i') }, { listingNo: new RegExp(escapeRegex(q), 'i') }] }).distinct('_id') };
   const sort = status === 'pending_review' ? { createdAt: 1 } : status === 'live' ? { endAt: 1 } : { createdAt: -1 };
-  const [docs, total, pending, live] = await Promise.all([
+  const [docs, total, pending, live, paymentPending] = await Promise.all([
     Auction.find(f).sort(sort).skip((page - 1) * limit).limit(limit).lean(),
     Auction.countDocuments(f),
     Auction.countDocuments({ status: 'pending_review' }),
     Auction.countDocuments({ status: 'live' }),
+    Auction.countDocuments({ status: 'payment_pending' }),
   ]);
   const listings = new Map((await Listing.find({ _id: { $in: docs.map((a) => a.listingId) } }).select('title listingNo media').lean()).map((l) => [oid(l._id), l]));
   const sellers = new Map((await User.find({ _id: { $in: docs.map((a) => a.sellerId) } }).select('name phone.e164').lean()).map((u) => [oid(u._id), u]));
@@ -382,7 +420,7 @@ export const adminList = async ({ status, q, page, limit }) => {
       };
     }),
     total,
-    counts: { pending, live },
+    counts: { pending, live, paymentPending },
   };
 };
 

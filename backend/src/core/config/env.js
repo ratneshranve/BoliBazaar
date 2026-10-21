@@ -76,6 +76,8 @@ const schema = z
     CLOUDINARY_FOLDER: optional,
 
     GOOGLE_TRANSLATE_API_KEY: optional,
+    // Folder holding the app's en.json (+ hand-written hi.json…). Default: apps/user-app/src/i18n/locales in this repo.
+    I18N_LOCALES_DIR: optional,
     // Places API (New) + Geocoding API. Used by the server only, so the key is never sent to apps.
     GOOGLE_MAPS_SERVER_KEY: optional,
 

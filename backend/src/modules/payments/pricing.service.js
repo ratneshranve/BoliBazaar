@@ -50,6 +50,16 @@ export const commissionRuleFor = async (categoryPath) => {
   return { enabled: ac.enabled, payer: ac.payer, type: r.type, value: r.value, minFee: r.minFee, maxFee: r.maxFee, dueDays: ac.dueDays, categorySpecific: Boolean(override) };
 };
 
+export const calculateAuctionCommission = async (categoryPath, startingMinor, currency) => {
+  const rule = await commissionRuleFor(categoryPath);
+  if (!rule.enabled) return { rule, feeMinor: 0 };
+  const f = factorOf(currency);
+  let total = rule.type === 'percent' ? Math.round((startingMinor * rule.value) / 100) : Math.round(rule.value * f);
+  if (rule.minFee > 0) total = Math.max(total, Math.round(rule.minFee * f));
+  if (rule.maxFee > 0) total = Math.min(total, Math.round(rule.maxFee * f));
+  return { rule, feeMinor: Math.max(0, total) };
+};
+
 /** What each paying side owes on a sale of `saleMinor`. With payer "both" the fee is split equally. */
 export const commissionShares = (rule, saleMinor, currency) => {
   if (!rule.enabled) return [];
@@ -69,10 +79,9 @@ export const commissionShares = (rule, saleMinor, currency) => {
 export const commissionText = (rule, currency) => {
   if (!rule.enabled) return null;
   const money = (n) => new Intl.NumberFormat(currency === 'INR' ? 'en-IN' : 'en', { style: 'currency', currency, maximumFractionDigits: 0 }).format(n);
-  const fee = rule.type === 'percent' ? `${rule.value}% of the final price` : money(rule.value);
-  const limits = [rule.minFee > 0 && `minimum ${money(rule.minFee)}`, rule.maxFee > 0 && `maximum ${money(rule.maxFee)}`].filter(Boolean).join(', ');
-  const who = rule.payer === 'both' ? 'shared equally by the buyer and the seller' : `paid by the ${rule.payer}`;
-  return `Platform commission: ${fee}${limits ? ` (${limits})` : ''}, ${who}, after the sale is completed.`;
+  const fee = rule.type === 'percent' ? `${rule.value}% of base starting bid` : money(rule.value);
+  const limits = [rule.minFee > 0 && `min ${money(rule.minFee)}`, rule.maxFee > 0 && `max ${money(rule.maxFee)}`].filter(Boolean).join(', ');
+  return `Platform commission: ${fee}${limits ? ` (${limits})` : ''}, paid before auction starts.`;
 };
 
 /** People with an unpaid commission past its due date cannot post (sellers) or bid (buyers), if the admin says so. */
@@ -123,6 +132,14 @@ export const quote = async ({ userId, purpose, refId, productCode }) => {
     if (!target || target.status !== 'due') throw ApiError.badRequest('NOTHING_TO_PAY', 'This commission is not due');
     baseMinor = target.amountMinor;
     description = 'Auction commission';
+  } else if (purpose === 'auction_commission') {
+    const target = await Auction.findOne({ _id: refId, sellerId: userId }).lean();
+    if (!target || target.status !== 'payment_pending') throw ApiError.badRequest('NOTHING_TO_PAY', 'This auction does not need a commission payment');
+    const item = await Listing.findById(target.listingId).select('title categoryPath').lean();
+    const { feeMinor } = await calculateAuctionCommission(item?.categoryPath, target.startingMinor, target.currency || currency);
+    if (!(feeMinor > 0)) throw ApiError.badRequest('NOTHING_TO_PAY', 'No commission due for this auction');
+    baseMinor = feeMinor;
+    description = `Auction commission: ${item?.title || 'Auction'}`;
   } else if (purpose === 'participation_fee') {
     const reg = await AuctionRegistration.findOne({ _id: refId, userId, status: 'awaiting_payment' }).lean();
     if (!reg || !(reg.feeMinor > 0)) throw ApiError.badRequest('NOTHING_TO_PAY', 'This registration does not need a payment');

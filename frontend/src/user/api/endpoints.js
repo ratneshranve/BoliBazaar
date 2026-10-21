@@ -95,7 +95,8 @@ export const placesApi = {
 
 /** Machine-translated UI strings for admin-enabled languages the app doesn't ship */
 export const i18nApi = {
-  bundle: (lang, strings) => api('/i18n/bundle', { method: 'POST', body: { lang, strings }, auth: false, idempotencyKey: false }),
+  /** UI text in `lang`; with `version` (what this device has) only { unchanged: true } comes back when nothing changed. */
+  bundle: (lang, version) => api(`/i18n/bundle/${encodeURIComponent(lang)}${version ? `?v=${encodeURIComponent(version)}` : ''}`, { auth: false }),
 };
 
 /** Terms, Privacy and Support text, managed in Admin › Content Pages */

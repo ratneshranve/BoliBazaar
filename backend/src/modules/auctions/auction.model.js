@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const { Schema } = mongoose;
 
-export const AUCTION_STATUSES = ['pending_review', 'rejected', 'scheduled', 'live', 'suspended', 'ended', 'cancelled'];
+export const AUCTION_STATUSES = ['payment_pending', 'pending_review', 'rejected', 'scheduled', 'live', 'suspended', 'ended', 'cancelled'];
 export const OUTCOMES = ['no_bids', 'won', 'reserve_not_met', 'bought_now'];
 
 /**

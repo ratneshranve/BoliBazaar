@@ -9,6 +9,7 @@ import { mediaUrlInput } from '../../core/utils/mediaUrl.js';
 const mediaRef = z.object({ url: mediaUrlInput, mediaId: z.string().optional() }).nullable();
 const semver = z.string().regex(/^\d+\.\d+\.\d+$/, 'Use format 1.2.3').nullable();
 const nullableText = (max) => z.string().trim().max(max).nullable();
+const LANG_CODE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})?$/; // "bn", "zh-CN", "mni-Mtei" (same as i18n/catalogue.js)
 
 /** The five paid placements of SOP 15.2. */
 export const PROMOTION_TYPES = ['featured', 'top', 'homepage', 'category', 'location'];
@@ -22,14 +23,18 @@ const platformControl = z.object({
 });
 
 export const settingGroups = {
-  /** Languages the app offers. English is the source language and is always on; others are machine-translated. */
+  /**
+   * Languages the app offers. English is the source language and is always on; others are machine-translated.
+   * mode "all": users may pick any language Google Translate supports; "selected": only `enabled`.
+   */
   languages: {
     public: true,
     schema: z.object({
-      default: z.string().regex(/^[a-z]{2,3}$/),
-      enabled: z.array(z.string().regex(/^[a-z]{2,3}$/)).min(1).max(40),
+      mode: z.enum(['all', 'selected']).default('selected'),
+      default: z.string().regex(LANG_CODE),
+      enabled: z.array(z.string().regex(LANG_CODE)).min(1).max(300),
     }),
-    initial: { default: 'en', enabled: ['en'] },
+    initial: { mode: 'selected', default: 'en', enabled: ['en'] },
   },
 
   /** Marketplace-wide defaults. */

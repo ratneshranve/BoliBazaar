@@ -154,15 +154,8 @@ export default function MonetizationPage() {
         {edit && <Button variant="outline" onClick={() => update({ plans: [...v.plans, { code: `plan-${v.plans.length + 1}`, name: '', description: null, price: 0, days: 30, extraFreeAds: 0, includedPromotions: [] }] })}><Plus className="h-4 w-4" /> Add plan</Button>}
       </Section>
 
-      <Section title="15.4 Auction commission" hint="Charged when an auction deal is completed. Bidders and sellers see these terms on the auction before it starts.">
-        <Switch checked={ac.enabled} disabled={!edit} onChange={(x) => setAc({ enabled: x })} label="Charge commission on auction sales" />
-        <Field label="Who pays">
-          <Select value={ac.payer} disabled={!edit} onChange={(e) => setAc({ payer: e.target.value })} className="w-64">
-            <option value="seller">Seller</option>
-            <option value="buyer">Buyer</option>
-            <option value="both">Both (split equally)</option>
-          </Select>
-        </Field>
+      <Section title="15.4 Auction commission" hint="When any user creates an auction, they pay this commission on the auction's base starting amount to the admin's Razorpay account. The auction is created and published automatically without requiring admin approval once payment is successfully verified.">
+        <Switch checked={ac.enabled} disabled={!edit} onChange={(x) => setAc({ enabled: x })} label="Charge commission on auction creation" />
         <CommissionRule rule={ac} disabled={!edit} onChange={setAc} />
         <div className="flex flex-wrap gap-4">
           <Field label="Pay within (days)"><Input type="number" value={ac.dueDays} disabled={!edit} onChange={(e) => setAc({ dueDays: num(e.target.value) })} className="w-28" /></Field>

@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { openCheckout } from '../services/checkout';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, CheckCircle2, ChevronRight, FileClock, ImagePlus, MapPin, Plus, Trash2, Video, X } from 'lucide-react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
@@ -99,10 +100,29 @@ export const SellScreen = () => {
   const [shipping, setShipping] = useState(NO_SHIPPING);
   const ship = (patch) => setShipping((v) => ({ ...v, ...patch }));
   const setA = (patch) => setAuction((a) => ({ ...a, ...patch }));
+  const brand = useAppSelector((s) => s.app.bootstrap?.branding?.primaryColor);
   const [commission, setCommission] = useState(null);
+  const [commissionRule, setCommissionRule] = useState(null);
   useEffect(() => {
-    if (form.listingType === 'auction' && commission === null) paymentsApi.catalog().then(({ data }) => setCommission(data.auctionCommission || '')).catch(() => setCommission(''));
+    if (form.listingType === 'auction' && commission === null) {
+      paymentsApi.catalog()
+        .then(({ data }) => {
+          setCommission(data.auctionCommission || '');
+          setCommissionRule(data.auctionCommissionRule || null);
+        })
+        .catch(() => setCommission(''));
+    }
   }, [form.listingType]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const estimatedCommission = useMemo(() => {
+    if (!commissionRule || !commissionRule.enabled) return null;
+    const bid = Number(auction.startingBid) || 0;
+    if (bid <= 0 && commissionRule.type === 'percent') return null;
+    let amount = commissionRule.type === 'percent' ? Math.round((bid * commissionRule.value) / 100) : commissionRule.value;
+    if (commissionRule.minFee > 0) amount = Math.max(amount, commissionRule.minFee);
+    if (commissionRule.maxFee > 0) amount = Math.min(amount, commissionRule.maxFee);
+    return amount;
+  }, [commissionRule, auction.startingBid]);
   const [place, setPlace] = useState(current ? { ...current, scope: undefined } : null);
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
@@ -115,7 +135,8 @@ export const SellScreen = () => {
   const uploadLimits = useAppSelector((s) => s.app.bootstrap?.uploads);
   const participationFee = useAppSelector((s) => s.app.bootstrap?.auctions?.participationFee) || 0;
   const currencyCode = useAppSelector((s) => s.app.bootstrap?.marketplace?.currency);
-  const participationFeeText = participationFee && currencyCode ? new Intl.NumberFormat(currencyCode === 'INR' ? 'en-IN' : undefined, { style: 'currency', currency: currencyCode, maximumFractionDigits: 0 }).format(participationFee) : '';
+  const moneyMajor = (n) => (currencyCode ? new Intl.NumberFormat(currencyCode === 'INR' ? 'en-IN' : undefined, { style: 'currency', currency: currencyCode, maximumFractionDigits: 0 }).format(n) : String(n));
+  const participationFeeText = participationFee && currencyCode ? moneyMajor(participationFee) : '';
   // drafts: unfinished ads are saved while typing (new ads only)
   const [draftId, setDraftId] = useState(query.get('draft'));
   const [drafts, setDrafts] = useState(null);
@@ -335,7 +356,18 @@ export const SellScreen = () => {
       let result;
       if (isAuction) {
         const { data } = auctionId ? await auctionsApi.update(auctionId, body) : await auctionsApi.create(body);
-        result = { id: data.id, status: data.status, auction: true };
+        result = { id: data.id, status: data.status, auction: true, commissionMinor: data.commissionMinor };
+        if (data.status === 'payment_pending') {
+          try {
+            const { data: orderData } = await paymentsApi.order({ purpose: 'auction_commission', refId: data.id });
+            if (orderData?.checkout) {
+              await openCheckout(orderData.checkout, brand);
+              result.status = 'live';
+            }
+          } catch (payErr) {
+            console.log('Immediate checkout closed or postponed', payErr);
+          }
+        }
       } else {
         const { data } = editing ? await listingsApi.update(id, body) : await listingsApi.create(body);
         result = data;
@@ -359,8 +391,31 @@ export const SellScreen = () => {
     return (
       <View style={[styles.fill, { alignItems: 'center', justifyContent: 'center', padding: spacing.xl, gap: spacing.md }]}>
         <CheckCircle2 size={64} color={colors.sell} />
-        <AppText variant="h2" style={{ textAlign: 'center' }}>{done.auction ? t('sell.success_auction') : done.status === 'payment_pending' ? t('sell.success_payment') : done.status === 'published' ? t('sell.success_published') : t('sell.success_review')}</AppText>
-        {done.status === 'payment_pending' && <Button title={t('myListings.payFee')} onPress={() => navigate(`/pay?purpose=listing_fee&refId=${done.id}`, { replace: true })} style={{ alignSelf: 'stretch' }} />}
+        <AppText variant="h2" style={{ textAlign: 'center' }}>
+          {done.auction
+            ? done.status === 'payment_pending'
+              ? t('sell.success_auction_payment')
+              : t('sell.success_auction_live')
+            : done.status === 'payment_pending'
+            ? t('sell.success_payment')
+            : done.status === 'published'
+            ? t('sell.success_published')
+            : t('sell.success_review')}
+        </AppText>
+        {done.status === 'payment_pending' && (
+          <Button
+            title={done.auction ? t('sell.payCommission') : t('myListings.payFee')}
+            onPress={() =>
+              navigate(
+                done.auction
+                  ? `/pay?purpose=auction_commission&refId=${done.id}&next=${encodeURIComponent(`/auctions/${done.id}`)}`
+                  : `/pay?purpose=listing_fee&refId=${done.id}`,
+                { replace: true }
+              )
+            }
+            style={{ alignSelf: 'stretch', ...(done.auction ? { backgroundColor: colors.auction } : {}) }}
+          />
+        )}
         <View style={{ alignSelf: 'stretch', gap: spacing.sm, marginTop: spacing.lg }}>
           <Button title={done.auction ? t('auction.view') : t('sell.viewAd')} onPress={() => navigate(done.auction ? `/auctions/${done.id}` : `/listing/${done.id}`, { replace: true })} />
           {!editing && <Button variant="outline" title={t('sell.postAnother')} onPress={() => restartAt('/sell')} />}
@@ -485,7 +540,33 @@ export const SellScreen = () => {
                 <AppText variant="bodyStrong" style={{ marginTop: spacing.sm }}>{t('auction.startAt')}</AppText>
                 <DateTimeField value={auction.startAt} onChange={(v) => setA({ startAt: v })} label={t('auction.startAt')} invalid={Boolean(aErr('startAt'))} />
                 <AppText variant="caption" color={aErr('startAt') ? colors.danger : colors.textMuted}>{aErr('startAt') || t('auction.startAtHint')}</AppText>
-                {!!commission && <AppText variant="caption" color={colors.text} style={{ marginTop: spacing.sm }}>{commission}</AppText>}
+                {commissionRule?.enabled && (
+                  <View style={{ marginTop: spacing.md, padding: spacing.md, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.auction, gap: 4 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm }}>
+                      <AppText variant="bodyStrong" color={colors.auction} style={{ flex: 1 }}>
+                        {t('sell.auctionCommissionNotice')}
+                      </AppText>
+                      {estimatedCommission !== null && (
+                        <AppText variant="h3" color={colors.auction}>
+                          {moneyMajor(estimatedCommission)}
+                        </AppText>
+                      )}
+                    </View>
+                    <AppText variant="caption" color={colors.textMuted}>
+                      {[
+                        commissionRule.type === 'percent' ? t('sell.commissionPercent', { percent: commissionRule.value }) : t('sell.commissionFixed', { amount: moneyMajor(commissionRule.value) }),
+                        commissionRule.type === 'percent' && commissionRule.minFee ? t('sell.commissionMin', { amount: moneyMajor(commissionRule.minFee) }) : null,
+                        commissionRule.type === 'percent' && commissionRule.maxFee ? t('sell.commissionMax', { amount: moneyMajor(commissionRule.maxFee) }) : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </AppText>
+                    <AppText variant="caption" color={colors.textMuted}>
+                      {t('sell.auctionCommissionHint')}
+                    </AppText>
+                  </View>
+                )}
+                {!commissionRule?.enabled && !!commission && <AppText variant="caption" color={colors.text} style={{ marginTop: spacing.sm }}>{commission}</AppText>}
               </Section>
             )}
 

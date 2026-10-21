@@ -8,19 +8,22 @@ export const AppText = ({ variant = 'body', color, style, ...rest }) => (
 const buttonBg = {
   primary: colors.primary,
   brand: colors.brand,
-  auction: colors.primary,
+  auction: colors.brand,
   sell: colors.sell,
   secondary: colors.brand,
+  danger: colors.danger,
   outline: colors.white,
+  'outline-danger': colors.white,
   ghost: 'transparent',
 };
 
-export const Button = ({ title, onPress, variant = 'primary', loading, disabled, icon, iconRight, style, size = 'lg' }) => {
+export const Button = ({ title, onPress, variant = 'primary', loading, disabled, icon, iconRight, style, size = 'lg', textColor: customTextColor }) => {
   const isBrandOutline = variant === 'outline-brand';
-  const isOutline = variant === 'outline' || isBrandOutline;
+  const isDangerOutline = variant === 'outline-danger';
+  const isOutline = variant === 'outline' || isBrandOutline || isDangerOutline;
   const filled = !isOutline && variant !== 'ghost';
   const inactive = disabled || loading;
-  const textColor = isBrandOutline ? colors.brand : filled ? colors.white : variant === 'ghost' ? colors.brand : colors.primary;
+  const textColor = customTextColor || (isDangerOutline ? colors.danger : isBrandOutline ? colors.brand : filled ? colors.white : variant === 'ghost' ? colors.brand : colors.primary);
 
   const bgStyle = { backgroundColor: buttonBg[variant] || colors.primary };
 
@@ -36,6 +39,7 @@ export const Button = ({ title, onPress, variant = 'primary', loading, disabled,
         bgStyle,
         isOutline && styles.btnOutline,
         isBrandOutline && { borderColor: colors.brand },
+        isDangerOutline && { borderColor: `${colors.danger}66` },
         pressed && { opacity: 0.88, transform: [{ scale: 0.99 }] },
         inactive && { opacity: 0.5 },
         style,

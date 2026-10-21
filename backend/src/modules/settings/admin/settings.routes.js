@@ -7,7 +7,7 @@ import { integrations } from '../../../core/config/env.js';
 import { settingKeys } from '../settings.schemas.js';
 import { getSetting, updateSetting } from '../settings.service.js';
 import { auditAdmin } from '../../audit/audit.service.js';
-import { LANGUAGE_CATALOGUE } from '../../i18n/catalogue.js';
+import { allLanguages } from '../../i18n/catalogue.js';
 import { storageStatus } from '../../../core/services/storage.js';
 import { Media } from '../../uploads/media.model.js';
 
@@ -48,7 +48,7 @@ router.get(
 );
 
 /** Languages an admin can switch on */
-router.get('/language-catalogue', requirePermission('settings.view'), (req, res) => ok(res, LANGUAGE_CATALOGUE));
+router.get('/language-catalogue', requirePermission('settings.view'), asyncHandler(async (req, res) => ok(res, await allLanguages())));
 
 router.get(
   '/:key',

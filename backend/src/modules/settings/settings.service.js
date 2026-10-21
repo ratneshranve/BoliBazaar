@@ -3,7 +3,7 @@ import { settingGroups } from './settings.schemas.js';
 import { redis } from '../../core/db/redis.js';
 import { ApiError } from '../../core/utils/ApiError.js';
 import { integrations } from '../../core/config/env.js';
-import { catalogueCodes } from '../i18n/catalogue.js';
+import { allLanguages } from '../i18n/catalogue.js';
 
 const CACHE_TTL_SEC = 30;
 const cacheKey = (key) => `settings:${key}`;
@@ -63,14 +63,19 @@ const validateBusinessRules = (key, value) => {
     }
     if (new Set(ac.categoryOverrides.map((o) => o.categoryId)).size !== ac.categoryOverrides.length) throw ApiError.badRequest('VALIDATION_FAILED', 'Each category can have only one commission rule');
   }
-  if (key === 'languages') {
-    const bad = value.enabled.filter((c) => !catalogueCodes.includes(c));
-    if (bad.length) throw ApiError.badRequest('LANGUAGE_UNKNOWN', `Unknown language: ${bad.join(', ')}`);
-    if (!value.enabled.includes('en')) throw ApiError.badRequest('ENGLISH_REQUIRED', 'English must stay enabled (it is the source language)');
-    if (!value.enabled.includes(value.default)) throw ApiError.badRequest('DEFAULT_LANGUAGE_INVALID', 'The default language must be one of the enabled languages');
-  }
   if (key === 'storage' && value.provider === 'cloudinary' && !integrations.cloudinary.configured) {
     throw ApiError.badRequest('INTEGRATION_NOT_CONFIGURED', 'Cloudinary credentials are not set in backend .env');
+  }
+};
+
+const validateLanguages = async (value) => {
+  const known = new Set((await allLanguages()).map((l) => l.code));
+  const bad = value.enabled.filter((c) => !known.has(c));
+  if (bad.length) throw ApiError.badRequest('LANGUAGE_UNKNOWN', `Unknown language: ${bad.join(', ')}`);
+  if (!value.enabled.includes('en')) throw ApiError.badRequest('ENGLISH_REQUIRED', 'English must stay enabled (it is the source language)');
+  if (!known.has(value.default)) throw ApiError.badRequest('DEFAULT_LANGUAGE_INVALID', 'Unknown default language');
+  if (value.mode === 'selected' && !value.enabled.includes(value.default)) {
+    throw ApiError.badRequest('DEFAULT_LANGUAGE_INVALID', 'The default language must be one of the enabled languages');
   }
 };
 
@@ -86,6 +91,7 @@ export const updateSetting = async (key, value, adminId) => {
     throw ApiError.badRequest('VALIDATION_FAILED', 'Invalid settings', { fields });
   }
   validateBusinessRules(key, parsed.data);
+  if (key === 'languages') await validateLanguages(parsed.data);
 
   const before = await getSettingValue(key);
   const doc = await Setting.findOneAndUpdate(

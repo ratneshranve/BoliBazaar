@@ -1,7 +1,7 @@
 import { Notification, NotificationTemplate } from './notification.model.js';
 import { EVENTS, GROUPS, render, varsIn } from './catalog.js';
 import { User } from '../users/user.model.js';
-import { translateTexts } from '../i18n/translate.service.js';
+import { resolveLanguage, translateTexts } from '../i18n/translate.service.js';
 import { pushToUser } from '../../core/services/push.js';
 import { sendEmail } from '../../core/services/email.js';
 import { integrations } from '../../core/config/env.js';
@@ -86,7 +86,8 @@ export const notify = async (userId, event, vars = {}, { route } = {}) => {
     let { title, body } = tpl;
     if (user.language && user.language !== 'en') {
       try {
-        [title, body] = await translateTexts([title, body], user.language); // placeholders stay intact
+        const target = await resolveLanguage(user.language); // only while the admin still offers it
+        if (target && target !== 'en') [title, body] = await translateTexts([title, body], target); // placeholders stay intact
       } catch {
         /* English is fine */
       }

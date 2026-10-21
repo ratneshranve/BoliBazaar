@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { ContentPage, PAGE_SLUGS, CONSENT_SLUGS } from './page.model.js';
 import { ApiError } from '../../core/utils/ApiError.js';
 import { logger } from '../../core/utils/logger.js';
-import { enabledLanguageCodes, translateTexts, translateBlock } from '../i18n/translate.service.js';
+import { resolveLanguage, translateTexts, translateBlock } from '../i18n/translate.service.js';
 
 /** Admin writes English only. Other languages are produced automatically for the reader. */
 export const pageInput = z.object({
@@ -43,11 +43,12 @@ export const pageForUser = async (slug, lang) => {
   let body = doc.body.en;
   let language = 'en';
 
-  if (lang && lang !== 'en' && (await enabledLanguageCodes()).includes(lang)) {
+  const target = lang && lang !== 'en' ? await resolveLanguage(lang) : null;
+  if (target && target !== 'en') {
     try {
-      [title] = await translateTexts([doc.title.en], lang);
-      body = await translateBlock(doc.body.en, lang);
-      language = lang;
+      [title] = await translateTexts([doc.title.en], target);
+      body = await translateBlock(doc.body.en, target);
+      language = target;
     } catch (err) {
       // Translation is best-effort: the reader still gets the English original.
       logger.warn('Page translation failed, serving English', { slug, lang, err: err.message });

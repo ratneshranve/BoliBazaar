@@ -4,6 +4,7 @@ import { ApiError } from '../../core/utils/ApiError.js';
 import { logger } from '../../core/utils/logger.js';
 import { getSettingValue } from '../settings/settings.service.js';
 import { TranslationCache } from './translation.model.js';
+import { LANG_CODE, languageInfo, normalizeLanguageSetting } from './catalogue.js';
 
 const ENDPOINT = 'https://translation.googleapis.com/language/translate/v2';
 const MAX_ITEMS_PER_CALL = 100;
@@ -13,36 +14,72 @@ const sha1 = (s) => crypto.createHash('sha1').update(s).digest('hex');
 
 export const translationConfigured = () => integrations.translate.configured;
 
-/* Protect {{placeholders}} and HTML-escape so the API only changes human text. */
+/*
+ * Protect {{placeholders}} and the brand name, keep line breaks, and HTML-escape so the API only
+ * changes human text.
+ */
 const escapeHtml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const protect = (s) => escapeHtml(s).replace(/\{\{[^}]+\}\}/g, (m) => `<span translate="no">${m}</span>`);
+const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const keepAsIs = (m) => `<span translate="no">${m}</span>`;
+
+const protect = (s, brand) => {
+  let out = escapeHtml(s).replace(/\{\{[^}]+\}\}/g, keepAsIs);
+  if (brand) out = out.replace(new RegExp(`(?<![\\w{])${escapeRegex(escapeHtml(brand))}(?![\\w}])`, 'g'), keepAsIs);
+  return out.replace(/\r?\n/g, '<br>');
+};
 const restore = (s) =>
   s
-    .replace(/<span translate="no">(\{\{[^}]+\}\})<\/span>/g, '$1')
+    .replace(/\s*<br\s*\/?>\s*/gi, '\n')
+    .replace(/<span translate="no">([^<]*)<\/span>/g, '$1')
     .replace(/<[^>]+>/g, '')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&');
 
-const callGoogle = async (texts, target) => {
+const callGoogle = async (texts, target, brand) => {
   const res = await fetch(`${ENDPOINT}?key=${env.GOOGLE_TRANSLATE_API_KEY}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ q: texts.map(protect), source: 'en', target, format: 'html' }),
+    body: JSON.stringify({ q: texts.map((t) => protect(t, brand)), source: 'en', target, format: 'html' }),
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(`Google Translate ${res.status}: ${json?.error?.message || 'request failed'}`);
   return json.data.translations.map((t) => restore(t.translatedText));
 };
 
-/** Languages the admin has enabled (besides English). */
-export const enabledLanguageCodes = async () => (await getSettingValue('languages')).enabled;
+const brandName = async () => {
+  try {
+    return (await getSettingValue('branding')).appName || null;
+  } catch {
+    return null;
+  }
+};
+
+/** The admin's language setting: { mode: 'all' | 'selected', default, enabled }. */
+export const languageSettings = async () => normalizeLanguageSetting(await getSettingValue('languages'));
+
+/** May users read the app in `lang`? English always; otherwise every known language ("all") or the admin's picks. */
+export const isLanguageAllowed = async (lang) => {
+  if (!lang || !LANG_CODE.test(lang)) return false;
+  if (lang === 'en') return true;
+  const s = await languageSettings();
+  if (s.mode === 'all') return Boolean(await languageInfo(lang));
+  return s.enabled.includes(lang);
+};
+
+/** The allowed language closest to what the reader asked for ("bn-IN" → "bn"), or null. */
+export const resolveLanguage = async (lang) => {
+  if (!lang) return null;
+  if (await isLanguageAllowed(lang)) return lang;
+  const base = lang.split('-')[0];
+  return base !== lang && (await isLanguageAllowed(base)) ? base : null;
+};
 
 export const assertLanguageEnabled = async (lang) => {
-  const enabled = await enabledLanguageCodes();
-  if (!enabled.includes(lang)) throw ApiError.badRequest('LANGUAGE_NOT_ENABLED', 'This language is not enabled');
+  if (!(await isLanguageAllowed(lang))) throw ApiError.badRequest('LANGUAGE_NOT_ENABLED', 'This language is not enabled');
 };
 
 /**
@@ -76,8 +113,9 @@ export const translateTexts = async (texts, lang) => {
   }
   if (cur.length) chunks.push(cur);
 
+  const brand = chunks.length ? await brandName() : null;
   for (const chunk of chunks) {
-    const translated = await callGoogle(chunk, lang);
+    const translated = await callGoogle(chunk, lang, brand);
     const docs = chunk.map((source, i) => ({ lang, hash: hashes.get(source), source, text: translated[i] }));
     docs.forEach((d) => byHash.set(d.hash, d.text));
     await TranslationCache.insertMany(docs, { ordered: false }).catch((e) => {

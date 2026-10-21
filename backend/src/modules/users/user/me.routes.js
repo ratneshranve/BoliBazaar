@@ -63,7 +63,7 @@ router.post(
 const profileBody = z.object({
   name: z.string().trim().min(2).max(80).optional(),
   about: z.string().trim().max(500).nullable().optional(),
-  language: z.string().min(2).max(10).optional(),
+  language: z.string().regex(/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})?$/).optional(), // "bn", "zh-CN"
   countryCode: z.string().length(2).toUpperCase().optional(),
   timezone: z.string().max(60).optional(),
   avatarMediaId: z.string().regex(/^[a-f0-9]{24}$/).nullable().optional(),

@@ -3,13 +3,26 @@ import { ApiError } from '../utils/ApiError.js';
 import { logger } from '../utils/logger.js';
 import { env } from '../config/env.js';
 
+/**
+ * First language tag of Accept-Language, in Google's spelling: "bn" / "zh-CN" / "mni-Mtei".
+ * Any English tag is "en"; "*" or junk means none. A region the admin doesn't offer ("bn-IN")
+ * falls back to the base language where translations are made (resolveLanguage).
+ */
+const parseLang = (header) => {
+  const m = /^([a-z]{2,3})(?:-([a-z0-9]{2,8}))?$/i.exec((header || '').split(',')[0].split(';')[0].trim());
+  if (!m) return undefined;
+  const base = m[1].toLowerCase();
+  if (base === 'en' || !m[2]) return base;
+  const sub = m[2].length === 2 ? m[2].toUpperCase() : m[2].length === 4 ? m[2][0].toUpperCase() + m[2].slice(1).toLowerCase() : m[2];
+  return `${base}-${sub}`;
+};
+
 /** Attach request id + client context headers. */
 export const requestContext = (req, res, next) => {
   req.id = req.get('X-Request-Id') || crypto.randomUUID();
   res.setHeader('X-Request-Id', req.id);
   req.ctx = {
-    // first language tag only ("hi-IN,en;q=0.8" → "hi"); "*" or junk means none
-    lang: (/^[a-z]{2,3}$/i.exec((req.get('Accept-Language') || '').split(',')[0].split(';')[0].split('-')[0].trim())?.[0] || '').toLowerCase() || undefined,
+    lang: parseLang(req.get('Accept-Language')),
     country: req.get('X-Country') || undefined,
     platform: req.get('X-Platform') || undefined,
     appVersion: req.get('X-App-Version') || undefined,
