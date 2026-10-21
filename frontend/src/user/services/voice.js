@@ -3,16 +3,24 @@ const Recognition = typeof window !== 'undefined' ? window.SpeechRecognition || 
 
 export const voiceSupported = () => Boolean(Recognition);
 
-/** Listen once. `onText(final)` gets what was said; returns a stop function. */
-export const listenOnce = ({ lang, onText, onEnd, onError }) => {
+/** Listen once. `onPartial(text)` while speaking, `onText(final)` gets what was said; returns a stop function. */
+export const listenOnce = ({ lang, onStart, onPartial, onText, onEnd, onError }) => {
   if (!Recognition) return () => {};
   const r = new Recognition();
   r.lang = lang === 'hi' ? 'hi-IN' : lang === 'en' ? 'en-IN' : lang;
-  r.interimResults = false;
+  r.interimResults = true;
   r.maxAlternatives = 1;
-  r.onresult = (e) => onText?.(e.results[0][0].transcript.trim());
-  r.onerror = (e) => onError?.(e.error);
+  r.onstart = () => onStart?.();
+  r.onresult = (e) => {
+    const last = e.results[e.results.length - 1];
+    const said = last[0].transcript.trim();
+    if (last.isFinal) onText?.(said);
+    else onPartial?.(said);
+  };
+  r.onerror = (e) => {
+    if (e.error !== 'no-speech' && e.error !== 'aborted') onError?.(e.error);
+  };
   r.onend = () => onEnd?.();
   r.start();
-  return () => r.abort();
+  return () => r.stop(); // what was heard so far still arrives through onText
 };

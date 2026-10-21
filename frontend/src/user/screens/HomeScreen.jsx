@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Mic, Search } from 'lucide-react';
@@ -76,19 +76,29 @@ export const HomeScreen = () => {
   const [home, setHome] = useState(null);
   const [failed, setFailed] = useState(false);
   const [listening, setListening] = useState(false);
+  const [heard, setHeard] = useState('');
+  const stopListening = useRef(null);
 
-  // mic in the search bar: say what you want, the results open
+  // mic in the search bar: tap, say what you want, the results open (tap again to finish early)
   const speak = () => {
+    if (listening) return stopListening.current?.();
     setListening(true);
-    listenOnce({
+    setHeard('');
+    stopListening.current = listenOnce({
       lang: i18n.language,
+      onPartial: setHeard,
       onText: (said) => said && navigate(`/search?q=${encodeURIComponent(said)}`),
-      onEnd: () => setListening(false),
+      onEnd: () => {
+        setListening(false);
+        setHeard('');
+      },
       onError: (code) => {
         if (code === 'not-allowed') Alert.alert(t('search.micBlocked'));
-        else if (code === 'service-not-allowed') Alert.alert(t('search.voiceUnavailable'));
+        else if (code === 'network') Alert.alert(t('search.voiceNetwork'));
+        else Alert.alert(t('search.voiceUnavailable'));
       },
     });
+    return undefined;
   };
 
   const current = useAppSelector((s) => s.location.current);
@@ -132,10 +142,10 @@ export const HomeScreen = () => {
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxxl }}>
         {/* search (opens Explore until listing search ships) */}
         <View style={styles.search}>
-          <Pressable accessibilityLabel={t('home.searchPlaceholder')} onPress={() => navigate('/search')} style={styles.searchTap}>
+          <Pressable accessibilityLabel={t('home.searchPlaceholder')} onPress={() => (listening ? speak() : navigate('/search'))} style={styles.searchTap}>
             <Search size={20} color={colors.brand} />
-            <AppText color={colors.textSubtle} numberOfLines={1} style={{ flex: 1 }}>
-              {t('home.searchPlaceholder')}
+            <AppText color={listening ? (heard ? colors.text : colors.brand) : colors.textSubtle} numberOfLines={1} style={{ flex: 1 }}>
+              {listening ? heard || t('search.listening') : t('home.searchPlaceholder')}
             </AppText>
           </Pressable>
           {voiceSupported() && (

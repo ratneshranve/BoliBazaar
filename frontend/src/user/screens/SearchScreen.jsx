@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { adsApi } from '../api/endpoints';
 import { useTranslation } from 'react-i18next';
@@ -220,10 +220,13 @@ export const SearchScreen = () => {
     };
   }, [text]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const stopListening = useRef(null);
   const speak = () => {
+    if (listening) return stopListening.current?.(); // tap again to finish early
     setListening(true);
-    listenOnce({
+    stopListening.current = listenOnce({
       lang: i18n.language,
+      onPartial: setText, // the words appear in the box while the user speaks
       onText: (said) => {
         if (!said) return;
         setText(said);
@@ -232,9 +235,11 @@ export const SearchScreen = () => {
       onEnd: () => setListening(false),
       onError: (code) => {
         if (code === 'not-allowed') Alert.alert(t('search.micBlocked'));
-        else if (code === 'service-not-allowed') Alert.alert(t('search.voiceUnavailable'));
+        else if (code === 'network') Alert.alert(t('search.voiceNetwork'));
+        else Alert.alert(t('search.voiceUnavailable'));
       },
     });
+    return undefined;
   };
 
   // the category (name + its filterable fields)

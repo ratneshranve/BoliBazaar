@@ -4,11 +4,11 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
-    <!-- Apps this app hands off to: the camera (Take photo) and Google voice input (voice search). Needed on Android 11+. -->
+    <!-- Apps this app uses: the camera (Take photo) and the phone's speech recogniser (voice search). Needed on Android 11+. -->
     <queries>
         <intent><action android:name="android.media.action.IMAGE_CAPTURE" /></intent>
-        <intent><action android:name="android.speech.action.RECOGNIZE_SPEECH" /></intent>
         <intent><action android:name="android.speech.RecognitionService" /></intent>
     </queries>
 
