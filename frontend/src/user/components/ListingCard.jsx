@@ -64,9 +64,9 @@ export const ListingCard = ({ listing, width, onFavouriteChange, horizontal }) =
       }} style={[styles.card, styles.hCard]}>
         <View style={styles.hImg}>
           {listing.cover ? (
-            <Image source={{ uri: listing.cover }} style={styles.img} resizeMode="cover" />
+            <Image source={{ uri: listing.cover }} style={styles.hImgFill} resizeMode="cover" />
           ) : (
-            <View style={[styles.img, styles.noImg]}>
+            <View style={[styles.hImgFill, styles.noImg]}>
               <ImageOff size={28} color={colors.textSubtle} />
             </View>
           )}
@@ -170,7 +170,9 @@ const styles = StyleSheet.create({
   heartPos: { position: 'absolute', right: spacing.sm, top: spacing.sm },
   heart: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center' },
   hCard: { flexDirection: 'row', width: '100%', minHeight: 132 },
-  hImg: { width: 128, alignSelf: 'stretch', backgroundColor: colors.surface },
+  // the picture fills the box without sizing it, so the card height follows the text (same as on the website)
+  hImg: { width: 128, alignSelf: 'stretch', backgroundColor: colors.surface, overflow: 'hidden' },
+  hImgFill: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
   hBody: { flex: 1, minWidth: 0, padding: spacing.md, gap: 2 },
   hPills: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 2 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 4 },
