@@ -26,6 +26,7 @@ class VoiceModule(private val context: ReactApplicationContext) : ReactContextBa
   override fun getName() = "BBVoice"
 
   private fun send(build: WritableMap.() -> Unit) {
+    if (!context.hasActiveReactInstance()) return // the app is reloading: nobody is listening
     val map = Arguments.createMap().apply(build)
     context.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java).emit("bbVoice", map)
   }

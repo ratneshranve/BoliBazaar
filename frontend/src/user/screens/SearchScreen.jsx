@@ -176,6 +176,23 @@ function FiltersSheet({ category, params, onApply, onClose }) {
 }
 
 /** Search results: keyword, category, filters, sort and distance — all kept in the URL so a search can be shared. */
+/**
+ * Sponsored cards first, then the results. Every row has its own key (sponsored ones are prefixed) and no ad is listed twice,
+ * so a card never switches place with the same key when the ads arrive after the results (Android's view system throws on that).
+ */
+const resultRows = (sponsored, items) => {
+  const seen = new Set();
+  const rows = [];
+  const add = (key, listing) => {
+    if (seen.has(key)) return;
+    seen.add(key);
+    rows.push({ key, listing });
+  };
+  sponsored.forEach((l) => add(`ad-${l.id}`, l));
+  items.filter((x) => !sponsored.some((s) => s.id === x.id)).forEach((l) => add(`r-${l.id}`, l));
+  return rows;
+};
+
 export const SearchScreen = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -479,9 +496,9 @@ export const SearchScreen = () => {
         )}
         {items && items.length > 0 && (
           <View style={styles.grid}>
-            {[...ads.sponsoredListings, ...items.filter((x) => !ads.sponsoredListings.some((s) => s.id === x.id))].map((l) => (
-              <View key={l.id} style={{ width: '100%' }}>
-                <ListingCard listing={l} horizontal />
+            {resultRows(ads.sponsoredListings, items).map(({ key, listing }) => (
+              <View key={key} style={{ width: '100%' }}>
+                <ListingCard listing={listing} horizontal />
               </View>
             ))}
           </View>
