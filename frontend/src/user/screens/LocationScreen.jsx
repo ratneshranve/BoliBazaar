@@ -427,10 +427,12 @@ export const AddressMapScreen = () => {
             {top.list.length > 0 && <Suggestions title={t('location.suggestions')} items={top.list} onPick={(s) => choose(top, s)} />}
           </View>
 
-          <Pressable onPress={() => locateMe(false)} disabled={locating} style={({ pressed }) => [styles.myLoc, pressed && { opacity: 0.85 }]}>
-            {locating ? <ActivityIndicator color={colors.primary} /> : <Navigation size={16} color={colors.primary} />}
-            <AppText variant="bodyStrong">{t('location.useMy')}</AppText>
-          </Pressable>
+          {top.list.length === 0 && (
+            <Pressable onPress={() => locateMe(false)} disabled={locating} style={({ pressed }) => [styles.myLoc, pressed && { opacity: 0.85 }]}>
+              {locating ? <ActivityIndicator color={colors.primary} /> : <Navigation size={16} color={colors.primary} />}
+              <AppText variant="bodyStrong">{t('location.useMy')}</AppText>
+            </Pressable>
+          )}
         </View>
 
         {/* form sheet, overlapping the map's bottom edge */}

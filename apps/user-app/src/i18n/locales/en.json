@@ -362,10 +362,12 @@
     "verifiedOnly": "Verified sellers only",
     "withPhotos": "With photos",
     "voice": "Search by voice",
-    "micBlocked": "Allow microphone access in your browser to search by voice.",
+    "micBlocked": "Allow microphone access to search by voice.",
     "mapView": "Map view",
     "listView": "List view",
-    "mapUnavailable": "The map could not be loaded. Switch back to the list."
+    "mapUnavailable": "The map could not be loaded. Switch back to the list.",
+    "voicePrompt": "Speak now",
+    "voiceUnavailable": "Voice search is not available on this phone."
   },
   "sell": {
     "title": "Post an ad",
@@ -1092,5 +1094,11 @@
     "banner_limited": "Your account is limited",
     "banner_suspended": "Your account is suspended",
     "details": "Details"
+  },
+  "files": {
+    "addPhoto": "Add photo",
+    "camera": "Take photo",
+    "gallery": "Choose from gallery",
+    "cameraUnavailable": "No camera is available on this phone."
   }
 }

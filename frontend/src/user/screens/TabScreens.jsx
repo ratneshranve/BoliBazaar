@@ -296,6 +296,7 @@ export const ProfileScreen = () => {
       <BrandHeader right="bell" />
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxxl }}>
         <View style={styles.profileCard}>
+          <View style={styles.profileTop}>
           {me.avatar?.url ? (
             <Image source={{ uri: me.avatar.url }} style={styles.avatar} />
           ) : (
@@ -305,7 +306,7 @@ export const ProfileScreen = () => {
               </AppText>
             </View>
           )}
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
             <AppText variant="h2" numberOfLines={1}>
               {me.name}
             </AppText>
@@ -317,6 +318,7 @@ export const ProfileScreen = () => {
                 </AppText>
               </View>
             )}
+          </View>
           </View>
           <Button title={t('profile.editProfile')} variant="outline" size="md" onPress={() => setEditingProfile(true)} />
         </View>
@@ -362,7 +364,8 @@ export const ProfileScreen = () => {
 
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: colors.white },
-  profileCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.xl, padding: spacing.lg },
+  profileTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  profileCard: { gap: spacing.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.xl, padding: spacing.lg },
   avatar: { width: 68, height: 68, borderRadius: 34 },
   avatarEmpty: { backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
   verified: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },

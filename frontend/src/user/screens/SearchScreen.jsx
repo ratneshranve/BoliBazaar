@@ -230,7 +230,10 @@ export const SearchScreen = () => {
         patch({ q: said });
       },
       onEnd: () => setListening(false),
-      onError: (code) => code === 'not-allowed' && Alert.alert(t('search.micBlocked')),
+      onError: (code) => {
+        if (code === 'not-allowed') Alert.alert(t('search.micBlocked'));
+        else if (code === 'service-not-allowed') Alert.alert(t('search.voiceUnavailable'));
+      },
     });
   };
 

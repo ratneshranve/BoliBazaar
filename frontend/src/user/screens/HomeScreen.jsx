@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Search } from 'lucide-react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
+import { Mic, Search } from 'lucide-react';
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
 import { AppText, EmptyState } from '../components/ui';
 import { BrandHeader } from '../components/BrandHeader';
 import { LocationChip } from '../components/LocationChip';
@@ -11,6 +11,7 @@ import { CategoryTile, ViewAllTile } from '../components/CategoryTile';
 import { BannerCarousel } from '../components/BannerCarousel';
 import { ListingCard } from '../components/ListingCard';
 import { locationQuery } from '../utils/listing';
+import { listenOnce, voiceSupported } from '../services/voice';
 import { colors, radius, spacing, shadow } from '@theme/tokens';
 import { adsApi, homeApi } from '../api/endpoints';
 import { AuctionCard } from './AuctionScreens';
@@ -74,6 +75,21 @@ export const HomeScreen = () => {
   const navigate = useNavigate();
   const [home, setHome] = useState(null);
   const [failed, setFailed] = useState(false);
+  const [listening, setListening] = useState(false);
+
+  // mic in the search bar: say what you want, the results open
+  const speak = () => {
+    setListening(true);
+    listenOnce({
+      lang: i18n.language,
+      onText: (said) => said && navigate(`/search?q=${encodeURIComponent(said)}`),
+      onEnd: () => setListening(false),
+      onError: (code) => {
+        if (code === 'not-allowed') Alert.alert(t('search.micBlocked'));
+        else if (code === 'service-not-allowed') Alert.alert(t('search.voiceUnavailable'));
+      },
+    });
+  };
 
   const current = useAppSelector((s) => s.location.current);
   const placeKey = current ? `${current.lat},${current.lng},${current.scope?.type},${current.scope?.km}` : '';
@@ -115,12 +131,19 @@ export const HomeScreen = () => {
 
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxxl }}>
         {/* search (opens Explore until listing search ships) */}
-        <Pressable accessibilityLabel={t('home.searchPlaceholder')} onPress={() => navigate('/search')} style={styles.search}>
-          <Search size={20} color={colors.brand} />
-          <AppText color={colors.textSubtle} numberOfLines={1} style={{ flex: 1 }}>
-            {t('home.searchPlaceholder')}
-          </AppText>
-        </Pressable>
+        <View style={styles.search}>
+          <Pressable accessibilityLabel={t('home.searchPlaceholder')} onPress={() => navigate('/search')} style={styles.searchTap}>
+            <Search size={20} color={colors.brand} />
+            <AppText color={colors.textSubtle} numberOfLines={1} style={{ flex: 1 }}>
+              {t('home.searchPlaceholder')}
+            </AppText>
+          </Pressable>
+          {voiceSupported() && (
+            <Pressable accessibilityLabel={t('search.voice')} onPress={speak} hitSlop={8} style={[styles.mic, listening && { backgroundColor: colors.brand }]}>
+              <Mic size={20} color={listening ? colors.white : colors.brand} />
+            </Pressable>
+          )}
+        </View>
 
         {!home && !failed && (
           <View style={{ minHeight: 'calc(100dvh - 200px)', alignItems: 'center', justifyContent: 'center' }}>
@@ -232,7 +255,9 @@ const styles = StyleSheet.create({
   bizCard: { width: 150, gap: 4 },
   bizImg: { width: 150, height: 96, borderRadius: radius.lg },
   fill: { flex: 1, backgroundColor: colors.white },
-  search: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginHorizontal: spacing.lg, marginVertical: spacing.md, paddingHorizontal: spacing.lg, minHeight: 52, borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, ...shadow.card },
+  search: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginHorizontal: spacing.lg, marginVertical: spacing.md, paddingLeft: spacing.lg, paddingRight: spacing.sm, minHeight: 52, borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, ...shadow.card },
+  searchTap: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 52 },
+  mic: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brandSoft },
   bannerSection: {
     marginHorizontal: spacing.sm,
     marginBottom: spacing.xs,
