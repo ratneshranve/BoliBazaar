@@ -27,7 +27,7 @@ export const MapPicker = ({ lat, lng, onMove, height = 220, fallback }) => {
   const region = { latitude: lat ?? 22.5, longitude: lng ?? 79, latitudeDelta: lat != null ? 0.02 : 20, longitudeDelta: lng != null ? 0.02 : 20 };
   return (
     <View style={box}>
-      <MapView style={{ flex: 1 }} initialRegion={region} onPress={(e) => onMove?.(e.nativeEvent.coordinate.latitude, e.nativeEvent.coordinate.longitude)}>
+      <MapView style={{ flex: 1 }} userInterfaceStyle="light" initialRegion={region} onPress={(e) => onMove?.(e.nativeEvent.coordinate.latitude, e.nativeEvent.coordinate.longitude)}>
         {lat != null && lng != null && (
           <Marker draggable coordinate={{ latitude: lat, longitude: lng }} onDragEnd={(e) => onMove?.(e.nativeEvent.coordinate.latitude, e.nativeEvent.coordinate.longitude)} />
         )}

@@ -72,6 +72,7 @@ export const PinMap = ({ lat, lng, onMove, height = 320 }) => {
         <MapView
           ref={map}
           style={{ flex: 1 }}
+          userInterfaceStyle="light"
           initialRegion={{ latitude: lat, longitude: lng, latitudeDelta: ZOOM_DELTA, longitudeDelta: ZOOM_DELTA }}
           onMapReady={() => setLoading(false)}
           onRegionChangeComplete={(r) => {

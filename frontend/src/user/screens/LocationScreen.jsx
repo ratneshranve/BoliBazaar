@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Briefcase, ChevronLeft, ChevronRight, Home, MapPin, Navigation, Pencil, Plus, Search, Trash2 } from 'lucide-react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from '../components/primitives';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from '../components/primitives';
 import { AppText, Button } from '../components/ui';
 import { PinMap } from '../components/PinMap';
 import { colors, radius, spacing } from '@theme/tokens';
@@ -372,17 +372,18 @@ export const AddressMapScreen = () => {
     if (!place) return setMsg(t('location.selectOnMap'));
     setSaving(true);
     setMsg('');
-    const primary = (street.q.trim() || primaryOf(place)).slice(0, 200);
+    // the server needs a non-empty label; a pin on an unnamed spot falls back to its coordinates
+    const primary = (street.q.trim() || primaryOf(place) || place.label || place.address?.formatted || `${Number(pos.lat).toFixed(4)}, ${Number(pos.lng).toFixed(4)}`).slice(0, 200);
     const body = {
       label: kind === 'other' ? name.trim() || t('location.kind_other') : t(`location.kind_${kind}`),
       kind,
       details: details.trim() || undefined,
       place: {
         label: primary,
-        name: place.name || place.address?.area || place.address?.city,
-        placeId: place.placeId,
-        lat: pos.lat,
-        lng: pos.lng,
+        name: place.name || place.address?.area || place.address?.city || undefined,
+        placeId: typeof place.placeId === 'string' && place.placeId ? place.placeId : undefined,
+        lat: Number(pos.lat),
+        lng: Number(pos.lng),
         address: { ...place.address, formatted: place.address?.formatted?.slice(0, 300) },
       },
     };
@@ -393,6 +394,7 @@ export const AddressMapScreen = () => {
       navigate(-2);
     } catch (e) {
       setMsg(errorText(e));
+      Alert.alert(errorText(e)); // the message under the form can be out of sight: a failed save must never be silent
       setSaving(false);
     }
   };

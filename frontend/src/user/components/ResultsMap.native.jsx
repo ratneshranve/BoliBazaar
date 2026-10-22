@@ -22,7 +22,7 @@ export const ResultsMap = ({ items, center }) => {
   const first = center || points[0]?.point || { lat: 22.5, lng: 79 };
   return (
     <View style={{ height: Dimensions.get('window').height - 210, borderRadius: 14, overflow: 'hidden' }}>
-      <MapView style={{ flex: 1 }} initialRegion={{ latitude: first.lat, longitude: first.lng, latitudeDelta: center ? 0.2 : 8, longitudeDelta: center ? 0.2 : 8 }}>
+      <MapView style={{ flex: 1 }} userInterfaceStyle="light" initialRegion={{ latitude: first.lat, longitude: first.lng, latitudeDelta: center ? 0.2 : 8, longitudeDelta: center ? 0.2 : 8 }}>
         {points.map((l) => (
           <Circle key={`c-${l.id}`} center={{ latitude: l.point.lat, longitude: l.point.lng }} radius={400} strokeColor={`${colors.primary}66`} fillColor={`${colors.primary}1F`} />
         ))}
