@@ -3,6 +3,7 @@ import { StatusBar, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { store } from '../../../frontend/src/user/store';
 import { PromptHost } from '../../../frontend/src/user/components/PromptHost';
+import { PhotoSourceHost } from '../../../frontend/src/user/components/PhotoSourceHost';
 import { AnimatedSplash } from './components/AnimatedSplash';
 
 /** Started = settings loaded and the saved login checked (the same moment the website stops its spinner). */
@@ -14,7 +15,7 @@ const useStarted = () =>
 
 /**
  * Phone shell around the shared app (frontend/src/user/App.jsx): safe areas, status bar,
- * the text-prompt box, and the animated launch screen until the app has started.
+ * the text-prompt box, the photo chooser card, and the animated launch screen until the app has started.
  */
 export const NativeRoot = ({ children }) => {
   const started = useStarted();
@@ -26,6 +27,7 @@ export const NativeRoot = ({ children }) => {
       <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
         {children}
         <PromptHost />
+        <PhotoSourceHost />
         {splash && <AnimatedSplash ready={started} onDone={hide} />}
       </View>
     </SafeAreaProvider>

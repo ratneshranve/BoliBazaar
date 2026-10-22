@@ -2,6 +2,7 @@ import { Alert } from 'react-native';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { pick, types, isErrorWithCode, errorCodes } from '@react-native-documents/picker';
 import i18n from '../i18n';
+import { askPhotoSource } from '../components/PhotoSourceHost';
 
 /** Phone versions of services/files.js: camera or gallery for photos, the gallery for videos, the file picker for documents. */
 
@@ -13,21 +14,6 @@ const fromAsset = (a) => ({
   duration: a.duration ?? undefined,
   upload: { uri: a.uri, name: a.fileName || `file-${Date.now()}`, type: a.type || 'application/octet-stream' },
 });
-
-/** "Take photo" or "Choose from gallery" — null when the user backs out. */
-const askPhotoSource = () =>
-  new Promise((resolve) => {
-    Alert.alert(
-      i18n.t('files.addPhoto'),
-      undefined,
-      [
-        { text: i18n.t('files.camera'), onPress: () => resolve('camera') },
-        { text: i18n.t('files.gallery'), onPress: () => resolve('gallery') },
-        { text: i18n.t('common.cancel'), style: 'cancel', onPress: () => resolve(null) },
-      ],
-      { cancelable: true, onDismiss: () => resolve(null) }
-    );
-  });
 
 const PHOTO = { mediaType: 'photo', quality: 0.85, maxWidth: 2400, maxHeight: 2400 };
 
