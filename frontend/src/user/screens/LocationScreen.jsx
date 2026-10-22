@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Briefcase, ChevronLeft, ChevronRight, Home, MapPin, Navigation, Pencil, Plus, Search, Trash2 } from 'lucide-react';
@@ -13,6 +13,7 @@ import { meApi, placesApi } from '../api/endpoints';
 import { errorText } from '../i18n';
 import { getPosition } from '../services/geolocation';
 import { confirmAsync } from '../services/dialogs';
+import { useOnFocus } from '../utils/focus';
 
 const KIND_ICON = { home: Home, work: Briefcase, other: MapPin };
 const DEFAULT_CENTER = { lat: 22.7196, lng: 75.8577 }; // until GPS or a saved place says otherwise
@@ -143,10 +144,12 @@ export const LocationScreen = () => {
   const [gpsLine, setGpsLine] = useState('');
   const [error, setError] = useState('');
 
-  useEffect(() => {
+  // loaded on arrival and again when you come back to this screen (e.g. after saving a new address)
+  const loadSaved = useCallback(() => {
     if (!loggedIn) return;
     meApi.locations().then(({ data }) => setSaved(data)).catch(() => setSaved([]));
   }, [loggedIn]);
+  useOnFocus(loadSaved);
 
   const pick = async (place) => {
     await dispatch(chooseLocation({ ...place, scope }));
