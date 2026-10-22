@@ -6,7 +6,6 @@ import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Vie
 import { AppText, EmptyState } from '../components/ui';
 import { BrandHeader } from '../components/BrandHeader';
 import { LocationChip } from '../components/LocationChip';
-import { LanguageChip } from '../components/LanguageChip';
 import { CategoryTile, ViewAllTile } from '../components/CategoryTile';
 import { BannerCarousel } from '../components/BannerCarousel';
 import { ListingCard } from '../components/ListingCard';
@@ -136,7 +135,6 @@ export const HomeScreen = () => {
     <View style={styles.fill}>
       <BrandHeader>
         <LocationChip />
-        <LanguageChip />
       </BrandHeader>
 
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxxl }}>

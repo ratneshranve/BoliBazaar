@@ -14,6 +14,9 @@ const TABS = [
   { name: 'Profile', path: '/profile', icon: User, label: 'tabs.profile' },
 ];
 
+/** One line, shrinks to fit: a long word in another language must never make the bar taller or push the icons out of line. */
+const fit = { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.7, ellipsizeMode: 'tail' };
+
 /** Same tab bar as the mobile mockups: Home · Chats · (+ Sell) · Auctions · Profile */
 export const TabBar = () => {
   const { t } = useTranslation();
@@ -39,7 +42,7 @@ export const TabBar = () => {
               <View style={styles.fab}>
                 <Icon size={30} color={colors.white} strokeWidth={2.5} />
               </View>
-              <AppText variant="small" color={focused ? colors.brand : colors.textMuted} style={{ marginTop: 2, fontWeight: focused ? '700' : '500' }}>
+              <AppText variant="small" color={focused ? colors.brand : colors.textMuted} {...fit} style={[styles.label, { marginTop: 2, fontWeight: focused ? '700' : '500' }]}>
                 {t(tab.label)}
               </AppText>
             </Pressable>
@@ -58,7 +61,7 @@ export const TabBar = () => {
                 </View>
               )}
             </View>
-            <AppText variant="small" color={tint} style={{ marginTop: 3, fontWeight: focused ? '700' : '500' }}>
+            <AppText variant="small" color={tint} {...fit} style={[styles.label, { marginTop: 3, fontWeight: focused ? '700' : '500' }]}>
               {t(tab.label)}
             </AppText>
             {focused && <View style={styles.underline} />}
@@ -71,7 +74,8 @@ export const TabBar = () => {
 
 const styles = StyleSheet.create({
   bar: { flexDirection: 'row', backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: spacing.sm, paddingBottom: spacing.sm, flexShrink: 0 },
-  item: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
+  item: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'flex-end' },
+  label: { maxWidth: '100%', paddingHorizontal: 2, textAlign: 'center' },
   iconWrap: { position: 'relative', alignItems: 'center', justifyContent: 'center' },
   chatBadge: {
     position: 'absolute',

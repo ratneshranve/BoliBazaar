@@ -49,7 +49,7 @@ export const Button = ({ title, onPress, variant = 'primary', loading, disabled,
       ) : (
         <View style={styles.btnRow}>
           {icon}
-          <AppText variant="bodyStrong" color={textColor}>
+          <AppText variant="bodyStrong" color={textColor} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ flexShrink: 1, textAlign: 'center' }}>
             {title}
           </AppText>
           {iconRight}
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   btnMd: { minHeight: 42 },
   btnSm: { minHeight: 34, paddingHorizontal: spacing.md, borderRadius: radius.sm },
   btnOutline: { borderWidth: 1, borderColor: colors.border },
-  btnRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  btnRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, maxWidth: '100%' },
   field: {
     flexDirection: 'row',
     alignItems: 'center',

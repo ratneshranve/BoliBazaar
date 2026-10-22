@@ -84,15 +84,18 @@ export const LanguageScreen = ({ onDone, onBack }) => {
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
+  // The list is ordered once, by the language in use when the screen opened. Choosing a language must NOT reorder the rows:
+  // moving a row to the top while the language changes crashes Android's view system and closed the app.
+  const [startLang] = useState(() => i18n.language);
 
   const items = useMemo(() => {
     const all = languages?.items ?? [];
-    // current language first, then the admin's default, then the rest in list order
-    const rank = (l) => (l.code === i18n.language ? 0 : l.code === languages?.default ? 1 : 2);
+    // language in use first, then the admin's default, then the rest in list order
+    const rank = (l) => (l.code === startLang ? 0 : l.code === languages?.default ? 1 : 2);
     const sorted = [...all].sort((a, b) => rank(a) - rank(b));
     const q = query.trim().toLocaleLowerCase();
     return q ? sorted.filter((l) => matches(l, q)) : sorted;
-  }, [languages, query, i18n.language]);
+  }, [languages, query, startLang]);
 
   const choose = async (code) => {
     if (code === i18n.language && savedLanguage() === code) return onDone();
