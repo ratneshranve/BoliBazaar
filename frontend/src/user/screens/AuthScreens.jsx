@@ -12,6 +12,7 @@ import { authApi, meApi } from '../api/endpoints';
 import { ApiError, saveTokens } from '../api/client';
 import { errorText } from '../i18n';
 import { env } from '../config/env';
+import { useKeyboardOpen } from '../utils/keyboard';
 import { useAppDispatch, useAppSelector, signedIn, meUpdated } from '../store';
 
 /** Country flag picture (flag emoji do not show on Windows). */
@@ -116,6 +117,7 @@ export const OtpScreen = () => {
   const [wait, setWait] = useState(state?.resendInSec ?? 0);
   const [focused, setFocused] = useState(true);
   const input = useRef(null);
+  const keyboardOpen = useKeyboardOpen();
 
   useEffect(() => {
     if (wait <= 0) return undefined;
@@ -229,7 +231,8 @@ export const OtpScreen = () => {
           <CtaButton title={t('auth.verify') || 'Verify'} onPress={() => verify(code)} loading={loading} disabled={code.length !== otpLength} />
         </View>
       </View>
-      <HelpFooter />
+      {/* the card is taller than the number page's: with the keyboard up, the help links make way so Verify stays in view */}
+      {!keyboardOpen && <HelpFooter />}
     </View>
   );
 };
