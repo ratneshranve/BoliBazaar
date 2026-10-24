@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { KeyboardAvoidingView } from 'react-native';
+import { KeyboardAvoidingView, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { routes } from './routes';
 import { RouteContext, goTo } from './router.native';
@@ -20,6 +20,35 @@ import { navRef } from './navRef';
 /** Open an address from outside a screen (push notification taps). */
 export const openPath = (path) => {
   if (navRef.isReady()) goTo(navRef, path);
+};
+
+/** A website link (https://bolibazaar.in/listing/1) or an app link (bolibazaar://listing/1) → the app address /listing/1. */
+const pathOfLink = (url) => {
+  try {
+    const u = new URL(url);
+    const path = u.protocol === 'bolibazaar:' ? `/${u.host}${u.pathname}` : u.pathname;
+    return `${path.replace(/\/+$/, '') || '/'}${u.search}`;
+  } catch {
+    return null;
+  }
+};
+
+let pendingLink = null; // a link that opened the app before the screens were ready
+const openLink = (url) => {
+  const path = url && pathOfLink(url);
+  if (!path || path === '/') return;
+  if (navRef.isReady()) goTo(navRef, path);
+  else pendingLink = path;
+};
+
+/** Links tapped outside the app (shared ads, QR codes) open the same screen inside it. */
+const LinkBridge = () => {
+  useEffect(() => {
+    Linking.getInitialURL().then(openLink).catch(() => {});
+    const sub = Linking.addEventListener('url', ({ url }) => openLink(url));
+    return () => sub.remove();
+  }, []);
+  return null;
 };
 
 const compiled = routes.map((r) => {
@@ -72,9 +101,15 @@ let Page = null;
 export const Navigation = ({ TabsLayout, children }) => {
   Page ??= makePage(TabsLayout);
   return (
-    <NavigationContainer ref={navRef}>
+    <NavigationContainer
+      ref={navRef}
+      onReady={() => {
+        if (pendingLink) goTo(navRef, pendingLink);
+        pendingLink = null;
+      }}>
       {children}
       <PushBridge />
+      <LinkBridge />
       <Stack.Navigator screenOptions={{ headerShown: false, animation: 'none', contentStyle: { backgroundColor: colors.white } }}>
         <Stack.Screen name="Page" component={Page} initialParams={{ path: '/' }} />
       </Stack.Navigator>

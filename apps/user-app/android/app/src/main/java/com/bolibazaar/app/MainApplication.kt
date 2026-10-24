@@ -6,6 +6,7 @@ import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
 import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
+import com.hotupdater.HotUpdater
 
 class MainApplication : Application(), ReactApplication {
 
@@ -16,6 +17,9 @@ class MainApplication : Application(), ReactApplication {
         PackageList(this).packages.apply {
           add(VoicePackage()) // voice search (BBVoice)
         },
+      // Release builds start the newest over-the-air update downloaded by Hot Updater (or the code inside the APK
+      // when there is none); debug builds load from Metro.
+      jsBundleFilePath = if (BuildConfig.DEBUG) null else HotUpdater.getJSBundleFile(applicationContext),
     )
   }
 

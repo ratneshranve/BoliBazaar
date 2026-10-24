@@ -5,6 +5,12 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Declared now so later features (in-app camera, haptics, in-app APK update) need no new APK. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
     <!-- Apps this app uses: the camera (Take photo) and the phone's speech recogniser (voice search). Needed on Android 11+. -->
     <queries>
@@ -22,6 +28,8 @@
       android:usesCleartextTraffic="${usesCleartextTraffic}"
       android:supportsRtl="true">
       <meta-data android:name="com.google.android.geo.API_KEY" android:value="${googleMapsApiKey}" />
+      <!-- Over-the-air updates are accepted only when signed with the team's private key (apps/user-app/keys). -->
+      <meta-data android:name="com.hotupdater.PUBLIC_KEY" android:value="-----BEGIN PUBLIC KEY-----\nMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAjXoogs05IxLDzNEDv0HV\n86c8f7aTXk1Kel9wolgh6PLL3Bb8r7fvOv1Z135aRSTq9xl+3pzANO0cscMmm0iD\nh8jt2/aO2wmVmXHAS4/jVgZKkbVzTDILyELWhmTqer1aEkqFeubR2Xzg7bqb0OVr\noKBshsUM7NMJRrHiVpg8VjU9ZusHTPmO79u3GVjFlLFtrpR+Y1SBvcNeobBf9Mu7\n1L2cIoL2m8XWiEG2Y1IX6NByzk7eLglWHexaipP1vW3uQNWBqnQsVidz+dA6O24W\nk4mARAnBc8QhkpRrV9owhVd8SYdI+ZpLTTj0RgflouPTmgmtHWu57uyv1UpkBv7D\nYrkPLhpM7eq2SIUpndEBUUmo7VEmwnojHH8Kx2kZkvo+/EqJy9fiRLSKjP3IDzP+\nHugrz8jX8AMKMNcij14Ix7Clp2HPxazUQhC4C6MmBt3NeKrlqAZVGXy7fggZcbG8\nD5CxPftAR27jEfHsRk0e6LQXYcrnqETdxRUFtHDKFqB14CH1wbYHTvVuLUYariqL\nk9Z14b+SPPlG7gcwwbrOzggKmvowoe3jfGaIadSQ9fM7xI9l/7K0Gw8wGzRUvaP9\nAcskCQTrRhwytj2FDb78srMVhhhfpDW1TrPsvyuaM1DHoipG5AI3ttKXFb6yijLN\nM62cdnRaQirMPvcOT+zezfMCAwEAAQ==\n-----END PUBLIC KEY-----" />
       <activity
         android:name=".MainActivity"
         android:label="@string/app_name"
@@ -32,6 +40,28 @@
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+        <!-- Shared website links open in the app (verified through https://bolibazaar.in/.well-known/assetlinks.json). -->
+        <intent-filter android:autoVerify="true">
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+            <data android:host="bolibazaar.in" />
+            <data android:host="www.bolibazaar.in" />
+            <data android:pathPrefix="/listing/" />
+            <data android:pathPrefix="/auctions/" />
+            <data android:pathPrefix="/u/" />
+            <data android:pathPrefix="/search" />
+            <data android:pathPrefix="/explore" />
+            <data android:pathPrefix="/page/" />
+        </intent-filter>
+        <!-- bolibazaar://listing/<id> style links (notifications, QR codes) -->
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="bolibazaar" />
         </intent-filter>
       </activity>
     </application>

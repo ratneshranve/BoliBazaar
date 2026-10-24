@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Check, Wrench, CloudOff, Download, Search, Settings2 } from 'lucide-react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from '../components/primitives';
 import { AppText, Button, EmptyState, Field } from '../components/ui';
 import { colors, radius, spacing } from '@theme/tokens';
-import { ensureLanguage, savedLanguage, setLanguage } from '../i18n';
+import { ensureLanguage, errorText, savedLanguage, setLanguage } from '../i18n';
+import { installAppUpdate } from '../services/appUpdate';
 import { useAppDispatch, useAppSelector, fetchBootstrap, dismissUpdate } from '../store';
 
 const Center = ({ children }) => <View style={styles.fill}>{children}</View>;
@@ -53,15 +54,34 @@ export const UpdateScreen = ({ required }) => {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const update = useAppSelector((s) => s.app.bootstrap?.update);
+  const [progress, setProgress] = useState(null); // 0..1 while an APK downloads
+  const [failed, setFailed] = useState('');
+  const start = async () => {
+    if (!update?.storeUrl) return;
+    setFailed('');
+    setProgress(0);
+    try {
+      await installAppUpdate(update.storeUrl, setProgress); // an .apk link downloads and opens Android's installer
+    } catch (e) {
+      setFailed(errorText(e));
+    } finally {
+      setProgress(null);
+    }
+  };
   return (
     <Center>
       <EmptyState
         icon={<Download size={52} color={colors.primary} />}
         title={required ? t('update.requiredTitle') : t('update.availableTitle')}
-        body={required ? t('update.requiredBody') : t('update.availableBody')}
+        body={[required ? t('update.requiredBody') : t('update.availableBody'), failed].filter(Boolean).join('\n\n')}
         action={
           <View style={{ gap: spacing.sm }}>
-            <Button title={t('update.update')} onPress={() => update?.storeUrl && Linking.openURL(update.storeUrl)} />
+            <Button
+              title={progress == null ? t('update.update') : t('update.downloading', { percent: Math.round(progress * 100) })}
+              loading={progress != null && progress === 0}
+              disabled={progress != null}
+              onPress={start}
+            />
             {!required && <Button variant="ghost" title={t('update.later')} onPress={() => dispatch(dismissUpdate())} />}
           </View>
         }

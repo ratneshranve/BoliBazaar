@@ -9,6 +9,7 @@ import { globalLimiter } from './core/middleware/rateLimit.js';
 import { PUBLIC_UPLOAD_DIR } from './core/services/storage.js';
 import userRoutes from './routes/user.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import otaRoutes from './modules/ota/ota.routes.js';
 import { handleWebhook } from './modules/payments/payment.service.js';
 import { sitemapXml } from './modules/growth/growth.service.js';
 import { mediaUrlMiddleware } from './core/utils/mediaUrl.js';
@@ -59,6 +60,8 @@ export const createApp = () => {
       .then((r) => res.json({ success: true, data: r }))
       .catch(next)
   );
+  // over-the-air app updates (phones + the deploy CLI); also works in maintenance mode
+  app.use('/api/v1/hot-updater', otaRoutes);
   app.use('/api/v1/admin', adminRoutes);
   app.use('/api/v1', userRoutes);
 

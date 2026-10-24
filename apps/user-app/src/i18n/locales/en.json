@@ -42,7 +42,8 @@
     "availableTitle": "Update available",
     "availableBody": "A new version is available.",
     "update": "Update now",
-    "later": "Later"
+    "later": "Later",
+    "downloading": "Downloading… {{percent}}%"
   },
   "language": {
     "title": "Choose your language",
@@ -1100,6 +1101,7 @@
     "addPhoto": "Add photo",
     "camera": "Take photo",
     "gallery": "Choose from gallery",
-    "cameraUnavailable": "No camera is available on this phone."
+    "cameraUnavailable": "No camera is available on this phone.",
+    "cameraBlocked": "Allow camera access to take a photo."
   }
 }

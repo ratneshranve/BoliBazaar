@@ -78,6 +78,12 @@ const schema = z
     GOOGLE_TRANSLATE_API_KEY: optional,
     // Folder holding the app's en.json (+ hand-written hi.json…). Default: apps/user-app/src/i18n/locales in this repo.
     I18N_LOCALES_DIR: optional,
+
+    // Over-the-air app updates (Hot Updater). The deploy command on a laptop sends this token to upload updates;
+    // without it uploads are switched off (phones still ask, and get "no update"). Use 32+ random characters.
+    HOT_UPDATER_ADMIN_TOKEN: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(32, 'HOT_UPDATER_ADMIN_TOKEN must be at least 32 characters').optional()),
+    // Folder for update files on this server. Default: UPLOAD_DIR/ota
+    HOT_UPDATER_DIR: optional,
     // Places API (New) + Geocoding API. Used by the server only, so the key is never sent to apps.
     GOOGLE_MAPS_SERVER_KEY: optional,
 

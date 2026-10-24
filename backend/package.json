@@ -13,6 +13,8 @@
     "seed:admin": "node src/scripts/seed-admin.js"
   },
   "dependencies": {
+    "@hot-updater/plugin-core": "^1.1.2",
+    "@hot-updater/server": "^1.1.2",
     "@socket.io/redis-adapter": "^8.3.0",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.5.1",
@@ -26,6 +28,7 @@
     "ioredis": "^5.4.2",
     "jsonwebtoken": "^9.0.2",
     "libphonenumber-js": "^1.11.17",
+    "mongodb": "^6.20.0",
     "mongoose": "^8.9.3",
     "morgan": "^1.10.0",
     "multer": "^2.4.0",

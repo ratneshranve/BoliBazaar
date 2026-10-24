@@ -1,4 +1,4 @@
-import { Alert } from 'react-native';
+import { Alert, PermissionsAndroid } from 'react-native';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { pick, types, isErrorWithCode, errorCodes } from '@react-native-documents/picker';
 import i18n from '../i18n';
@@ -17,10 +17,16 @@ const fromAsset = (a) => ({
 
 const PHOTO = { mediaType: 'photo', quality: 0.85, maxWidth: 2400, maxHeight: 2400 };
 
+/** The app declares the camera permission (for later in-app camera features), so Android wants it granted before the camera opens. */
+const cameraAllowed = async () => (await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA)) === PermissionsAndroid.RESULTS.GRANTED;
+
 export const pickImages = async ({ multiple = true } = {}) => {
   const source = await askPhotoSource();
   if (!source) return [];
-  // the system camera app takes the picture, so this app needs no camera permission
+  if (source === 'camera' && !(await cameraAllowed())) {
+    Alert.alert(i18n.t('files.cameraBlocked'));
+    return [];
+  }
   const r = source === 'camera' ? await launchCamera({ ...PHOTO, cameraType: 'back', saveToPhotos: false }) : await launchImageLibrary({ ...PHOTO, selectionLimit: multiple ? 0 : 1 });
   if (r.errorCode) Alert.alert(i18n.t(r.errorCode === 'camera_unavailable' ? 'files.cameraUnavailable' : 'common.somethingWrong'));
   return r.didCancel || r.errorCode ? [] : (r.assets || []).map(fromAsset);

@@ -73,3 +73,10 @@ yarn-error.log
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# over-the-air updates: signing private key and deploy secrets never go to git
+keys/private-key.pem
+.env.hotupdater
+.hot-updater/
+# hot-updater
+.hot-updater/output

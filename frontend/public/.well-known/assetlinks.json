@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.bolibazaar.app",
+      "sha256_cert_fingerprints": [
+        "1F:B9:42:06:22:0F:56:1A:61:BB:74:B7:64:57:FD:1B:D7:27:B7:26:75:0E:43:6E:61:3E:68:E3:CD:3E:EA:E2"
+      ]
+    }
+  }
+]
