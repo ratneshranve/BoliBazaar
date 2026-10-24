@@ -33,6 +33,9 @@ export const CategoryTile = ({ category, onPress, size = 72, style }) => (
   </Pressable>
 );
 
+const VIEW_ALL_ICON_URL =
+  'https://res.cloudinary.com/whum7nka/image/upload/v1792831971/bolibazaar/category/yla6qxlm35e5vtemirt8.webp';
+
 /** "See all" / "View all" in a category grid: same circle, background and icon size as a category, with a 3D grid icon. */
 export const ViewAllTile = ({ label, onPress, size = 72, style }) => (
   <Pressable
@@ -41,7 +44,7 @@ export const ViewAllTile = ({ label, onPress, size = 72, style }) => (
     style={({ pressed }) => [styles.tile, { width: size + 16 }, style, pressed && { opacity: 0.85 }]}
   >
     <View style={[styles.circle, { width: size, height: size, borderRadius: size / 2 }]}>
-      <Image source={{ uri: viewAllIcon }} style={{ width: Math.round(size * 0.76), height: Math.round(size * 0.76) }} resizeMode="contain" />
+      <Image source={{ uri: VIEW_ALL_ICON_URL }} style={{ width: Math.round(size * 0.76), height: Math.round(size * 0.76) }} resizeMode="contain" />
     </View>
     <AppText variant="small" style={[styles.label, { fontWeight: '600', color: colors.primary }]} numberOfLines={2}>
       {label}
