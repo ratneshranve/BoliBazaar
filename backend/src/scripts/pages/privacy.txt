@@ -1,0 +1,92 @@
+Last updated: 26 October 2026
+
+This Privacy Policy explains what personal data Boli Bazaar ("we", "us", "our") collects when you use the Boli Bazaar mobile app and the website bolibazaar.in (the "Platform"), why we collect it, who we share it with and the choices you have. We follow the Digital Personal Data Protection Act, 2023, the Information Technology Act, 2000 and the rules made under them. By using the Platform you agree to this policy.
+
+1. DATA WE COLLECT
+
+Data you give us
+• Mobile number: used to create your account and sign you in with an OTP.
+• Profile details: name, profile photo, and an optional email address (used only to send you copies of important notices, after you verify it).
+• Ads: titles, descriptions, prices, photos, category details and the location of the item.
+• Chat: messages, photos and documents you send to other users, and offers made in chat.
+• Auctions: bids, maximum (automatic) bids, won deals and their status.
+• Verification: if you choose to get an ID or business badge, the documents and details you submit (for example, GSTIN or business papers). We never store your full Aadhaar number.
+• Help and reports: the requests, complaints, appeals and reports you send us.
+• Payments: the plan or service you paid for, the amount, invoice details and the payment reference. Card, UPI and bank details are handled by Razorpay and are never stored by us.
+
+Data collected automatically
+• Location: with your permission, your device location is used to show ads near you and to set the location of your ad. You can also pick a place by searching instead.
+• Device data: device model, operating system, app version, language, IP address and a push notification token.
+• Usage data: ads you view, save or search for, saved searches, and actions such as showing a seller's phone number.
+• Camera and microphone: used only when you choose to take a photo for an ad or chat, or to search by voice. We do not record anything in the background.
+
+2. HOW WE USE YOUR DATA
+
+• To create and secure your account and sign you in.
+• To publish your ads and show you ads, auctions and search results that match your location and interests.
+• To let buyers and sellers chat, make offers and complete auction deals.
+• To process payments, issue invoices and credit notes and handle refunds.
+• To send notifications about chats, bids, offers, saved-search matches, payments and your account. You can turn notification groups on or off in Settings.
+• To keep the Platform safe: checking ads and messages for spam, fraud and prohibited content, reviewing reports, applying strikes and preventing banned users from returning.
+• To provide customer support and resolve complaints and disputes.
+• To translate content into your chosen language and to improve the Platform using overall usage statistics.
+• To meet legal duties, such as tax records and lawful requests from authorities.
+
+3. WHAT OTHER USERS CAN SEE
+
+• Your name, profile photo, "member since" date, badges, active ads and public seller page.
+• An approximate location for your ads. We show a point shifted by a short distance (about 500 metres), not your exact address.
+• Your phone number is shown only if you choose to show it to a particular user.
+• Your bids appear on the auction page with your name partly hidden.
+
+4. WHO WE SHARE DATA WITH
+
+We do not sell your personal data. We share it only with:
+• Service providers who help us run the Platform, under contracts that protect your data: cloud hosting and image storage (such as Cloudinary), Google (Maps, Places and translation), Firebase Cloud Messaging (push notifications), our SMS provider (OTP messages), our email provider and Razorpay (payments).
+• Other users, as described in section 3, when you post ads, chat, bid or complete deals.
+• Government, police, courts or regulators, when required by law or to protect the rights, safety or property of our users or the public.
+• A buyer or successor of our business, if Boli Bazaar is merged or sold, under the same protections as this policy.
+
+5. HOW LONG WE KEEP DATA
+
+• Account and ad data are kept while your account is active.
+• When you delete your account, your profile, ads and chats are removed after a 15-day grace period.
+• Some records are kept for longer where the law requires or allows it: payment and invoice records (up to 8 years for tax purposes), and records of reports, strikes, bans and complaints (up to 3 years, to prevent fraud and handle disputes).
+• Verification documents are kept only as long as needed to maintain your badge, and are then deleted.
+
+6. HOW WE PROTECT DATA
+
+Data is sent over encrypted connections (HTTPS). Verification documents are stored privately and can be opened only by authorised staff through an audited viewer. Staff access is limited by role and is logged. No system is completely secure, so please keep your phone and OTP private.
+
+7. YOUR RIGHTS AND CHOICES
+
+You can:
+• See and edit your profile from the app at any time.
+• Download a copy of your data from My data & account in your profile.
+• Withdraw permissions for location, camera, microphone or notifications from your phone settings.
+• Turn notification groups and email copies on or off in Settings.
+• Delete your account from My data & account in your profile.
+• Ask us to correct or erase your data, withdraw your consent, or nominate a person to exercise your rights in case of death or incapacity, by writing to us at the contact details below.
+• Complain to the Data Protection Board of India if you are not satisfied with our response.
+
+8. CHILDREN
+
+The Platform is meant for people aged 18 and over. We do not knowingly collect data from children. If you believe a child has created an account, please contact us and we will delete it.
+
+9. COOKIES (WEBSITE)
+
+Our website uses essential cookies and local storage to keep you signed in and remember your language and location. We do not use them to sell advertising profiles.
+
+10. CHANGES TO THIS POLICY
+
+We may update this policy from time to time. We will tell you in the app about important changes and may ask you to accept the new version.
+
+11. CONTACT AND GRIEVANCE OFFICER
+
+For any question, request or complaint about your personal data:
+
+Grievance Officer, Boli Bazaar
+Email: bolibazaar.in@gmail.com
+Phone: +91 88393 76390 (Monday to Saturday, 10:00 AM to 6:00 PM)
+
+We will acknowledge your request within 24 hours and respond within 15 days. You can also write to us from Help Centre › Contact us in the app.

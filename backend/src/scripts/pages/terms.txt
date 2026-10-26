@@ -1,0 +1,129 @@
+Last updated: 26 October 2026
+
+Welcome to Boli Bazaar. These Terms & Conditions ("Terms") are an agreement between you and Boli Bazaar ("Boli Bazaar", "we", "us", "our") for the use of the Boli Bazaar mobile app and the website bolibazaar.in (together, the "Platform"). By creating an account or using the Platform you agree to these Terms and to our Privacy Policy. If you do not agree, please do not use the Platform.
+
+1. WHAT BOLI BAZAAR IS
+
+Boli Bazaar is an online marketplace where people and businesses can post free classified ads to buy, sell, rent, hire or offer services, and can run or join online auctions ("boli"). Boli Bazaar is an intermediary under the Information Technology Act, 2000. We provide the technology that connects buyers and sellers. We are not the buyer, seller, owner, agent or auctioneer of any item listed by users, and we are not a party to any deal made between users unless we clearly say so (for example, in an auction managed by Boli Bazaar on behalf of a named seller).
+
+2. WHO CAN USE THE PLATFORM
+
+• You must be at least 18 years old and able to enter into a legally binding contract under Indian law.
+• You may hold only one personal account. Businesses may use a business account in their registered name.
+• You must not use the Platform if your account was earlier suspended or banned by us.
+
+3. YOUR ACCOUNT
+
+• You sign in with your mobile number and a one-time password (OTP). Keep your phone and SIM safe; anything done from your account is treated as done by you.
+• The information in your profile must be true and kept up to date.
+• Tell us at once at bolibazaar.in@gmail.com if you think someone else has used your account.
+• You can delete your account at any time from My data & account in your profile. Deletion is completed after a 15-day grace period, during which you can cancel it by signing in again. Some records must be kept even after deletion, as explained in our Privacy Policy.
+
+4. POSTING ADS
+
+When you post an ad, you promise that:
+• You own the item or have the right to sell, rent or offer it, and the item is legal to sell in India.
+• The title, description, price, photos, condition and location are true and not misleading, and the photos are of the actual item (or are clearly marked as sample photos).
+• The ad is posted in the correct category, and you do not post the same item more than once.
+• You will mark the ad as sold, or remove it, once the item is no longer available.
+
+Ads may be reviewed before or after they go live. We may edit the category, ask for changes, reject, pause or remove any ad that breaks these Terms, our Prohibited Items Policy or the law. Ads expire after the period shown when posting and can be renewed.
+
+Free ad limits, paid ad posting fees, promotion packages (such as Featured, Top or Urgent) and seller plans are shown in the app before you pay. A promotion increases visibility only; it does not guarantee a sale or a number of views or replies.
+
+5. PROHIBITED ITEMS AND CONDUCT
+
+You must not post, sell, auction or ask for:
+• Anything illegal in India, including drugs and narcotics, weapons and ammunition, explosives, wildlife and animal parts protected by law, counterfeit or stolen goods, fake currency, and items that need a licence you do not hold.
+• Adult or sexual content, or content involving minors in any harmful way.
+• Human organs, blood, or any service involving human trafficking.
+• Prescription medicines, tobacco or alcohol in breach of the law.
+• Government IDs, personal data of others, hacked accounts or pirated software, films or music.
+• Jobs that charge a fee from the job seeker, pyramid or chain schemes, lotteries or betting.
+• Property or vehicles you do not own or are not authorised to deal in.
+
+You must also not:
+• Post false, misleading, hateful, abusive, discriminatory or defamatory content, or harass, threaten or spam other users.
+• Ask for advance payments using fake stories, use fake payment screenshots, or try to cheat any user.
+• Put phone numbers, links or payment details inside ad text or photos where the Platform does not allow it.
+• Bid in your own auction, ask others to bid to raise the price (shill bidding), or bid without intending to pay.
+• Copy, scrape or misuse data from the Platform, or try to break, overload or get around its security.
+• Create new accounts to avoid a restriction, suspension or ban.
+
+The full list is in the Prohibited Items Policy page in the app.
+
+6. AUCTIONS (BOLI)
+
+• Sellers set the starting price, bid step, optional reserve price and auction timing as allowed by the app. Auctions may need approval before they go live.
+• A bid is a binding offer to buy at that price. Bids cannot be withdrawn except where the app allows it or where we cancel a bid for a valid reason.
+• The app may bid for you automatically up to the maximum you set (proxy bidding). If a bid is placed in the last minutes, the auction may be extended so that every bidder gets a fair chance (anti-sniping).
+• When an auction ends with a winning bid that meets the reserve, the winner and seller must complete the deal within the time shown in the app. If the winner does not pay or complete the deal, the seller may offer the item to the next highest bidder.
+• Sellers must hand over the item as described. Buyers must pay the agreed price.
+• Users who do not complete won deals, or sellers who do not deliver, may receive strikes. Repeated strikes can lead to bidding or selling restrictions, suspension or a ban.
+• Where a commission is charged on completed auction deals, the rate is shown before the auction starts. Unpaid commission may block further auctions until it is paid.
+• Auctions managed by Boli Bazaar for banks, companies or other sellers may have extra terms (such as inspection, documents and payment timelines). Those terms are shown on the auction page and apply in addition to these Terms.
+
+7. DEALING WITH OTHER USERS
+
+• Deals are made directly between buyers and sellers. Always see the item in person, check documents (such as RC, ownership papers or bills) and pay only when you are satisfied.
+• Never pay in advance to people you have not met, never share your OTP, UPI PIN, card details or passwords, and never scan a QR code to "receive" money.
+• Badges such as "Phone verified", "ID verified" or "Verified business" mean only that the stated check was done. They are not a guarantee of the person, the item, its ownership or its quality.
+• Boli Bazaar does not inspect items and does not guarantee the quality, safety, legality or delivery of any item, or the truth of any ad or the ability of any user to complete a deal.
+
+8. CHAT, CALLS AND OFFERS
+
+• Chat is provided to discuss ads. Messages, photos and documents you send may be checked automatically for spam, fraud and banned words, and may be reviewed when a user reports them.
+• When you choose to show your phone number to a buyer or seller, we record that it was shown. Daily limits may apply to protect users from misuse.
+• Offers made in chat are between you and the other user. An accepted offer is an agreement to deal at that price.
+
+9. PAYMENTS, REFUNDS AND INVOICES
+
+• Payments to Boli Bazaar (ad posting fees, promotions, seller plans and auction commission) are processed by our payment partner Razorpay. We do not store your card, UPI or bank details.
+• Prices shown include or exclude GST as stated at checkout. An invoice is issued for every successful payment.
+• Fees are non-refundable once the service has started (for example, once an ad goes live or a promotion begins), except where the law requires a refund, where a payment was charged twice, or where we remove a paid ad by mistake. Approved refunds are returned to the original payment method, usually within 5 to 7 working days, and a credit note is issued.
+• Coupons are subject to the conditions shown with them and may be withdrawn at any time.
+• Payments between buyers and sellers for items are made outside the Platform and are entirely between them.
+
+10. YOUR CONTENT
+
+You keep ownership of the photos, text and other content you post. You give Boli Bazaar a non-exclusive, royalty-free, worldwide licence to host, store, display, resize, translate and share that content on the Platform and in our promotion of the Platform, for as long as it is on the Platform and for a reasonable time after. You confirm that you have the right to give this licence.
+
+11. REPORTS, MODERATION AND ACCOUNT ACTION
+
+• Any user can report an ad, a profile or a chat. We review reports and may hide content automatically when it receives several reports.
+• We may remove content, limit features, issue strikes, suspend or ban accounts that break these Terms or the law, with or without notice, and may share information with law enforcement where required by law.
+• If you think an action against you was wrong, you can appeal from the Help section in the app.
+
+12. OUR INTELLECTUAL PROPERTY
+
+The Boli Bazaar name, logo, app, website design and software belong to us. You may not copy, modify or use them without our written permission.
+
+13. DISCLAIMERS
+
+The Platform is provided "as is" and "as available". We try to keep it running smoothly, but we do not promise that it will always be available, error-free or secure. Maps, distances and locations are approximate.
+
+14. LIMITATION OF LIABILITY
+
+To the extent allowed by law, Boli Bazaar is not liable for any loss arising from deals between users, from the content of ads or messages, or from any indirect or consequential loss. Our total liability to you for any claim relating to the Platform is limited to the amount you paid to Boli Bazaar in the 3 months before the claim.
+
+15. INDEMNITY
+
+You agree to compensate Boli Bazaar for any claim, loss or cost (including reasonable legal fees) caused by your ads, your deals, your breach of these Terms or your breach of the law.
+
+16. CHANGES TO THESE TERMS
+
+We may update these Terms from time to time. When we make important changes, we will tell you in the app and may ask you to accept the new version before you continue. Using the Platform after an update means you accept the updated Terms.
+
+17. GOVERNING LAW AND DISPUTES
+
+These Terms are governed by the laws of India. Please contact us first so we can try to solve any problem. Any dispute that cannot be settled amicably will be subject to the exclusive jurisdiction of the competent courts in India where Boli Bazaar is registered.
+
+18. GRIEVANCE OFFICER AND CONTACT
+
+In line with the Information Technology Act, 2000 and the rules made under it, you can contact our Grievance Officer with any complaint about content or use of the Platform:
+
+Grievance Officer, Boli Bazaar
+Email: bolibazaar.in@gmail.com
+Phone: +91 88393 76390 (Monday to Saturday, 10:00 AM to 6:00 PM)
+
+We will acknowledge your complaint within 24 hours and try to resolve it within 15 days. You can also raise a complaint from Help Centre › Contact us in the app.

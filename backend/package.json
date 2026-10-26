@@ -8,9 +8,10 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "node api.js && node --watch src/server.js",
-    "start": "node api.js && node src/server.js",
-    "seed:admin": "node src/scripts/seed-admin.js"
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "seed:admin": "node src/scripts/seed-admin.js",
+    "seed:pages": "node src/scripts/seed-pages.js"
   },
   "dependencies": {
     "@hot-updater/plugin-core": "^1.1.2",
