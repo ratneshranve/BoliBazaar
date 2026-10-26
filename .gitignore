@@ -2,8 +2,6 @@
 node_modules/
 
 # Environment files (credentials) — only .env.example is committed
-.env
-.env.*
 !.env.example
 
 # Build outputs
@@ -33,7 +31,6 @@ google-services.json
 GoogleService-Info.plist
 
 # Editors / OS / scratch
-.vscode/
 .idea/
 .DS_Store
 Thumbs.db
@@ -45,3 +42,4 @@ temp_interactive_push.bat
 
 # Android release signing (upload key) — keep backups outside git
 apps/user-app/android/keystore.properties
+config.bat
