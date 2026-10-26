@@ -134,6 +134,10 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
     }
+    // Play Store build (-PplayStore): drops REQUEST_INSTALL_PACKAGES, which Play rejects for self-updating apps
+    if (project.hasProperty("playStore")) {
+        sourceSets.release.manifest.srcFile "src/playStore/AndroidManifest.xml"
+    }
 }
 
 dependencies {
