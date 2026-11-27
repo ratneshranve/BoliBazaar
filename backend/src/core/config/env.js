@@ -60,6 +60,9 @@ const schema = z
     // Testing switch: when true every login OTP is DEFAULT_OTP and no SMS is sent. Keep false for real users.
     DEFAULT_OTP_ENABLED: z.enum(['true', 'false']),
     DEFAULT_OTP: optional,
+    // Test/demo numbers (comma-separated, 10+ digits each) that always get TEST_OTP and never an SMS, whatever DEFAULT_OTP_ENABLED says.
+    TEST_OTP_PHONES: optional,
+    TEST_OTP: optional,
     // SMS India Hub (same gateway as OyeChotuu). The message must match the DLT-approved template exactly; {{otp}} is replaced with the code.
     SMS_INDIA_HUB_API_KEY: optional,
     SMS_INDIA_HUB_SENDER_ID: optional,
@@ -111,6 +114,9 @@ const schema = z
     if (env.DEFAULT_OTP_ENABLED === 'true' && !/^\d{4,8}$/.test(env.DEFAULT_OTP || '')) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['DEFAULT_OTP'], message: 'DEFAULT_OTP must be 4-8 digits when DEFAULT_OTP_ENABLED=true' });
     }
+    if (env.TEST_OTP_PHONES && !/^\d{4,8}$/.test(env.TEST_OTP || '')) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['TEST_OTP'], message: 'TEST_OTP must be 4-8 digits when TEST_OTP_PHONES is set' });
+    }
     if (env.DEFAULT_OTP_ENABLED !== 'true' && !env.SMS_PROVIDER) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['SMS_PROVIDER'], message: 'Set SMS_PROVIDER (smsindiahub | console), or DEFAULT_OTP_ENABLED=true for testing' });
     }
@@ -155,6 +161,8 @@ export const env = Object.freeze({
   redisEnabled: e.REDIS_ENABLED === 'true',
   bullmqEnabled: e.BULLMQ_ENABLED === 'true',
   defaultOtp: e.DEFAULT_OTP_ENABLED === 'true' ? e.DEFAULT_OTP : null,
+  testOtpPhones: (e.TEST_OTP_PHONES || '').split(',').map((s) => s.replace(/\D/g, '')).filter((d) => d.length >= 10),
+  testOtp: e.TEST_OTP || null,
   corsOrigins: e.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean),
   firebaseServiceAccount: e.FIREBASE_SERVICE_ACCOUNT ? parseServiceAccount(e.FIREBASE_SERVICE_ACCOUNT) : undefined,
 });

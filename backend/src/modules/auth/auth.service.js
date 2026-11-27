@@ -53,8 +53,10 @@ export const sendLoginOtp = async ({ phone, countryCode, ip, deviceId }) => {
     throw ApiError.tooMany('OTP_LIMIT_REACHED', 'Too many OTP requests. Try again later.');
   }
 
-  // DEFAULT_OTP_ENABLED=true (testing): fixed code, no SMS
-  const code = env.defaultOtp || randomDigits(sec.otpLength);
+  // TEST_OTP_PHONES always get TEST_OTP; DEFAULT_OTP_ENABLED=true (testing) gives everyone DEFAULT_OTP. Neither sends an SMS.
+  const digits = e164.replace(/\D/g, '');
+  const fixedOtp = (env.testOtp && env.testOtpPhones.some((p) => digits.endsWith(p)) && env.testOtp) || env.defaultOtp;
+  const code = fixedOtp || randomDigits(sec.otpLength);
   await OtpRequest.create({
     target: e164,
     purpose: 'login',
@@ -64,7 +66,7 @@ export const sendLoginOtp = async ({ phone, countryCode, ip, deviceId }) => {
     deviceId,
   });
 
-  if (!env.defaultOtp) {
+  if (!fixedOtp) {
     const branding = await getSettingValue('branding');
     await sendOtpSms({ phone: e164, code, appName: branding.appName });
   }
